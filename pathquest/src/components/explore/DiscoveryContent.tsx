@@ -6,8 +6,9 @@
  */
 
 import React, { useState } from 'react';
-import { View, ScrollView, TouchableOpacity, Text } from 'react-native';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { View, ScrollView, TouchableOpacity } from 'react-native';
+import { ZoomIn, MapPin, Trophy } from 'lucide-react-native';
+import { Text } from '@/src/components/ui';
 import { useMapStore } from '@/src/store/mapStore';
 import PeakRow from './PeakRow';
 import ChallengeRow from './ChallengeRow';
@@ -34,7 +35,7 @@ const DiscoveryContent: React.FC<DiscoveryContentProps> = ({
   if (isZoomedOutTooFar) {
     return (
       <View className="flex-1 items-center justify-center p-8">
-        <FontAwesome name="search-plus" size={32} color="#A9A196" />
+        <ZoomIn size={32} color="#A9A196" />
         <Text className="text-foreground text-lg font-semibold mt-4 text-center font-display">
           Zoom in to explore
         </Text>
@@ -59,12 +60,11 @@ const DiscoveryContent: React.FC<DiscoveryContentProps> = ({
           onPress={() => setActiveTab('peaks')}
           activeOpacity={0.7}
         >
-          <FontAwesome 
-            name="map-marker" 
+          <MapPin
             size={14} 
             color={activeTab === 'peaks' ? '#EDE5D8' : '#A9A196'} 
           />
-          <Text className={`text-[13px] font-medium ${
+          <Text className={`text-[13px] font-medium font-display ${
             activeTab === 'peaks' ? 'text-foreground' : 'text-muted-foreground'
           }`}>
             Peaks ({peakCount})
@@ -78,8 +78,7 @@ const DiscoveryContent: React.FC<DiscoveryContentProps> = ({
           onPress={() => setActiveTab('challenges')}
           activeOpacity={0.7}
         >
-          <FontAwesome 
-            name="trophy" 
+          <Trophy
             size={14} 
             color={activeTab === 'challenges' ? '#EDE5D8' : '#A9A196'} 
           />
@@ -108,7 +107,7 @@ const DiscoveryContent: React.FC<DiscoveryContentProps> = ({
             ))
           ) : (
             <View className="items-center justify-center p-8">
-              <FontAwesome name="map-marker" size={24} color="#A9A196" />
+              <MapPin size={24} color="#A9A196" />
               <Text className="text-muted-foreground text-sm mt-3 text-center">
                 No peaks in this area
               </Text>
@@ -125,7 +124,7 @@ const DiscoveryContent: React.FC<DiscoveryContentProps> = ({
             ))
           ) : (
             <View className="items-center justify-center p-8">
-              <FontAwesome name="trophy" size={24} color="#A9A196" />
+              <Trophy size={24} color="#A9A196" />
               <Text className="text-muted-foreground text-sm mt-3 text-center">
                 No challenges in this area
               </Text>

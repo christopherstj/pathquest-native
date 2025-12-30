@@ -1,18 +1,26 @@
-import React, { useState, useRef, useCallback } from 'react';
-import { View, TouchableOpacity, Text as RNText } from 'react-native';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { View, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { MapView, PeakMarkers } from '@/src/components/map';
+import { Home, Compass, User, LogOut, LogIn, UserCircle } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
+import { MapView, PeakMarkers, CenterOnMeButton, LineToTarget } from '@/src/components/map';
 import type { MapViewRef } from '@/src/components/map';
 import { ContentSheet } from '@/src/components/navigation';
 import { useMapStore } from '@/src/store/mapStore';
-import type { Peak } from '@pathquest/shared';
+import { useMapPeaks, useMapChallenges } from '@/src/hooks';
+import type { Peak, ChallengeProgress } from '@pathquest/shared';
 import { Text } from '@/src/components/ui';
 
 // Import tab content components
 import { DashboardContent } from '@/src/components/home';
 import { ProfileContent } from '@/src/components/profile';
-import { DiscoveryContent, PeakDetail, ChallengeDetail } from '@/src/components/explore';
+import { 
+  DiscoveryContent, 
+  PeakDetail, 
+  ChallengeDetail,
+  FloatingPeakCard,
+  FloatingChallengeCard,
+} from '@/src/components/explore';
 import { useAuthStore } from '@/src/lib/auth';
 import { startStravaAuth } from '@/src/lib/auth/strava';
 
@@ -21,9 +29,10 @@ type TabName = 'home' | 'explore' | 'profile';
 /**
  * Main Tab Layout
  * 
- * Renders the map as a full-screen background with all tab content
- * inside a draggable ContentSheet overlay. This mimics the web app's
- * layout where the map is always visible behind the content drawer.
+ * Layout varies by tab:
+ * - **Home**: Full-screen dashboard (no map)
+ * - **Explore**: Map background with ContentSheet overlay
+ * - **You**: Full-screen profile (no map by default, toggle to map mode in future)
  */
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -39,15 +48,61 @@ export default function TabLayout() {
   
   // Map store state
   const visiblePeaks = useMapStore((state) => state.visiblePeaks);
+  const visibleChallenges = useMapStore((state) => state.visibleChallenges);
   const selectedPeakId = useMapStore((state) => state.selectedPeakId);
-  const setSelectedPeakId = useMapStore((state) => state.setSelectedPeakId);
-  const setSelectedChallengeId = useMapStore((state) => state.setSelectedChallengeId);
+  const selectedChallengeId = useMapStore((state) => state.selectedChallengeId);
+  const selectionMode = useMapStore((state) => state.selectionMode);
+  const selectPeak = useMapStore((state) => state.selectPeak);
+  const selectChallenge = useMapStore((state) => state.selectChallenge);
+  const openDetail = useMapStore((state) => state.openDetail);
   const updateMapRegion = useMapStore((state) => state.updateMapRegion);
   const clearSelection = useMapStore((state) => state.clearSelection);
+  const setVisiblePeaks = useMapStore((state) => state.setVisiblePeaks);
+  const setVisibleChallenges = useMapStore((state) => state.setVisibleChallenges);
+  const currentBounds = useMapStore((state) => state.currentBounds);
+  const isZoomedOutTooFar = useMapStore((state) => state.isZoomedOutTooFar);
 
-  // Find selected peak from visible items
+  // Convert bounds format for API: [[sw_lng, sw_lat], [ne_lng, ne_lat]] -> { northWest: [lat, lng], southEast: [lat, lng] }
+  const apiBounds = currentBounds ? {
+    northWest: [currentBounds[1][1], currentBounds[0][0]] as [number, number], // [ne_lat, sw_lng]
+    southEast: [currentBounds[0][1], currentBounds[1][0]] as [number, number], // [sw_lat, ne_lng]
+  } : null;
+
+  // Debug logging
+  useEffect(() => {
+    console.log('[TabLayout] Bounds state - currentBounds:', currentBounds ? 'set' : 'null', 
+      'isZoomedOutTooFar:', isZoomedOutTooFar, 
+      'apiBounds:', apiBounds ? JSON.stringify(apiBounds) : 'null');
+  }, [currentBounds, isZoomedOutTooFar, apiBounds]);
+
+  // Fetch peaks and challenges from API when map bounds change
+  const { data: peaksData, isLoading: peaksLoading, error: peaksError } = useMapPeaks(apiBounds, !isZoomedOutTooFar);
+  const { data: challengesData } = useMapChallenges(apiBounds, !isZoomedOutTooFar);
+
+  // Debug: Log when peaks data changes
+  useEffect(() => {
+    console.log('[TabLayout] peaksData changed:', peaksData?.length ?? 0, 'peaks, loading:', peaksLoading, 'error:', peaksError?.message);
+  }, [peaksData, peaksLoading, peaksError]);
+
+  // Update store when data changes
+  useEffect(() => {
+    if (peaksData) {
+      setVisiblePeaks(peaksData);
+    }
+  }, [peaksData, setVisiblePeaks]);
+
+  useEffect(() => {
+    if (challengesData) {
+      setVisibleChallenges(challengesData);
+    }
+  }, [challengesData, setVisibleChallenges]);
+
+  // Find selected items from visible items
   const selectedPeak = selectedPeakId 
     ? visiblePeaks.find(p => p.id === selectedPeakId) 
+    : null;
+  const selectedChallenge = selectedChallengeId
+    ? visibleChallenges.find(c => c.id === selectedChallengeId)
     : null;
 
   // Handle map region changes
@@ -56,28 +111,58 @@ export default function TabLayout() {
     zoom: number;
     bounds: [[number, number], [number, number]];
   }) => {
+    console.log('[TabLayout] Region changed - zoom:', region.zoom, 'bounds:', JSON.stringify(region.bounds));
     updateMapRegion(region);
   }, [updateMapRegion]);
 
-  // Handle peak selection from list or map
+  // Handle map ready - trigger initial bounds fetch
+  const handleMapReady = useCallback(async () => {
+    console.log('[TabLayout] Map ready, fetching initial bounds...');
+    // Give the map a moment to fully initialize
+    setTimeout(async () => {
+      try {
+        const center = await mapRef.current?.getCenter();
+        const zoom = await mapRef.current?.getZoom();
+        if (center && zoom) {
+          // Estimate bounds from center and zoom
+          // This is a rough approximation - the actual onRegionChange will update with real bounds
+          console.log('[TabLayout] Initial center:', center, 'zoom:', zoom);
+        }
+      } catch (error) {
+        console.warn('[TabLayout] Error getting initial map state:', error);
+      }
+    }, 500);
+  }, []);
+
+  // Handle peak selection from list or map - shows floating card
   const handlePeakPress = useCallback((peak: Peak) => {
-    setSelectedPeakId(peak.id);
+    selectPeak(peak.id);
     setActiveTab('explore');
     if (peak.location_coords) {
       mapRef.current?.flyTo(peak.location_coords, 14);
     }
-  }, [setSelectedPeakId]);
+  }, [selectPeak]);
 
-  // Handle challenge selection from list
-  const handleChallengePress = useCallback((challenge: any) => {
-    setSelectedChallengeId(challenge.id);
+  // Handle challenge selection from list - shows floating card
+  const handleChallengePress = useCallback((challenge: ChallengeProgress) => {
+    selectChallenge(challenge.id);
     setActiveTab('explore');
-  }, [setSelectedChallengeId]);
+  }, [selectChallenge]);
 
-  // Handle closing detail view
+  // Handle opening detail view from floating card
+  const handleOpenDetail = useCallback(() => {
+    openDetail();
+  }, [openDetail]);
+
+  // Handle closing detail/floating card
   const handleCloseDetail = useCallback(() => {
     clearSelection();
   }, [clearSelection]);
+
+  // Handle center on user location
+  const handleCenterOnUser = useCallback(() => {
+    mapRef.current?.centerOnUser();
+  }, []);
 
   // Handle login
   const handleLogin = async () => {
@@ -89,10 +174,10 @@ export default function TabLayout() {
     await logout();
   };
 
-  // Render content based on active tab
-  const renderContent = () => {
-    // If on Explore tab and there's a selection, show detail view
-    if (activeTab === 'explore') {
+  // Render Explore tab content (for ContentSheet)
+  const renderExploreContent = () => {
+    // Show full detail view only when selectionMode is 'detail'
+    if (selectionMode === 'detail') {
       if (selectedPeak) {
         return (
           <PeakDetail 
@@ -101,121 +186,240 @@ export default function TabLayout() {
           />
         );
       }
-      
-      return (
-        <DiscoveryContent
-          onPeakPress={handlePeakPress}
-          onChallengePress={handleChallengePress}
-        />
-      );
-    }
-    
-    if (activeTab === 'home') {
-      return <DashboardContent onPeakPress={handlePeakPress} />;
-    }
-    
-    if (activeTab === 'profile') {
-      if (!isAuthenticated) {
+      if (selectedChallenge) {
         return (
-          <View className="flex-1 items-center justify-center p-6">
-            <FontAwesome name="user-circle" size={64} color="#A9A196" />
-            <Text className="text-foreground text-lg font-semibold mt-5 text-center">
-              Sign in to view your profile
-            </Text>
-            <Text className="text-muted-foreground text-sm mt-2 text-center leading-5">
-              Track your peaks, summit journal, and challenges
-            </Text>
-            <TouchableOpacity 
-              className="flex-row items-center gap-2.5 bg-primary px-6 py-3.5 rounded-lg mt-7"
-              onPress={handleLogin}
-              activeOpacity={0.8}
-            >
-              <FontAwesome name="sign-in" size={18} color="#F5F2ED" />
-              <Text className="text-primary-foreground text-base font-semibold">
-                Connect with Strava
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <ChallengeDetail 
+            challenge={selectedChallenge} 
+            onClose={handleCloseDetail}
+          />
         );
       }
-      
+    }
+    
+    // Default to discovery content (floating cards shown separately)
+    return (
+      <DiscoveryContent
+        onPeakPress={handlePeakPress}
+        onChallengePress={handleChallengePress}
+      />
+    );
+  };
+
+  // Theme background color (warm brown)
+  const BACKGROUND_COLOR = '#25221E';
+
+  // Render Home tab content (full screen, no map)
+  const renderHomeContent = () => {
+    return (
+      <View 
+        className="flex-1"
+        style={{ 
+          backgroundColor: BACKGROUND_COLOR,
+          paddingTop: insets.top, 
+          paddingBottom: TAB_BAR_HEIGHT + insets.bottom 
+        }}
+      >
+        <DashboardContent onPeakPress={handlePeakPress} />
+      </View>
+    );
+  };
+
+  // Render You/Profile tab content (full screen, no map)
+  const renderProfileContent = () => {
+    if (!isAuthenticated) {
       return (
-        <View className="flex-1">
-          {/* Profile Header */}
-          <View className="flex-row items-center px-4 py-4 border-b border-border">
-            <View className="w-14 h-14 rounded-full bg-muted items-center justify-center">
-              <FontAwesome name="user" size={28} color="#A9A196" />
-            </View>
-            <View className="flex-1 ml-3">
-              <Text className="text-foreground text-lg font-bold">
-                {user?.name || 'Explorer'}
-              </Text>
-              {(user?.city || user?.state) && (
-                <Text className="text-muted-foreground text-sm mt-0.5">
-                  {[user.city, user.state].filter(Boolean).join(', ')}
-                </Text>
-              )}
-            </View>
-            <TouchableOpacity 
-              className="p-2.5 rounded-lg border border-border"
-              onPress={handleLogout}
-              activeOpacity={0.7}
-            >
-              <FontAwesome name="sign-out" size={16} color="#A9A196" />
-            </TouchableOpacity>
-          </View>
-          
-          <ProfileContent userId={user?.id || ''} />
+        <View 
+          className="flex-1 items-center justify-center p-6"
+          style={{ 
+            backgroundColor: BACKGROUND_COLOR,
+            paddingTop: insets.top, 
+            paddingBottom: TAB_BAR_HEIGHT + insets.bottom 
+          }}
+        >
+          <UserCircle size={64} color="#A9A196" />
+          <Text className="text-foreground text-lg font-semibold mt-5 text-center">
+            Sign in to view your profile
+          </Text>
+          <Text className="text-muted-foreground text-sm mt-2 text-center leading-5">
+            Track your peaks, summit journal, and challenges
+          </Text>
+          <TouchableOpacity 
+            className="flex-row items-center gap-2.5 bg-primary px-6 py-3.5 rounded-lg mt-7"
+            onPress={handleLogin}
+            activeOpacity={0.8}
+          >
+            <LogIn size={18} color="#F5F2ED" />
+            <Text className="text-primary-foreground text-base font-semibold">
+              Connect with Strava
+            </Text>
+          </TouchableOpacity>
         </View>
       );
     }
     
-    return null;
+    return (
+      <View 
+        className="flex-1"
+        style={{ 
+          backgroundColor: BACKGROUND_COLOR,
+          paddingTop: insets.top, 
+          paddingBottom: TAB_BAR_HEIGHT + insets.bottom 
+        }}
+      >
+        {/* Profile Header */}
+        <View className="flex-row items-center px-4 py-4 border-b border-border">
+          <View className="w-14 h-14 rounded-full bg-muted items-center justify-center">
+            <User size={28} color="#A9A196" />
+          </View>
+          <View className="flex-1 ml-3">
+            <Text className="text-foreground text-lg font-bold">
+              {user?.name || 'Explorer'}
+            </Text>
+            {(user?.city || user?.state) && (
+              <Text className="text-muted-foreground text-sm mt-0.5">
+                {[user.city, user.state].filter(Boolean).join(', ')}
+              </Text>
+            )}
+          </View>
+          <TouchableOpacity 
+            className="p-2.5 rounded-lg border border-border"
+            onPress={handleLogout}
+            activeOpacity={0.7}
+          >
+            <LogOut size={16} color="#A9A196" />
+          </TouchableOpacity>
+        </View>
+        
+        <ProfileContent userId={user?.id || ''} />
+      </View>
+    );
   };
 
   // Tab bar height
   const TAB_BAR_HEIGHT = 60;
 
+  // Check if we should show the map-based layout (Explore tab only)
+  const isExploreTab = activeTab === 'explore';
+
   return (
     <View className="flex-1">
-      {/* Map Background - Always visible */}
-      <MapView
-        ref={mapRef}
-        onRegionChange={handleRegionChange}
+      {/* 
+        === MAP LAYER === 
+        Always mounted to prevent tile reloading, but hidden when not on Explore tab
+      */}
+      <View 
+        style={{ 
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0,
+          // Hide but keep mounted when not on Explore tab
+          opacity: isExploreTab ? 1 : 0,
+          pointerEvents: isExploreTab ? 'auto' : 'none',
+        }}
       >
-        <PeakMarkers
-          peaks={visiblePeaks}
-          selectedPeakId={selectedPeakId}
-          onPeakPress={handlePeakPress}
-          isDark={true}
+        <MapView
+          ref={mapRef}
+          onRegionChange={handleRegionChange}
+          onMapReady={handleMapReady}
+        >
+          <PeakMarkers
+            peaks={visiblePeaks}
+            selectedPeakId={selectedPeakId}
+            onPeakPress={handlePeakPress}
+            isDark={true}
+          />
+          
+          {/* Line from user to selected peak (when in floating mode) */}
+          {selectionMode === 'floating' && selectedPeak?.location_coords && (
+            <LineToTarget
+              targetCoords={selectedPeak.location_coords}
+              userCoords={null} // TODO: Add user location tracking in Phase 2
+              visible={true}
+            />
+          )}
+        </MapView>
+
+        {/* Center on Me FAB */}
+        <CenterOnMeButton
+          onPress={handleCenterOnUser}
+          visible={selectionMode !== 'floating'}
+          style={{
+            position: 'absolute',
+            right: 16,
+            bottom: TAB_BAR_HEIGHT + insets.bottom + 100,
+          }}
         />
-      </MapView>
 
-      {/* Content Sheet Overlay */}
-      <ContentSheet bottomPadding={TAB_BAR_HEIGHT + insets.bottom}>
-        {renderContent()}
-      </ContentSheet>
+        {/* Floating Peak Card */}
+        {selectionMode === 'floating' && selectedPeak && (
+          <View 
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: TAB_BAR_HEIGHT + insets.bottom + 90,
+            }}
+          >
+            <FloatingPeakCard
+              peak={selectedPeak}
+              onClose={handleCloseDetail}
+              onDetailsPress={handleOpenDetail}
+            />
+          </View>
+        )}
 
-      {/* Bottom Tab Bar */}
+        {/* Floating Challenge Card */}
+        {selectionMode === 'floating' && selectedChallenge && (
+          <View 
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: TAB_BAR_HEIGHT + insets.bottom + 90,
+            }}
+          >
+            <FloatingChallengeCard
+              challenge={selectedChallenge}
+              onClose={handleCloseDetail}
+              onDetailsPress={handleOpenDetail}
+            />
+          </View>
+        )}
+
+        {/* Content Sheet Overlay */}
+        <ContentSheet bottomPadding={TAB_BAR_HEIGHT + insets.bottom}>
+          {renderExploreContent()}
+        </ContentSheet>
+      </View>
+
+      {/* === HOME TAB: Full-screen dashboard (no map) === */}
+      {activeTab === 'home' && renderHomeContent()}
+
+      {/* === YOU TAB: Full-screen profile (no map) === */}
+      {activeTab === 'profile' && renderProfileContent()}
+
+      {/* Bottom Tab Bar - Always visible */}
       <View 
         className="absolute bottom-0 left-0 right-0 flex-row bg-card border-t border-border"
         style={{ paddingBottom: insets.bottom, height: TAB_BAR_HEIGHT + insets.bottom }}
       >
         <TabButton
-          icon="home"
+          Icon={Home}
           label="Home"
           isActive={activeTab === 'home'}
           onPress={() => setActiveTab('home')}
         />
         <TabButton
-          icon="compass"
+          Icon={Compass}
           label="Explore"
           isActive={activeTab === 'explore'}
           onPress={() => setActiveTab('explore')}
         />
         <TabButton
-          icon="user"
-          label="Profile"
+          Icon={User}
+          label="You"
           isActive={activeTab === 'profile'}
           onPress={() => setActiveTab('profile')}
         />
@@ -226,12 +430,12 @@ export default function TabLayout() {
 
 // Tab Button Component
 function TabButton({ 
-  icon, 
+  Icon, 
   label, 
   isActive, 
   onPress, 
 }: { 
-  icon: React.ComponentProps<typeof FontAwesome>['name'];
+  Icon: LucideIcon;
   label: string;
   isActive: boolean;
   onPress: () => void;
@@ -243,15 +447,14 @@ function TabButton({
       activeOpacity={0.7}
     >
       <View className={`p-1.5 rounded-lg ${isActive ? 'bg-primary/20' : ''}`}>
-        <FontAwesome
-          name={icon}
+        <Icon
           size={22}
           color={isActive ? '#5B9167' : '#A9A196'}
         />
       </View>
-      <RNText className={`text-[10px] font-medium mt-0.5 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+      <Text className={`text-[10px] font-medium mt-0.5 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
         {label}
-      </RNText>
+      </Text>
     </TouchableOpacity>
   );
 }

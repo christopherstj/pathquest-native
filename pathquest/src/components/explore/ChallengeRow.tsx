@@ -7,9 +7,9 @@
 
 import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { Check, ChevronRight } from 'lucide-react-native';
 import type { ChallengeProgress } from '@pathquest/shared';
-import { Text, Value } from '@/src/components/ui';
+import { Text } from '@/src/components/ui';
 
 interface ChallengeRowProps {
   challenge: ChallengeProgress;
@@ -45,7 +45,7 @@ const ChallengeRow: React.FC<ChallengeRowProps> = ({ challenge, onPress }) => {
           </Text>
           {isCompleted && (
             <View className="bg-summited/20 px-2 py-0.5 rounded-xl">
-              <FontAwesome name="check" size={10} color="#4A8BC4" />
+              <Check size={10} color="#4A8BC4" />
             </View>
           )}
         </View>
@@ -59,9 +59,9 @@ const ChallengeRow: React.FC<ChallengeRowProps> = ({ challenge, onPress }) => {
               {challenge.region}
             </Text>
           )}
-          <Value className="text-muted-foreground text-xs">
+          <Text className="text-muted-foreground text-xs">
             {challenge.num_peaks ?? challenge.total} peaks
-          </Value>
+          </Text>
         </View>
 
         {/* Progress bar (only show if user has progress) */}
@@ -73,15 +73,15 @@ const ChallengeRow: React.FC<ChallengeRowProps> = ({ challenge, onPress }) => {
                 style={{ width: `${progressPercent}%` }}
               />
             </View>
-            <Value className="text-muted-foreground text-[11px] font-medium min-w-[40px] text-right">
+            <Text className="text-muted-foreground text-[11px] font-medium min-w-[40px] text-right">
               {challenge.completed}/{challenge.total}
-            </Value>
+            </Text>
           </View>
         )}
       </View>
 
       {/* Chevron */}
-      <FontAwesome name="chevron-right" size={12} color="#A9A196" />
+      <ChevronRight size={12} color="#A9A196" />
     </TouchableOpacity>
   );
 };

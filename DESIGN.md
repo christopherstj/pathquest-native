@@ -41,6 +41,13 @@ GPS, compass, and camera are core to the experience, not bolted on:
 - **Compass**: Full-screen navigation to peaks
 - **Camera**: Primary method for adding photos to reports
 
+### 5. User Location Always Visible
+Whenever a map is displayed, the user's current location should always be shown:
+- **Location puck**: Blue dot with accuracy ring and heading indicator
+- **Visible on all map screens**: Explore, Peak/Challenge floating cards, You (map mode)
+- **Permission handling**: If location permission denied, show map without puck but prompt to enable
+- **Auto-center option**: "Center on me" button to quickly return to user location
+
 ---
 
 ## Navigation Architecture
@@ -183,9 +190,13 @@ Default state of the Explore tab. Map fills the screen with a bottom sheet for n
 - Half (~45%): List visible, map interactive
 - Expanded (~90%): Full list, map minimized
 
-**Behavior:**
+**Map Behavior:**
+- **User location puck**: Always visible (blue dot with heading indicator)
+- **"Center on me" FAB**: Floating button to recenter map on user location
 - Peaks sorted by distance from user (GPS required)
-- Without GPS: sorted by elevation or alphabetically
+- Without GPS: sorted by elevation or alphabetically, location puck hidden
+
+**Interaction:**
 - Segment control to switch between Peaks/Challenges
 - Tap row → floating card appears
 - Tap marker → floating card appears
@@ -1025,14 +1036,25 @@ Brief introduction on first app launch.
 **Expo Module:** `expo-location`
 
 **Permission Flow:**
-1. On first "nearby" action (Discovery sort, Manual Summit verification)
+1. On first map view or "nearby" action
 2. Show explanation: "PathQuest uses your location to find nearby peaks"
 3. Request `Permissions.ACCESS_FINE_LOCATION`
-4. Fallback: Hide distance/bearing, show "Enable location" in GPS strip
+4. Fallback: Show map without location puck, hide distance/bearing, show "Enable location" prompt
+
+**Location Puck (Always Visible on Maps):**
+- Blue dot with accuracy ring
+- Heading indicator (arrow showing device orientation)
+- Displayed on ALL map screens when permission granted:
+  - Explore tab (Discovery mode)
+  - Peak floating card view
+  - Challenge floating card view
+  - You tab (map mode)
+- "Center on me" FAB button to recenter map on user location
 
 **Usage Points:**
 | Feature | Foreground | Background |
 |---------|------------|------------|
+| **Map location puck** | Yes | No |
 | Discovery list sorting | Yes | No |
 | Peak Detail GPS strip | Yes | No |
 | Compass View | Yes | No |
@@ -1040,8 +1062,9 @@ Brief introduction on first app launch.
 | Floating card distance | Yes | No |
 
 **Update Frequency:**
-- Discovery: on tab focus or pull-to-refresh
-- Peak Detail: every 5 seconds while visible
+- **Map puck**: Continuous while map visible (Mapbox handles this)
+- Discovery list: on tab focus or pull-to-refresh
+- Peak Detail GPS strip: every 5 seconds while visible
 - Compass View: continuous (max 1Hz)
 
 ### Camera
@@ -1124,6 +1147,14 @@ pathquest/
           ProgressTab.tsx         # User's progress + milestones
           PeaksTab.tsx            # All peaks in challenge
         CompassView.tsx           # Full-screen compass navigation
+      
+      map/
+        MapView.tsx               # Full-screen Mapbox wrapper
+        PeakMarkers.tsx           # Peak markers layer (GeoJSON)
+        ChallengeOverlay.tsx      # Challenge peak markers with progress
+        LocationPuck.tsx          # User location indicator (always visible)
+        CenterOnMeButton.tsx      # FAB to recenter on user location
+        LineToTarget.tsx          # Line from user to selected peak
       
       home/
         Dashboard.tsx             # Main dashboard container

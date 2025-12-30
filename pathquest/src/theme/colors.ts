@@ -16,6 +16,10 @@ export const colors = {
     // Core - Aged parchment theme
     background: '#EDE5D8',      // oklch(0.94 0.03 90) - aged parchment
     foreground: '#3D3428',      // oklch(0.26 0.06 70) - deep umber ink
+
+    // Topographic ink (contour lines, map texture)
+    contourInk: '#B6AB9B',      // warm tan ink
+    contourInkSubtle: 'rgba(182, 171, 155, 0.35)',
     
     // Cards & Popovers - Slightly darker parchment
     card: 'rgba(232, 225, 212, 0.92)',  // oklch(0.93 0.02 95 / 0.92)
@@ -55,6 +59,10 @@ export const colors = {
     // Core - Dark warm brown (NOT gray!)
     background: '#25221E',      // oklch(0.16 0.02 80) - dark warm brown
     foreground: '#EDE5D8',      // oklch(0.93 0.03 90) - light parchment
+
+    // Topographic ink (contour lines, map texture)
+    contourInk: '#A9A196',      // warm tan ink (matches mutedForeground family)
+    contourInkSubtle: 'rgba(169, 161, 150, 0.35)',
     
     // Cards & Popovers - Semi-transparent dark brown
     card: 'rgba(22, 17, 7, 0.92)',      // oklch(0.18 0.02 80 / 92%) = #161107eb

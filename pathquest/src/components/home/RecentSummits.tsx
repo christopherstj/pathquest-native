@@ -6,9 +6,9 @@
 
 import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { Flag, Pencil, ChevronRight } from 'lucide-react-native';
 import { getElevationString } from '@pathquest/shared';
-import { Text, Value } from '@/src/components/ui';
+import { Text } from '@/src/components/ui';
 
 interface Summit {
   id: string;
@@ -51,7 +51,7 @@ const SummitItem: React.FC<SummitItemProps> = ({ summit, onPress }) => {
       activeOpacity={0.7}
     >
       <View className="w-9 h-9 rounded-full bg-summited/20 items-center justify-center">
-        <FontAwesome name="flag" size={14} color="#4A8BC4" />
+        <Flag size={14} color="#4A8BC4" />
       </View>
       
       <View className="flex-1">
@@ -60,31 +60,31 @@ const SummitItem: React.FC<SummitItemProps> = ({ summit, onPress }) => {
             {summit.peakName}
           </Text>
           {summit.summitNumber && (
-            <Value className="text-muted-foreground text-xs">
+            <Text className="text-muted-foreground text-xs">
               #{summit.summitNumber}
-            </Value>
+            </Text>
           )}
         </View>
         
         <View className="flex-row items-center gap-2 mt-0.5">
           {summit.peakElevation && (
-            <Value className="text-muted-foreground text-xs">
+            <Text className="text-muted-foreground text-xs">
               {getElevationString(summit.peakElevation, 'imperial')}
-            </Value>
+            </Text>
           )}
-          <Value className="text-muted-foreground text-xs">
+          <Text className="text-muted-foreground text-xs">
             {dateStr} at {timeStr}
-          </Value>
+          </Text>
         </View>
       </View>
 
       {!summit.hasReport && (
         <View className="bg-primary/15 px-2 py-1 rounded-xl mr-2">
-          <FontAwesome name="pencil" size={10} color="#5B9167" />
+          <Pencil size={10} color="#5B9167" />
         </View>
       )}
       
-      <FontAwesome name="chevron-right" size={12} color="#A9A196" />
+      <ChevronRight size={12} color="#A9A196" />
     </TouchableOpacity>
   );
 };
@@ -116,7 +116,7 @@ const RecentSummits: React.FC<RecentSummitsProps> = ({
           <Text className="text-foreground text-base font-semibold">Recent Summits</Text>
         </View>
         <View className="items-center justify-center p-8">
-          <FontAwesome name="flag-o" size={24} color="#A9A196" />
+          <Flag size={24} color="#A9A196" />
           <Text className="text-muted-foreground text-sm mt-3 text-center">
             No summits yet. Get out there!
           </Text>

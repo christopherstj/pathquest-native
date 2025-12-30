@@ -7,10 +7,10 @@
 
 import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { Check, Users, ChevronRight } from 'lucide-react-native';
 import type { Peak } from '@pathquest/shared';
 import { getElevationString } from '@pathquest/shared';
-import { Text, Value } from '@/src/components/ui';
+import { Text } from '@/src/components/ui';
 
 interface PeakRowProps {
   peak: Peak;
@@ -52,11 +52,11 @@ const PeakRow: React.FC<PeakRowProps> = ({ peak, onPress, isSummited }) => {
           </Text>
           {hasSummited && (
             <View className="flex-row items-center gap-1 bg-summited/20 px-2 py-0.5 rounded-xl">
-              <FontAwesome name="check" size={10} color="#4A8BC4" />
+              <Check size={10} color="#4A8BC4" />
               {userSummits > 1 && (
-                <Value className="text-summited text-[11px] font-semibold">
+                <Text className="text-summited text-[11px] font-semibold">
                   {userSummits}
-                </Value>
+                </Text>
               )}
             </View>
           )}
@@ -64,9 +64,9 @@ const PeakRow: React.FC<PeakRowProps> = ({ peak, onPress, isSummited }) => {
 
         <View className="flex-row items-center gap-2 mt-0.5">
           {peak.elevation !== undefined && (
-            <Value className="text-foreground text-[13px] font-medium">
+            <Text className="text-foreground text-[13px] font-medium">
               {getElevationString(peak.elevation, 'imperial')}
-            </Value>
+            </Text>
           )}
           {locationString && (
             <Text 
@@ -81,16 +81,16 @@ const PeakRow: React.FC<PeakRowProps> = ({ peak, onPress, isSummited }) => {
         {/* Public summit count */}
         {publicSummits > 0 && (
           <View className="flex-row items-center gap-1 mt-1">
-            <FontAwesome name="users" size={10} color="#A9A196" />
-            <Value className="text-muted-foreground text-[11px]">
+            <Users size={10} color="#A9A196" />
+            <Text className="text-muted-foreground text-[11px]">
               {publicSummits} {publicSummits === 1 ? 'summit' : 'summits'}
-            </Value>
+            </Text>
           </View>
         )}
       </View>
 
       {/* Chevron */}
-      <FontAwesome name="chevron-right" size={12} color="#A9A196" />
+      <ChevronRight size={12} color="#A9A196" />
     </TouchableOpacity>
   );
 };

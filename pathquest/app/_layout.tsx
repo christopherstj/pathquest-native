@@ -1,5 +1,4 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavigationThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -7,6 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState, useMemo } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
+import { useColorScheme as useSystemColorScheme } from 'react-native';
 
 // Google Fonts
 import {
@@ -63,7 +63,6 @@ export default function RootLayout() {
     IBMPlexMono_400Regular,
     IBMPlexMono_500Medium,
     IBMPlexMono_600SemiBold,
-    ...FontAwesome.font,
   });
 
   const [authInitialized, setAuthInitialized] = useState(false);
@@ -95,26 +94,32 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
-  // Force dark mode to match web app
-  const darkNavTheme = useMemo(() => ({
-    ...DarkTheme,
-    colors: {
-      ...DarkTheme.colors,
-      primary: colors.dark.primary,
-      background: colors.dark.background,
-      card: colors.dark.card,
-      text: colors.dark.foreground,
-      border: colors.dark.border,
-      notification: colors.dark.destructive,
-    },
-  }), []);
+  const systemScheme = useSystemColorScheme(); // 'light' | 'dark' | null
+  const scheme = systemScheme === 'light' ? 'light' : 'dark';
+  const c = colors[scheme];
+
+  const navTheme = useMemo(() => {
+    const base = scheme === 'light' ? DefaultTheme : DarkTheme;
+    return {
+      ...base,
+      colors: {
+        ...base.colors,
+        primary: c.primary,
+        background: c.background,
+        card: c.card,
+        text: c.foreground,
+        border: c.border,
+        notification: c.destructive,
+      },
+    };
+  }, [scheme, c.background, c.border, c.card, c.destructive, c.foreground, c.primary]);
 
   return (
     <GestureHandlerRootView className="flex-1">
       <GluestackProvider>
         <QueryClientProvider client={queryClient}>
-          <ThemeProvider>
-            <NavigationThemeProvider value={darkNavTheme}>
+          <ThemeProvider forcedColorScheme={scheme}>
+            <NavigationThemeProvider value={navTheme}>
               <Stack>
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="modal" options={{ presentation: 'modal' }} />

@@ -43,8 +43,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({
   children, 
   forcedColorScheme 
 }) => {
-  // Force dark mode by default, like the web app
-  const colorScheme: ColorScheme = forcedColorScheme ?? 'dark';
+  const systemScheme = useSystemColorScheme(); // 'light' | 'dark' | null
+  // Follow system scheme by default; allow explicit override
+  const colorScheme: ColorScheme =
+    forcedColorScheme ?? (systemScheme === 'light' ? 'light' : 'dark');
   
   const value = useMemo<ThemeContextValue>(() => ({
     colorScheme,

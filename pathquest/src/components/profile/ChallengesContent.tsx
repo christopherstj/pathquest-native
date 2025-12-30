@@ -6,8 +6,9 @@
  */
 
 import React from 'react';
-import { View, ScrollView, TouchableOpacity, Text } from 'react-native';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { View, ScrollView, TouchableOpacity } from 'react-native';
+import { Trophy, Check } from 'lucide-react-native';
+import { Text } from '@/src/components/ui';
 import type { ChallengeProgress } from '@pathquest/shared';
 
 interface ChallengesContentProps {
@@ -33,7 +34,7 @@ const ChallengesContent: React.FC<ChallengesContentProps> = ({
   if (challenges.length === 0) {
     return (
       <View className="flex-1 items-center justify-center p-8">
-        <FontAwesome name="trophy" size={32} color="#A9A196" />
+        <Trophy size={32} color="#A9A196" />
         <Text className="text-foreground text-lg font-semibold mt-4 font-display">
           No challenges yet
         </Text>
@@ -124,7 +125,7 @@ const ChallengeCard: React.FC<ChallengeCardProps> = ({
         </View>
         {isCompleted && (
           <View className="w-7 h-7 rounded-full bg-summited/20 items-center justify-center ml-3">
-            <FontAwesome name="check" size={12} color="#4A8BC4" />
+            <Check size={12} color="#4A8BC4" />
           </View>
         )}
       </View>

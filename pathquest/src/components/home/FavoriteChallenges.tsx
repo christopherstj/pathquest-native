@@ -1,14 +1,19 @@
 /**
  * FavoriteChallenges
  * 
- * Shows the user's favorite challenges with progress bars.
+ * Shows the user's favorite challenges with progress displays.
+ * 
+ * Styled with retro topographic aesthetic: muted rust/brown tones,
+ * layered progress bars, and subtle contour decorations.
  */
 
 import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { Check, ChevronRight, Trophy, Target, Mountain, Flag } from 'lucide-react-native';
 import type { ChallengeProgress } from '@pathquest/shared';
-import { Text, Value } from '@/src/components/ui';
+import { Text } from '@/src/components/ui';
+import { useTheme } from '@/src/theme';
+import CardFrame from '@/src/components/ui/CardFrame';
 
 interface FavoriteChallengesProps {
   challenges: ChallengeProgress[];
@@ -20,52 +25,144 @@ interface FavoriteChallengesProps {
 interface ChallengeItemProps {
   challenge: ChallengeProgress;
   onPress?: () => void;
+  index: number;
 }
 
-const ChallengeItem: React.FC<ChallengeItemProps> = ({ challenge, onPress }) => {
+// Muted earth tone accent colors
+const accentColors = [
+  '#8B7355', // Trail brown
+  '#9B7D52', // Amber rust
+  '#7A6B5A', // Warm gray-brown
+  '#A08060', // Tan
+  '#8A7A65', // Dusty brown
+];
+
+const ChallengeItem: React.FC<ChallengeItemProps> = ({ challenge, onPress, index }) => {
+  const { colors, isDark } = useTheme();
   const progressPercent = challenge.total > 0 
     ? Math.round((challenge.completed / challenge.total) * 100) 
     : 0;
   const isCompleted = challenge.is_completed || progressPercent === 100;
 
+  const accentColor = isCompleted ? colors.summited : accentColors[index % accentColors.length];
+
   return (
     <TouchableOpacity
-      className="flex-row items-center py-3 px-4 border-b border-border gap-3"
+      className="mb-2.5"
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.8}
     >
-      <View className="flex-1">
-        <View className="flex-row items-center gap-2 mb-2">
-          <Text className="text-foreground text-[15px] font-medium flex-1" numberOfLines={1}>
-            {challenge.name}
-          </Text>
-          {isCompleted && (
-            <View className="bg-summited/20 px-2 py-0.5 rounded-xl">
-              <FontAwesome name="check" size={10} color="#4A8BC4" />
+      <CardFrame
+        variant="default"
+        topo={isCompleted ? 'corner' : 'none'}
+        ridge="none"
+        accentColor={accentColor}
+        seed={`challenge:${challenge.id}`}
+      >
+
+        {/* Main content row */}
+        <View className="p-3 flex-row items-center">
+          {/* Icon */}
+          <View 
+            className="w-9 h-9 rounded-lg items-center justify-center"
+            style={{ backgroundColor: `${accentColor}${isDark ? '18' : '14'}` }}
+          >
+            {isCompleted ? (
+              <Check size={16} color={accentColor} strokeWidth={3} />
+            ) : (
+              <Target size={16} color={accentColor} />
+            )}
+          </View>
+          
+          {/* Challenge info */}
+          <View className="flex-1 ml-3">
+            <View className="flex-row items-center">
+              <Text 
+                style={{ color: colors.foreground }}
+                className="text-[15px] font-semibold flex-1" 
+                numberOfLines={1}
+              >
+                {challenge.name}
+              </Text>
+              {isCompleted && (
+                <View 
+                  className="px-2 py-0.5 rounded ml-2"
+                  style={{ backgroundColor: `${accentColor}${isDark ? '22' : '18'}` }}
+                >
+                  <Text 
+                    style={{ color: accentColor }}
+                    className="text-[9px] font-bold uppercase tracking-wide"
+                  >
+                    Complete
+                  </Text>
+                </View>
+              )}
             </View>
-          )}
+            
+            <View className="flex-row items-center mt-1 gap-3">
+              <View className="flex-row items-center">
+                <Mountain size={10} color={colors.mutedForeground} />
+                <Text style={{ color: colors.mutedForeground }} className="text-xs ml-1">
+                  {challenge.completed}/{challenge.total}
+                </Text>
+              </View>
+              {!isCompleted && progressPercent > 0 && (
+                <View className="flex-row items-center">
+                  <Flag size={10} color={accentColor} />
+                  <Text style={{ color: accentColor }} className="text-xs font-medium ml-1">
+                    {progressPercent}%
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+          
+          <ChevronRight size={14} color={colors.mutedForeground} style={{ marginLeft: 8 }} />
         </View>
         
-        <View className="flex-row items-center gap-2">
-          <View className="flex-1 h-1.5 rounded-sm bg-muted overflow-hidden">
-            <View 
-              className={`h-full rounded-sm ${isCompleted ? 'bg-summited' : 'bg-primary'}`}
-              style={{ width: `${progressPercent}%` }}
-            />
+        {/* Progress bar - multiple layered lines for topo effect */}
+        <View className="h-2 flex-row" style={{ backgroundColor: isDark ? '#2D2823' : colors.muted }}>
+          {/* Background contour lines */}
+          <View 
+            className="absolute inset-0 flex-row"
+            style={{ opacity: 0.3 }}
+          >
+            {[0.2, 0.4, 0.6, 0.8].map((pos, i) => (
+              <View
+                key={i}
+                style={{
+                  position: 'absolute',
+                  left: `${pos * 100}%`,
+                  top: 0,
+                  bottom: 0,
+                  width: 1,
+                  backgroundColor: colors.contourInkSubtle,
+                }}
+              />
+            ))}
           </View>
-          <Value className="text-muted-foreground text-xs font-medium min-w-[45px] text-right">
-            {challenge.completed}/{challenge.total}
-          </Value>
+          
+          {/* Main progress fill */}
+          <View 
+            style={{ 
+              width: `${progressPercent}%`,
+              backgroundColor: accentColor,
+              opacity: 0.7,
+            }}
+          />
+          
+          {/* Highlight line at edge of progress */}
+          {progressPercent > 0 && progressPercent < 100 && (
+            <View 
+              style={{
+                width: 2,
+                backgroundColor: accentColor,
+                opacity: 1,
+              }}
+            />
+          )}
         </View>
-
-        {challenge.lastProgressDate && !isCompleted && (
-          <Value className="text-muted-foreground text-[11px] mt-1.5">
-            Last progress: {new Date(challenge.lastProgressDate).toLocaleDateString()}
-          </Value>
-        )}
-      </View>
-      
-      <FontAwesome name="chevron-right" size={12} color="#A9A196" />
+      </CardFrame>
     </TouchableOpacity>
   );
 };
@@ -76,15 +173,29 @@ const FavoriteChallenges: React.FC<FavoriteChallengesProps> = ({
   onViewAllPress,
   isLoading = false,
 }) => {
+  const { colors, isDark } = useTheme();
   if (isLoading) {
     return (
-      <View className="rounded-xl border border-border bg-card overflow-hidden">
-        <View className="flex-row justify-between items-center p-4 pb-3">
-          <Text className="text-foreground text-base font-semibold">Your Challenges</Text>
+      <View>
+        <View className="flex-row justify-between items-center mb-3">
+          <View className="flex-row items-center gap-2">
+            <Trophy size={15} color={colors.secondary} />
+            <Text style={{ color: colors.foreground }} className="text-base font-bold">
+              Your Challenges
+            </Text>
+          </View>
         </View>
-        <View className="p-4 gap-3">
-          <View className="h-16 rounded-lg bg-muted" />
-          <View className="h-16 rounded-lg bg-muted" />
+        <View className="gap-2.5">
+          {[1, 2].map((i) => (
+            <CardFrame
+              key={i}
+              variant="default"
+              topo="corner"
+              ridge="none"
+              seed={`challenges:skeleton:${i}`}
+              style={{ height: 74, opacity: 0.65 }}
+            />
+          ))}
         </View>
       </View>
     );
@@ -92,35 +203,74 @@ const FavoriteChallenges: React.FC<FavoriteChallengesProps> = ({
 
   if (challenges.length === 0) {
     return (
-      <View className="rounded-xl border border-border bg-card overflow-hidden">
-        <View className="flex-row justify-between items-center p-4 pb-3">
-          <Text className="text-foreground text-base font-semibold">Your Challenges</Text>
+      <View>
+        <View className="flex-row justify-between items-center mb-3">
+          <View className="flex-row items-center gap-2">
+            <Trophy size={15} color={colors.secondary} />
+            <Text style={{ color: colors.foreground }} className="text-base font-bold">
+              Your Challenges
+            </Text>
+          </View>
         </View>
-        <View className="items-center justify-center p-8">
-          <FontAwesome name="trophy" size={24} color="#A9A196" />
-          <Text className="text-muted-foreground text-sm mt-3 text-center">
-            No challenges yet. Explore to find challenges!
-          </Text>
-        </View>
+        <CardFrame
+          variant="default"
+          topo="corner"
+          ridge="none"
+          seed="challenges:empty"
+          style={{
+            borderStyle: 'dashed',
+            borderColor: `${colors.secondary}${isDark ? '26' : '33'}` as any,
+          }}
+        >
+          <View className="items-center justify-center p-8">
+            <View 
+              className="w-12 h-12 rounded-full items-center justify-center mb-3"
+              style={{ backgroundColor: `${colors.secondary}${isDark ? '18' : '12'}` }}
+            >
+              <Trophy size={20} color={colors.secondary} />
+            </View>
+            <Text style={{ color: colors.foreground }} className="text-base font-semibold mb-1">
+              No challenges yet
+            </Text>
+            <Text 
+              style={{ color: colors.mutedForeground }}
+              className="text-sm text-center leading-5"
+            >
+              Explore to find peak lists and challenges to track your progress.
+            </Text>
+          </View>
+        </CardFrame>
       </View>
     );
   }
 
   return (
-    <View className="rounded-xl border border-border bg-card overflow-hidden">
-      <View className="flex-row justify-between items-center p-4 pb-3">
-        <Text className="text-foreground text-base font-semibold">Your Challenges</Text>
+    <View>
+      <View className="flex-row justify-between items-center mb-3">
+        <View className="flex-row items-center gap-2">
+          <Trophy size={15} color={colors.secondary} />
+          <Text style={{ color: colors.foreground }} className="text-base font-bold">
+            Your Challenges
+          </Text>
+        </View>
         {onViewAllPress && challenges.length > 3 && (
-          <TouchableOpacity onPress={onViewAllPress}>
-            <Text className="text-primary text-[13px] font-medium">View All</Text>
+          <TouchableOpacity 
+            onPress={onViewAllPress} 
+            className="flex-row items-center"
+          >
+            <Text style={{ color: colors.primary }} className="text-[13px] font-medium mr-1">
+              View All
+            </Text>
+            <ChevronRight size={14} color={colors.primary} />
           </TouchableOpacity>
         )}
       </View>
       
-      {challenges.slice(0, 5).map((challenge) => (
+      {challenges.slice(0, 5).map((challenge, index) => (
         <ChallengeItem
           key={challenge.id}
           challenge={challenge}
+          index={index}
           onPress={() => onChallengePress?.(challenge)}
         />
       ))}

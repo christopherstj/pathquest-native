@@ -5,8 +5,9 @@
  */
 
 import React from 'react';
-import { View, ScrollView, Text } from 'react-native';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { View, ScrollView } from 'react-native';
+import { BookOpen } from 'lucide-react-native';
+import { Text } from '@/src/components/ui';
 
 interface JournalEntry {
   id: string;
@@ -41,7 +42,7 @@ const JournalContent: React.FC<JournalContentProps> = ({
   if (entries.length === 0) {
     return (
       <View className="flex-1 items-center justify-center p-8">
-        <FontAwesome name="book" size={32} color="#A9A196" />
+        <BookOpen size={32} color="#A9A196" />
         <Text className="text-foreground text-lg font-semibold mt-4 font-display">
           No journal entries yet
         </Text>

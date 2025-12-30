@@ -6,8 +6,9 @@
  */
 
 import React from 'react';
-import { View, ScrollView, TouchableOpacity, Text } from 'react-native';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { View, ScrollView, TouchableOpacity } from 'react-native';
+import { MapPin, Filter, ArrowUpDown } from 'lucide-react-native';
+import { Text } from '@/src/components/ui';
 import { PeakRow } from '@/src/components/explore';
 import type { Peak } from '@pathquest/shared';
 
@@ -35,7 +36,7 @@ const PeaksContent: React.FC<PeaksContentProps> = ({
   if (peaks.length === 0) {
     return (
       <View className="flex-1 items-center justify-center p-8">
-        <FontAwesome name="map-marker" size={32} color="#A9A196" />
+        <MapPin size={32} color="#A9A196" />
         <Text className="text-foreground text-lg font-semibold mt-4 font-display">
           No peaks yet
         </Text>
@@ -51,13 +52,13 @@ const PeaksContent: React.FC<PeaksContentProps> = ({
       {/* Filter Bar - Placeholder */}
       <View className="flex-row items-center py-2.5 px-4 border-b border-border bg-card gap-4">
         <TouchableOpacity className="flex-row items-center gap-1.5" activeOpacity={0.7}>
-          <FontAwesome name="filter" size={14} color="#A9A196" />
+          <Filter size={14} color="#A9A196" />
           <Text className="text-muted-foreground text-[13px] font-medium">
             Filters
           </Text>
         </TouchableOpacity>
         <TouchableOpacity className="flex-row items-center gap-1.5" activeOpacity={0.7}>
-          <FontAwesome name="sort" size={14} color="#A9A196" />
+          <ArrowUpDown size={14} color="#A9A196" />
           <Text className="text-muted-foreground text-[13px] font-medium">
             Sort
           </Text>

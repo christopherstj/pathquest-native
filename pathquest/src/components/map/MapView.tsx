@@ -11,7 +11,7 @@
  */
 
 import React, { useRef, useCallback, useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Platform } from 'react-native';
 import Mapbox, { Camera, MapView as RNMapView, LocationPuck } from '@rnmapbox/maps';
 import { useTheme } from '@/src/theme';
 
@@ -82,6 +82,7 @@ export interface MapViewRef {
   fitBounds: (bounds: [[number, number], [number, number]], padding?: number) => void;
   getCenter: () => Promise<[number, number] | null>;
   getZoom: () => Promise<number | null>;
+  centerOnUser: () => void;
 }
 
 const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
@@ -126,6 +127,24 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
         const zoom = await mapRef.current?.getZoom();
         return zoom ?? null;
       },
+      centerOnUser: async () => {
+        try {
+          // Get user's current location from Mapbox
+          const userLocation = await Mapbox.locationManager.getLastKnownLocation();
+          if (userLocation && userLocation.coords) {
+            const { longitude, latitude } = userLocation.coords;
+            cameraRef.current?.setCamera({
+              centerCoordinate: [longitude, latitude],
+              zoomLevel: 14,
+              animationDuration: 1000,
+            });
+          } else {
+            console.warn('[MapView] No user location available');
+          }
+        } catch (error) {
+          console.warn('[MapView] Error centering on user:', error);
+        }
+      },
     }));
 
     // Handle region change events
@@ -150,10 +169,16 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
     }, [onRegionChange]);
 
     // Handle map ready
-    const handleMapReady = useCallback(() => {
+    const handleMapReady = useCallback(async () => {
       console.log('[MapView] Map finished loading!');
       onMapReady?.();
-    }, [onMapReady]);
+      
+      // Trigger initial region fetch after map is ready
+      // Small delay to ensure map is fully initialized
+      setTimeout(() => {
+        handleRegionChange();
+      }, 300);
+    }, [onMapReady, handleRegionChange]);
 
     // Handle map load error
     const handleMapLoadError = useCallback((error: any) => {
@@ -170,9 +195,54 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
       console.log('[MapView] Style loaded successfully');
     }, []);
 
-    // Debug: Log camera changes
+    // Debounce region change - wait for camera to stop moving before fetching
+    const regionChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const lastCameraLogRef = useRef(0);
+    
     const handleCameraChanged = useCallback((state: any) => {
-      console.log('[MapView] Camera changed - map is responding');
+      // Throttle logging
+      const now = Date.now();
+      if (now - lastCameraLogRef.current > 2000) {
+        console.log('[MapView] Camera moving...');
+        lastCameraLogRef.current = now;
+      }
+      
+      // Debounce: Clear existing timeout and set new one
+      if (regionChangeTimeoutRef.current) {
+        clearTimeout(regionChangeTimeoutRef.current);
+      }
+      
+      // Wait 300ms after last camera change before fetching new data
+      regionChangeTimeoutRef.current = setTimeout(() => {
+        console.log('[MapView] Camera stopped, triggering region change');
+        handleRegionChange();
+      }, 300);
+    }, [handleRegionChange]);
+    
+    // Cleanup timeout on unmount
+    useEffect(() => {
+      return () => {
+        if (regionChangeTimeoutRef.current) {
+          clearTimeout(regionChangeTimeoutRef.current);
+        }
+      };
+    }, []);
+
+    // Request location permissions on mount
+    useEffect(() => {
+      const requestLocationPermission = async () => {
+        try {
+          if (Platform.OS === 'android') {
+            const granted = await Mapbox.requestAndroidLocationPermissions();
+            console.log('[MapView] Android location permission:', granted ? 'granted' : 'denied');
+          }
+          // iOS permissions are handled automatically via Info.plist
+        } catch (error) {
+          console.warn('[MapView] Error requesting location permission:', error);
+        }
+      };
+      
+      requestLocationPermission();
     }, []);
 
     // Log on mount and test Mapbox connectivity
@@ -224,7 +294,7 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
           onDidFinishLoadingStyle={handleStyleLoaded}
           onDidFailLoadingMap={handleStyleLoadError}
           onCameraChanged={handleCameraChanged}
-          onRegionDidChange={handleRegionChange}
+          onMapIdle={handleRegionChange}
           onMapLoadingError={handleMapLoadError}
         >
           {/* Camera controls */}

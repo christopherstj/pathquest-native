@@ -262,23 +262,38 @@ The native app uses a unified layout pattern that mirrors the web app:
 
 ### Theme System (`src/theme/`)
 - **colors.ts**: EXACT match to web app's globals.css oklch colors
-  - **Dark mode forced by default** (like the web app)
+  - **Follows system light/dark** by default (can be overridden via `forcedColorScheme`)
   - Dark warm brown (hue 80) for backgrounds/surfaces
   - Semi-transparent card color for glass effect
   - Forest green (hue 140) for primary/CTA
   - Sky blue (hue 220) for summited indicators
+  - `contourInk` / `contourInkSubtle` for topographic linework textures
 - **typography.ts**: Font scales matching web
   - **Fraunces** for display/headings (loaded via @expo-google-fonts/fraunces)
   - **IBM Plex Mono** for body/data text (loaded via @expo-google-fonts/ibm-plex-mono)
   - Tailwind classes: `font-display`, `font-mono`
 - **index.ts**: ThemeProvider + hooks (useTheme, useColors)
 
+### Retro Topo UI Primitives (`src/components/ui/`)
+- `TopoPattern`: deterministic, seed-based SVG contour line background
+- `MountainRidge`: SVG ridge silhouette decoration
+- `CardFrame`: consistent card surface (border + inner highlight + shadow) with optional topo/ridge
+- `PrimaryCTA` / `SecondaryCTA`: pressable CTA components with strong affordances (bevel + pressed state)
+
 ### Layout (`app/(tabs)/_layout.tsx`)
-Unified layout managing:
-- **MapView** as full-screen background (always visible)
-- **ContentSheet** draggable overlay containing all tab content
-- **Tab bar** fixed at bottom with Home/Explore/Profile tabs
+Tab-specific layouts:
+- **Home tab**: Full-screen dashboard (no map, data-centric)
+- **Explore tab**: Map background + ContentSheet + floating cards
+- **You tab**: Full-screen profile (no map by default)
+- **Tab bar** fixed at bottom with Home/Explore/You tabs
 - Tab switching is state-based (no route navigation)
+
+Only the Explore tab shows the map. Home and You tabs render as full-screen content with the `bg-background` color, respecting safe area insets.
+
+### Selection Flow (Phase 1)
+The app uses a two-stage selection flow:
+1. **Floating mode**: Tap peak/challenge -> floating card appears on map
+2. **Detail mode**: Tap "Details" on floating card -> full detail view in sheet
 
 ### Bottom Sheet (`ContentSheet`)
 Uses `@gorhom/bottom-sheet` with 3 snap points:
@@ -288,13 +303,36 @@ Uses `@gorhom/bottom-sheet` with 3 snap points:
 
 ### Map (`src/components/map/`)
 - **MapView**: Full-screen Mapbox wrapper with outdoor style, 3D terrain, location puck
+  - Auto-requests location permissions on mount
+  - `centerOnUser()` method to fly to user location
 - **PeakMarkers**: GeoJSON ShapeSource + CircleLayer for peak markers
   - Different colors for summited (sky blue) vs unsummited (green)
   - Selection ring for highlighted peak
+- **CenterOnMeButton**: FAB with pulse animation to recenter on user
+- **LineToTarget**: Dashed line from user to selected peak (Phase 2: needs user location)
+
+### Floating Cards (`src/components/explore/`)
+- **FloatingPeakCard**: Shows peak info, GPS strip placeholder, action buttons
+  - Entry animation (spring from bottom)
+  - Swipe-down to dismiss
+  - Actions: Details, Compass, Navigate
+- **FloatingChallengeCard**: Shows challenge progress, nearest unsummited peak
+  - Same animation and gesture handling as peak card
+  - Actions: Details, Navigate
 
 ### State Management (`src/store/`)
 - **mapStore**: Visible peaks/challenges, selection state, zoom level, bounds
+  - `selectionMode`: `'none' | 'floating' | 'detail'`
+  - `selectPeak(id)` / `selectChallenge(id)`: Select and show floating card
+  - `openDetail()`: Transition from floating card to full detail
+  - `clearSelection()`: Reset selection state
 - **sheetStore**: Bottom sheet snap index
+
+### Hooks (`src/hooks/`)
+- **useLocation**: Location permission management
+- **useMapPeaks/useMapChallenges**: Fetch peaks/challenges for map bounds
+- **useDashboardData**: Combined dashboard data hook
+- **useSuggestedPeak**: Fetch suggested next peak with weather
 
 ## Next Steps
 
@@ -307,12 +345,21 @@ See [DESIGN.md](./DESIGN.md) for detailed implementation phases and wireframes.
 4. ✅ Add Mapbox map view + marker rendering
 5. ✅ Implement peak/challenge detail screens (basic)
 6. ✅ Add profile screens with sub-tabs (basic)
-
-### Phase 1: Core Navigation + Explore
-- Refactor to 3-tab navigation (Home/Explore/You)
-- Explore tab with map + discovery sheet
-- Peak/Challenge floating cards
-- "Show on Map" flow
+7. ✅ **Phase 1: Core Navigation + Explore**
+   - Renamed Profile tab to "You"
+   - Added location puck to map with permission request
+   - Added CenterOnMeButton FAB
+   - Added selectionMode to mapStore (none/floating/detail)
+   - Created FloatingPeakCard with animations + swipe-to-dismiss
+   - Created FloatingChallengeCard with progress bar
+   - Wired floating cards into tab layout
+   - Created LineToTarget component (awaits user location in Phase 2)
+8. ✅ **Dashboard Refresh**
+   - Refactored QuickStats to show 3 lifetime metrics (peaks, elevation, challenge)
+   - Added `/dashboard/suggested-peak` API endpoint (closest unclimbed peak with weather)
+   - Created SuggestedPeakCard hero component
+   - Created TripReportCTA for unreported summits
+   - Updated DashboardContent to new layout
 
 ### Phase 2: Peak Detail + GPS
 - Collapsible hero with GPS strip (distance/bearing/vert)
@@ -320,10 +367,10 @@ See [DESIGN.md](./DESIGN.md) for detailed implementation phases and wireframes.
 - Compass View
 - Location permission flow
 
-### Phase 3: Home + You Tabs
-- Home dashboard (hero card, stats, challenges, activity feed)
+### Phase 3: You Tab Enhancement
 - You tab list mode with all sub-tabs
 - You tab map mode toggle
+- Journal entries
 
 ### Phase 4: Actions + Modals
 - Add Report modal (camera-first)

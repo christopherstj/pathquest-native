@@ -11,9 +11,10 @@
 
 import React from 'react';
 import { View, ScrollView } from 'react-native';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { BarChart3, Flag, Repeat, ArrowUp, Trophy, Map, Globe } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 import { getElevationString } from '@pathquest/shared';
-import { Text, Value } from '@/src/components/ui';
+import { Text } from '@/src/components/ui';
 
 interface ProfileStats {
   totalPeaks?: number;
@@ -40,19 +41,19 @@ interface StatsContentProps {
 }
 
 interface StatCardProps {
-  icon: React.ComponentProps<typeof FontAwesome>['name'];
+  Icon: LucideIcon;
   value: string | number;
   label: string;
   sublabel?: string;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ icon, value, label, sublabel }) => {
+const StatCard: React.FC<StatCardProps> = ({ Icon, value, label, sublabel }) => {
   return (
     <View className="w-[47%] p-4 rounded-xl bg-card border border-border items-center">
       <View className="w-10 h-10 rounded-full bg-primary/15 items-center justify-center mb-2">
-        <FontAwesome name={icon} size={18} color="#5B9167" />
+        <Icon size={18} color="#5B9167" />
       </View>
-      <Value className="text-foreground text-2xl font-bold">{value}</Value>
+      <Text className="text-foreground text-2xl font-bold">{value}</Text>
       <Text className="text-muted-foreground text-xs mt-1 text-center">{label}</Text>
       {sublabel && (
         <Text className="text-muted-foreground text-[11px] mt-0.5 text-center">{sublabel}</Text>
@@ -74,7 +75,7 @@ const StatsContent: React.FC<StatsContentProps> = ({ stats, isLoading = false })
   if (!stats) {
     return (
       <View className="flex-1 items-center justify-center p-8">
-        <FontAwesome name="bar-chart" size={32} color="#A9A196" />
+        <BarChart3 size={32} color="#A9A196" />
         <Text className="text-foreground text-lg font-semibold mt-4">
           No stats yet
         </Text>
@@ -95,7 +96,7 @@ const StatsContent: React.FC<StatsContentProps> = ({ stats, isLoading = false })
       {stats.highestPeak && (
         <View className="p-5 rounded-xl bg-card border border-border items-center">
           <View className="w-12 h-12 rounded-full bg-summited/20 items-center justify-center mb-3">
-            <FontAwesome name="flag" size={20} color="#4A8BC4" />
+            <Flag size={20} color="#4A8BC4" />
           </View>
           <Text className="text-muted-foreground text-xs uppercase tracking-wider">
             Highest Peak
@@ -103,31 +104,31 @@ const StatsContent: React.FC<StatsContentProps> = ({ stats, isLoading = false })
           <Text className="text-foreground text-xl font-bold mt-1 text-center">
             {stats.highestPeak.name}
           </Text>
-          <Value className="text-muted-foreground text-sm mt-0.5">
+          <Text className="text-muted-foreground text-sm mt-0.5">
             {getElevationString(stats.highestPeak.elevation, 'imperial')}
-          </Value>
+          </Text>
         </View>
       )}
 
       {/* Stats Grid */}
       <View className="flex-row flex-wrap gap-3">
         <StatCard 
-          icon="flag" 
+          Icon={Flag}
           value={stats.totalPeaks ?? 0} 
           label="Peaks Summited"
         />
         <StatCard 
-          icon="repeat" 
+          Icon={Repeat}
           value={stats.totalSummits ?? 0} 
           label="Total Summits"
         />
         <StatCard 
-          icon="arrow-up" 
+          Icon={ArrowUp}
           value={stats.totalElevation ? `${Math.round(stats.totalElevation / 1000)}k ft` : '0 ft'} 
           label="Elevation Gained"
         />
         <StatCard 
-          icon="trophy" 
+          Icon={Trophy}
           value={stats.challengesCompleted ?? 0} 
           label="Challenges"
         />
@@ -142,10 +143,10 @@ const StatsContent: React.FC<StatsContentProps> = ({ stats, isLoading = false })
           <View className="flex-row gap-6">
             {stats.statesClimbed !== undefined && (
               <View className="flex-row items-center gap-2">
-                <FontAwesome name="map" size={14} color="#A9A196" />
-                <Value className="text-foreground text-lg font-bold">
+                <Map size={14} color="#A9A196" />
+                <Text className="text-foreground text-lg font-bold">
                   {stats.statesClimbed}
-                </Value>
+                </Text>
                 <Text className="text-muted-foreground text-[13px]">
                   States
                 </Text>
@@ -153,10 +154,10 @@ const StatsContent: React.FC<StatsContentProps> = ({ stats, isLoading = false })
             )}
             {stats.countriesClimbed !== undefined && (
               <View className="flex-row items-center gap-2">
-                <FontAwesome name="globe" size={14} color="#A9A196" />
-                <Value className="text-foreground text-lg font-bold">
+                <Globe size={14} color="#A9A196" />
+                <Text className="text-foreground text-lg font-bold">
                   {stats.countriesClimbed}
-                </Value>
+                </Text>
                 <Text className="text-muted-foreground text-[13px]">
                   Countries
                 </Text>
@@ -201,7 +202,7 @@ const BreakdownItem: React.FC<BreakdownItemProps> = ({ label, value }) => {
   return (
     <View className="flex-row justify-between items-center py-3 border-b border-border">
       <Text className="text-foreground text-sm">{label}</Text>
-      <Value className="text-foreground text-base font-semibold">{value}</Value>
+      <Text className="text-foreground text-base font-semibold">{value}</Text>
     </View>
   );
 };

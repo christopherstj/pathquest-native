@@ -9,10 +9,11 @@
 
 import React, { useState } from 'react';
 import { View, ScrollView, TouchableOpacity } from 'react-native';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { MapPin, ArrowUp, Flag, Users, Trophy, Heart, X, BookOpen, Info } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 import type { Peak } from '@pathquest/shared';
 import { getElevationString } from '@pathquest/shared';
-import { Text, Value } from '@/src/components/ui';
+import { Text } from '@/src/components/ui';
 
 type PeakDetailTab = 'community' | 'journal' | 'details';
 
@@ -26,16 +27,16 @@ interface PeakDetailProps {
 interface StatCardProps {
   label: string;
   value: string | number;
-  icon?: React.ComponentProps<typeof FontAwesome>['name'];
+  Icon?: LucideIcon;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ label, value, icon }) => {
+const StatCard: React.FC<StatCardProps> = ({ label, value, Icon }) => {
   return (
     <View className="flex-1 min-w-[45%] p-3 rounded-lg bg-card border border-border items-center">
-      {icon && (
-        <FontAwesome name={icon} size={14} color="#A9A196" style={{ marginBottom: 4 }} />
+      {Icon && (
+        <Icon size={14} color="#A9A196" style={{ marginBottom: 4 }} />
       )}
-      <Value className="text-foreground text-lg font-bold">{value}</Value>
+      <Text className="text-foreground text-lg font-bold">{value}</Text>
       <Text className="text-muted-foreground text-[11px] mt-0.5">{label}</Text>
     </View>
   );
@@ -64,7 +65,7 @@ const PeakDetail: React.FC<PeakDetailProps> = ({
         <View className="flex-1">
           {/* Badge */}
           <View className="flex-row items-center gap-1 bg-muted px-2 py-1 rounded-xl self-start mb-2">
-            <FontAwesome name="map-marker" size={10} color="#A9A196" />
+            <MapPin size={10} color="#A9A196" />
             <Text className="text-muted-foreground text-[10px] font-semibold tracking-wider">PEAK</Text>
           </View>
           
@@ -89,10 +90,10 @@ const PeakDetail: React.FC<PeakDetailProps> = ({
               onPress={onFavoriteToggle}
               activeOpacity={0.7}
             >
-              <FontAwesome 
-                name={isFavorited ? 'heart' : 'heart-o'} 
+              <Heart
                 size={18} 
-                color={isFavorited ? '#C44536' : '#A9A196'} 
+                color={isFavorited ? '#C44536' : '#A9A196'}
+                fill={isFavorited ? '#C44536' : 'transparent'}
               />
             </TouchableOpacity>
           )}
@@ -102,7 +103,7 @@ const PeakDetail: React.FC<PeakDetailProps> = ({
               onPress={onClose}
               activeOpacity={0.7}
             >
-              <FontAwesome name="times" size={18} color="#A9A196" />
+              <X size={18} color="#A9A196" />
             </TouchableOpacity>
           )}
         </View>
@@ -114,24 +115,24 @@ const PeakDetail: React.FC<PeakDetailProps> = ({
           <StatCard 
             label="Elevation" 
             value={getElevationString(peak.elevation, 'imperial')} 
-            icon="arrow-up"
+            Icon={ArrowUp}
           />
         )}
         <StatCard 
           label="Your Summits" 
           value={userSummits} 
-          icon="flag"
+          Icon={Flag}
         />
         <StatCard 
           label="Community" 
           value={publicSummits} 
-          icon="users"
+          Icon={Users}
         />
         {peak.num_challenges !== undefined && peak.num_challenges > 0 && (
           <StatCard 
             label="Challenges" 
             value={peak.num_challenges} 
-            icon="trophy"
+            Icon={Trophy}
           />
         )}
       </View>
@@ -189,7 +190,7 @@ const PeakDetail: React.FC<PeakDetailProps> = ({
       >
         {activeTab === 'community' && (
           <View className="items-center justify-center p-8">
-            <FontAwesome name="users" size={24} color="#A9A196" />
+            <Users size={24} color="#A9A196" />
             <Text className="text-muted-foreground text-sm mt-3 text-center">
               Community summit history will appear here
             </Text>
@@ -198,7 +199,7 @@ const PeakDetail: React.FC<PeakDetailProps> = ({
         
         {activeTab === 'journal' && (
           <View className="items-center justify-center p-8">
-            <FontAwesome name="book" size={24} color="#A9A196" />
+            <BookOpen size={24} color="#A9A196" />
             <Text className="text-muted-foreground text-sm mt-3 text-center">
               Your summit journal entries will appear here
             </Text>
@@ -207,7 +208,7 @@ const PeakDetail: React.FC<PeakDetailProps> = ({
         
         {activeTab === 'details' && (
           <View className="items-center justify-center p-8">
-            <FontAwesome name="info-circle" size={24} color="#A9A196" />
+            <Info size={24} color="#A9A196" />
             <Text className="text-muted-foreground text-sm mt-3 text-center">
               Peak details and challenges will appear here
             </Text>

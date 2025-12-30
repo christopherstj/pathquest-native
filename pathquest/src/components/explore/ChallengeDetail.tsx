@@ -8,8 +8,9 @@
  */
 
 import React, { useState } from 'react';
-import { View, ScrollView, TouchableOpacity, Text } from 'react-native';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { View, ScrollView, TouchableOpacity } from 'react-native';
+import { Trophy, Heart, X, Flag, Calendar, TrendingUp, List } from 'lucide-react-native';
+import { Text } from '@/src/components/ui';
 import type { ChallengeProgress } from '@pathquest/shared';
 
 type ChallengeDetailTab = 'progress' | 'peaks';
@@ -43,7 +44,7 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
         <View className="flex-1">
           {/* Badge */}
           <View className="flex-row items-center gap-1 bg-muted px-2 py-1 rounded-xl self-start mb-2">
-            <FontAwesome name="trophy" size={10} color="#A9A196" />
+            <Trophy size={10} color="#A9A196" />
             <Text className="text-muted-foreground text-[10px] font-semibold tracking-wider">CHALLENGE</Text>
           </View>
           
@@ -68,10 +69,10 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
               onPress={onFavoriteToggle}
               activeOpacity={0.7}
             >
-              <FontAwesome 
-                name={isFavorited ? 'heart' : 'heart-o'} 
+              <Heart
                 size={18} 
-                color={isFavorited ? '#C44536' : '#A9A196'} 
+                color={isFavorited ? '#C44536' : '#A9A196'}
+                fill={isFavorited ? '#C44536' : 'transparent'}
               />
             </TouchableOpacity>
           )}
@@ -81,7 +82,7 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
               onPress={onClose}
               activeOpacity={0.7}
             >
-              <FontAwesome name="times" size={18} color="#A9A196" />
+              <X size={18} color="#A9A196" />
             </TouchableOpacity>
           )}
         </View>
@@ -110,7 +111,7 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
         <View className="flex-row flex-wrap gap-4 mt-3">
           {!isCompleted && remaining > 0 && (
             <View className="flex-row items-center gap-1.5">
-              <FontAwesome name="flag" size={12} color="#A9A196" />
+              <Flag size={12} color="#A9A196" />
               <Text className="text-muted-foreground text-xs">
                 {remaining} remaining
               </Text>
@@ -118,7 +119,7 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
           )}
           {challenge.lastProgressDate && (
             <View className="flex-row items-center gap-1.5">
-              <FontAwesome name="calendar" size={12} color="#A9A196" />
+              <Calendar size={12} color="#A9A196" />
               <Text className="text-muted-foreground text-xs">
                 Last progress: {new Date(challenge.lastProgressDate).toLocaleDateString()}
               </Text>
@@ -166,7 +167,7 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
       >
         {activeTab === 'progress' && (
           <View className="items-center justify-center p-8">
-            <FontAwesome name="line-chart" size={24} color="#A9A196" />
+            <TrendingUp size={24} color="#A9A196" />
             <Text className="text-muted-foreground text-sm mt-3 text-center">
               Progress details and next peak suggestions will appear here
             </Text>
@@ -175,7 +176,7 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
         
         {activeTab === 'peaks' && (
           <View className="items-center justify-center p-8">
-            <FontAwesome name="list" size={24} color="#A9A196" />
+            <List size={24} color="#A9A196" />
             <Text className="text-muted-foreground text-sm mt-3 text-center">
               List of peaks in this challenge will appear here
             </Text>

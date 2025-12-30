@@ -10,7 +10,8 @@
 
 import React, { useState } from 'react';
 import { View, TouchableOpacity, ScrollView } from 'react-native';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { BarChart3, MapPin, BookOpen, Trophy } from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 import { Text } from '@/src/components/ui';
 import StatsContent from './StatsContent';
 import PeaksContent from './PeaksContent';
@@ -27,13 +28,13 @@ interface ProfileContentProps {
 }
 
 interface TabButtonProps {
-  icon: React.ComponentProps<typeof FontAwesome>['name'];
+  Icon: LucideIcon;
   label: string;
   isActive: boolean;
   onPress: () => void;
 }
 
-const TabButton: React.FC<TabButtonProps> = ({ icon, label, isActive, onPress }) => {
+const TabButton: React.FC<TabButtonProps> = ({ Icon, label, isActive, onPress }) => {
   return (
     <TouchableOpacity
       className={`flex-row items-center gap-1.5 py-2 px-3 rounded-lg ${
@@ -42,8 +43,7 @@ const TabButton: React.FC<TabButtonProps> = ({ icon, label, isActive, onPress })
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <FontAwesome 
-        name={icon} 
+      <Icon
         size={14} 
         color={isActive ? '#EDE5D8' : '#A9A196'} 
       />
@@ -110,25 +110,25 @@ const ProfileContent: React.FC<ProfileContentProps> = ({
         >
           <View className="flex-row p-1 rounded-lg bg-muted gap-1">
             <TabButton
-              icon="bar-chart"
+              Icon={BarChart3}
               label="Stats"
               isActive={activeTab === 'stats'}
               onPress={() => setActiveTab('stats')}
             />
             <TabButton
-              icon="map-marker"
+              Icon={MapPin}
               label="Peaks"
               isActive={activeTab === 'peaks'}
               onPress={() => setActiveTab('peaks')}
             />
             <TabButton
-              icon="book"
+              Icon={BookOpen}
               label="Journal"
               isActive={activeTab === 'journal'}
               onPress={() => setActiveTab('journal')}
             />
             <TabButton
-              icon="trophy"
+              Icon={Trophy}
               label="Challenges"
               isActive={activeTab === 'challenges'}
               onPress={() => setActiveTab('challenges')}
