@@ -22,7 +22,9 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "app.pathquest",
+      "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro",
@@ -34,6 +36,13 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bb998212-2b4f-4704-8791-b99f4d68efed"
+      }
+    },
+    "owner": "christopherstj"
   }
 }

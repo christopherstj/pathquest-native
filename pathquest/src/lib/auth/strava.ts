@@ -9,9 +9,13 @@ WebBrowser.maybeCompleteAuthSession();
 const STRAVA_CLIENT_ID = process.env.EXPO_PUBLIC_STRAVA_CLIENT_ID ?? "";
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "";
 
+// Log config on load (helps debug connection issues)
+console.log("[Strava Auth] API_URL configured as:", API_URL || "(not set)");
+
 // Strava OAuth endpoints
+// Using standard endpoint (not /mobile/authorize) for broader scope support
 const discovery: AuthSession.DiscoveryDocument = {
-    authorizationEndpoint: "https://www.strava.com/oauth/mobile/authorize",
+    authorizationEndpoint: "https://www.strava.com/oauth/authorize",
     tokenEndpoint: "https://www.strava.com/oauth/token",
     revocationEndpoint: "https://www.strava.com/oauth/deauthorize",
 };
@@ -72,8 +76,11 @@ const exchangeCodeForTokens = async (
         isPublic?: boolean;
     };
 } | null> => {
+    const url = `${API_URL}/api/auth/mobile/strava/exchange`;
+    console.log("Exchanging code at:", url);
+    
     try {
-        const response = await fetch(`${API_URL}/api/auth/mobile/strava/exchange`, {
+        const response = await fetch(url, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -84,15 +91,19 @@ const exchangeCodeForTokens = async (
             }),
         });
 
+        console.log("Exchange response status:", response.status);
+        
         if (!response.ok) {
             const errorText = await response.text();
             console.error("Token exchange failed:", response.status, errorText);
             return null;
         }
 
-        return response.json();
+        const data = await response.json();
+        console.log("Token exchange successful, user:", data.user?.name);
+        return data;
     } catch (error) {
-        console.error("Token exchange error:", error);
+        console.error("Token exchange error (network?):", error);
         return null;
     }
 };
@@ -112,48 +123,67 @@ export const startStravaAuth = async (): Promise<boolean> => {
         const codeVerifier = await generateCodeVerifier();
         const codeChallenge = await generateCodeChallenge(codeVerifier);
 
-        // Get the redirect URI for this app
-        const redirectUri = AuthSession.makeRedirectUri({
-            scheme: "pathquest",
-            path: "auth/callback",
-        });
+        // Strava requires a real web domain for callback URLs (custom schemes aren't valid).
+        // We use the web app as an intermediary which then redirects to our deep link.
+        // Make sure "pathquest.app" is in your Strava API Authorization Callback Domain.
+        const redirectUri = "https://pathquest.app/api/auth/mobile/callback";
 
         console.log("Redirect URI:", redirectUri);
 
         // Create the auth request
+        // Strava expects comma-separated scopes (not space-separated like OAuth2 standard)
         const request = new AuthSession.AuthRequest({
             clientId: STRAVA_CLIENT_ID,
-            scopes: ["read", "activity:read", "activity:read_all", "activity:write"],
+            scopes: [], // Don't use scopes array - Strava needs comma-separated
             redirectUri,
             codeChallenge,
             codeChallengeMethod: AuthSession.CodeChallengeMethod.S256,
             responseType: AuthSession.ResponseType.Code,
             extraParams: {
                 approval_prompt: "auto",
+                scope: "read,activity:read,activity:read_all,activity:write", // Comma-separated!
             },
         });
 
         // Start the auth flow
+        console.log("[Strava Auth] Starting promptAsync...");
         const result = await request.promptAsync(discovery);
+        console.log("[Strava Auth] promptAsync result type:", result.type);
 
         if (result.type === "success" && result.params.code) {
-            console.log("Authorization code received");
+            // This path works when redirectUri matches what expo-auth-session expects
+            console.log("[Strava Auth] Authorization code received via promptAsync");
 
-            // Exchange the code for tokens
             const tokens = await exchangeCodeForTokens(
                 result.params.code,
                 codeVerifier
             );
 
             if (tokens) {
-                // Save to auth store
+                console.log("[Strava Auth] Token exchange successful!");
                 await useAuthStore.getState().login(tokens);
                 return true;
+            } else {
+                console.error("[Strava Auth] Token exchange returned null");
             }
+        } else if (result.type === "dismiss") {
+            // When using a web intermediary, promptAsync returns "dismiss" but the
+            // callback route (auth/callback.tsx) handles the exchange directly.
+            // Wait briefly and check if auth succeeded.
+            console.log("[Strava Auth] Auth flow dismissed - checking if callback handled auth...");
+            
+            // Give the callback time to complete the exchange
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            if (useAuthStore.getState().isAuthenticated) {
+                console.log("[Strava Auth] Auth succeeded via callback route!");
+                return true;
+            }
+            console.log("[Strava Auth] Auth not completed after dismiss");
         } else if (result.type === "cancel") {
-            console.log("Auth flow cancelled by user");
+            console.log("[Strava Auth] Auth flow cancelled by user");
         } else if (result.type === "error") {
-            console.error("Auth error:", result.error);
+            console.error("[Strava Auth] Auth error:", result.error);
         }
 
         return false;
@@ -168,20 +198,19 @@ export const startStravaAuth = async (): Promise<boolean> => {
  * Useful if you want more control over the auth flow in a component.
  */
 export const useStravaAuth = () => {
-    const redirectUri = AuthSession.makeRedirectUri({
-        scheme: "pathquest",
-        path: "auth/callback",
-    });
+    // Strava requires a real web domain - we use the web app as an intermediary
+    const redirectUri = "https://pathquest.app/api/auth/mobile/callback";
 
     const [request, response, promptAsync] = AuthSession.useAuthRequest(
         {
             clientId: STRAVA_CLIENT_ID,
-            scopes: ["read", "activity:read", "activity:read_all", "activity:write"],
+            scopes: [], // Don't use scopes array - Strava needs comma-separated
             redirectUri,
             codeChallengeMethod: AuthSession.CodeChallengeMethod.S256,
             responseType: AuthSession.ResponseType.Code,
             extraParams: {
                 approval_prompt: "auto",
+                scope: "read,activity:read,activity:read_all,activity:write", // Comma-separated!
             },
         },
         discovery
