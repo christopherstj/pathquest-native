@@ -130,6 +130,7 @@ function RootLayoutNav() {
                     presentation: 'fullScreenModal',
                   }} 
                 />
+                <Stack.Screen name="compass/[peakId]" options={{ headerShown: false }} />
               </Stack>
             </NavigationThemeProvider>
           </ThemeProvider>

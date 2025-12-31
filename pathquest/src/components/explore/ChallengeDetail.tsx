@@ -8,7 +8,8 @@
  */
 
 import React, { useState } from 'react';
-import { View, ScrollView, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Trophy, Heart, X, Flag, Calendar, TrendingUp, List } from 'lucide-react-native';
 import { Text } from '@/src/components/ui';
 import type { ChallengeProgress } from '@pathquest/shared';
@@ -38,7 +39,7 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
   const remaining = challenge.total - challenge.completed;
 
   return (
-    <View className="flex-1">
+    <View style={{ flex: 1 }}>
       {/* Header */}
       <View className="flex-row p-4 border-b border-border">
         <View className="flex-1">
@@ -160,9 +161,9 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
       </View>
 
       {/* Tab Content */}
-      <ScrollView 
-        className="flex-1"
-        contentContainerClassName="p-4 pb-8"
+      <BottomSheetScrollView 
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 32 }}
         showsVerticalScrollIndicator={false}
       >
         {activeTab === 'progress' && (
@@ -182,7 +183,7 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
             </Text>
           </View>
         )}
-      </ScrollView>
+      </BottomSheetScrollView>
     </View>
   );
 };

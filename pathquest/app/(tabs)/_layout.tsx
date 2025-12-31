@@ -3,10 +3,12 @@ import { View, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Home, Compass, User, LogOut, LogIn, UserCircle } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
 import { MapView, PeakMarkers, CenterOnMeButton, LineToTarget } from '@/src/components/map';
 import type { MapViewRef } from '@/src/components/map';
 import { ContentSheet } from '@/src/components/navigation';
 import { useMapStore } from '@/src/store/mapStore';
+import { useSheetStore } from '@/src/store/sheetStore';
 import { useMapPeaks, useMapChallenges } from '@/src/hooks';
 import type { Peak, ChallengeProgress } from '@pathquest/shared';
 import { Text } from '@/src/components/ui';
@@ -16,6 +18,7 @@ import { DashboardContent } from '@/src/components/home';
 import { ProfileContent } from '@/src/components/profile';
 import { 
   DiscoveryContent, 
+  ExploreOmnibar,
   PeakDetail, 
   ChallengeDetail,
   FloatingPeakCard,
@@ -37,6 +40,7 @@ type TabName = 'home' | 'explore' | 'profile';
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapViewRef>(null);
+  const router = useRouter();
   
   // Active tab state
   const [activeTab, setActiveTab] = useState<TabName>('home');
@@ -57,10 +61,18 @@ export default function TabLayout() {
   const openDetail = useMapStore((state) => state.openDetail);
   const updateMapRegion = useMapStore((state) => state.updateMapRegion);
   const clearSelection = useMapStore((state) => state.clearSelection);
+  const setSelectedPeakId = useMapStore((state) => state.setSelectedPeakId);
+  const setSelectedChallengeId = useMapStore((state) => state.setSelectedChallengeId);
+  const setSelectionMode = useMapStore((state) => state.setSelectionMode);
   const setVisiblePeaks = useMapStore((state) => state.setVisiblePeaks);
   const setVisibleChallenges = useMapStore((state) => state.setVisibleChallenges);
   const currentBounds = useMapStore((state) => state.currentBounds);
   const isZoomedOutTooFar = useMapStore((state) => state.isZoomedOutTooFar);
+
+  // Sheet state (0 collapsed, 1 halfway, 2 expanded)
+  const sheetSnapIndex = useSheetStore((s) => s.snapIndex);
+  const sheetExpand = useSheetStore((s) => s.expand);
+  const sheetSnapTo = useSheetStore((s) => s.snapTo);
 
   // Convert bounds format for API: [[sw_lng, sw_lat], [ne_lng, ne_lat]] -> { northWest: [lat, lng], southEast: [lat, lng] }
   const apiBounds = currentBounds ? {
@@ -74,6 +86,14 @@ export default function TabLayout() {
       'isZoomedOutTooFar:', isZoomedOutTooFar, 
       'apiBounds:', apiBounds ? JSON.stringify(apiBounds) : 'null');
   }, [currentBounds, isZoomedOutTooFar, apiBounds]);
+
+  // Enforce routing rule: floating preview cards only exist when sheet is fully collapsed.
+  // If user drags the sheet up, dismiss the floating selection.
+  useEffect(() => {
+    if (sheetSnapIndex !== 0 && selectionMode === 'floating') {
+      clearSelection();
+    }
+  }, [sheetSnapIndex, selectionMode, clearSelection]);
 
   // Fetch peaks and challenges from API when map bounds change
   const { data: peaksData, isLoading: peaksLoading, error: peaksError } = useMapPeaks(apiBounds, !isZoomedOutTooFar);
@@ -134,30 +154,69 @@ export default function TabLayout() {
     }, 500);
   }, []);
 
-  // Handle peak selection from list or map - shows floating card
-  const handlePeakPress = useCallback((peak: Peak) => {
-    selectPeak(peak.id);
-    setActiveTab('explore');
-    if (peak.location_coords) {
-      mapRef.current?.flyTo(peak.location_coords, 14);
-    }
-  }, [selectPeak]);
+  // Open detail directly (used by list taps + omnibar)
+  const openPeakDetail = useCallback(
+    (peak: Peak) => {
+      setSelectedPeakId(peak.id);
+      setSelectionMode('detail');
+      sheetExpand(); // Ensure sheet is fully open for detail
+      setActiveTab('explore');
+      if (peak.location_coords) {
+        mapRef.current?.flyTo(peak.location_coords, 14);
+      }
+    },
+    [setSelectedPeakId, setSelectionMode, sheetExpand]
+  );
 
-  // Handle challenge selection from list - shows floating card
-  const handleChallengePress = useCallback((challenge: ChallengeProgress) => {
-    selectChallenge(challenge.id);
-    setActiveTab('explore');
-  }, [selectChallenge]);
+  const openChallengeDetail = useCallback(
+    (challenge: ChallengeProgress) => {
+      setSelectedChallengeId(challenge.id);
+      setSelectionMode('detail');
+      sheetExpand(); // Ensure sheet is fully open for detail
+      setActiveTab('explore');
+    },
+    [setSelectedChallengeId, setSelectionMode, sheetExpand]
+  );
+
+  // Marker tap behavior depends on sheet position:
+  // - Collapsed: show floating mini card
+  // - Half/Expanded: go straight to detail + expand
+  const handlePeakMarkerPress = useCallback(
+    (peak: Peak) => {
+      if (sheetSnapIndex === 0) {
+        selectPeak(peak.id);
+        setActiveTab('explore');
+        if (peak.location_coords) {
+          mapRef.current?.flyTo(peak.location_coords, 14);
+        }
+        return;
+      }
+      openPeakDetail(peak);
+    },
+    [openPeakDetail, selectPeak, sheetSnapIndex]
+  );
 
   // Handle opening detail view from floating card
   const handleOpenDetail = useCallback(() => {
     openDetail();
-  }, [openDetail]);
+    sheetExpand();
+  }, [openDetail, sheetExpand]);
 
-  // Handle closing detail/floating card
-  const handleCloseDetail = useCallback(() => {
+  const handleOpenCompass = useCallback(() => {
+    if (!selectedPeakId) return;
+    router.push({ pathname: '/compass/[peakId]', params: { peakId: selectedPeakId } });
+  }, [router, selectedPeakId]);
+
+  // Close floating selection (doesn't change sheet snap)
+  const handleCloseFloating = useCallback(() => {
     clearSelection();
   }, [clearSelection]);
+
+  // Close detail (returns to browsing state)
+  const handleCloseDetail = useCallback(() => {
+    clearSelection();
+    sheetSnapTo('halfway');
+  }, [clearSelection, sheetSnapTo]);
 
   // Handle center on user location
   const handleCenterOnUser = useCallback(() => {
@@ -199,8 +258,8 @@ export default function TabLayout() {
     // Default to discovery content (floating cards shown separately)
     return (
       <DiscoveryContent
-        onPeakPress={handlePeakPress}
-        onChallengePress={handleChallengePress}
+        onPeakPress={openPeakDetail}
+        onChallengePress={openChallengeDetail}
       />
     );
   };
@@ -219,7 +278,7 @@ export default function TabLayout() {
           paddingBottom: TAB_BAR_HEIGHT + insets.bottom 
         }}
       >
-        <DashboardContent onPeakPress={handlePeakPress} />
+        <DashboardContent onPeakPress={openPeakDetail} />
       </View>
     );
   };
@@ -327,7 +386,7 @@ export default function TabLayout() {
           <PeakMarkers
             peaks={visiblePeaks}
             selectedPeakId={selectedPeakId}
-            onPeakPress={handlePeakPress}
+            onPeakPress={handlePeakMarkerPress}
             isDark={true}
           />
           
@@ -341,10 +400,28 @@ export default function TabLayout() {
           )}
         </MapView>
 
+        {/* Omnibar - top of map (web-style) */}
+        <View
+          style={{
+            position: 'absolute',
+            top: insets.top + 12,
+            left: 16,
+            right: 16,
+            zIndex: 50,
+          }}
+          pointerEvents="box-none"
+        >
+          <ExploreOmnibar
+            visible={selectionMode !== 'detail'}
+            onPeakPress={openPeakDetail}
+            onChallengePress={openChallengeDetail}
+          />
+        </View>
+
         {/* Center on Me FAB */}
         <CenterOnMeButton
           onPress={handleCenterOnUser}
-          visible={selectionMode !== 'floating'}
+          visible={selectionMode !== 'floating' || sheetSnapIndex !== 0}
           style={{
             position: 'absolute',
             right: 16,
@@ -353,7 +430,7 @@ export default function TabLayout() {
         />
 
         {/* Floating Peak Card */}
-        {selectionMode === 'floating' && selectedPeak && (
+        {selectionMode === 'floating' && sheetSnapIndex === 0 && selectedPeak && (
           <View 
             style={{
               position: 'absolute',
@@ -364,14 +441,15 @@ export default function TabLayout() {
           >
             <FloatingPeakCard
               peak={selectedPeak}
-              onClose={handleCloseDetail}
+              onClose={handleCloseFloating}
               onDetailsPress={handleOpenDetail}
+              onCompassPress={handleOpenCompass}
             />
           </View>
         )}
 
         {/* Floating Challenge Card */}
-        {selectionMode === 'floating' && selectedChallenge && (
+        {selectionMode === 'floating' && sheetSnapIndex === 0 && selectedChallenge && (
           <View 
             style={{
               position: 'absolute',
@@ -382,14 +460,18 @@ export default function TabLayout() {
           >
             <FloatingChallengeCard
               challenge={selectedChallenge}
-              onClose={handleCloseDetail}
+              onClose={handleCloseFloating}
               onDetailsPress={handleOpenDetail}
             />
           </View>
         )}
 
         {/* Content Sheet Overlay */}
-        <ContentSheet bottomPadding={TAB_BAR_HEIGHT + insets.bottom}>
+        <ContentSheet
+          bottomPadding={TAB_BAR_HEIGHT + insets.bottom}
+          // In discovery mode, leave room for the omnibar so the sheet doesn't slide under it.
+          expandedTopInset={selectionMode === 'none' ? insets.top + 12 + 56 + 16 : 100}
+        >
           {renderExploreContent()}
         </ContentSheet>
       </View>

@@ -101,6 +101,8 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
     const { isDark } = useTheme();
     const mapRef = useRef<RNMapView>(null);
     const cameraRef = useRef<Camera>(null);
+    const didInitialAutoCenterRef = useRef(false);
+    const initialAutoCenterInProgressRef = useRef(false);
 
     // Determine map style based on satellite mode and theme
     const mapStyle = satellite
@@ -178,6 +180,45 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
       setTimeout(() => {
         handleRegionChange();
       }, 300);
+
+      // Phase 2: Auto-center on user once at startup (keeps Explore “proximity-based”)
+      // We retry briefly because lastKnownLocation can be null immediately after permission prompt.
+      const tryInitialAutoCenter = async () => {
+        if (didInitialAutoCenterRef.current || initialAutoCenterInProgressRef.current) return;
+        initialAutoCenterInProgressRef.current = true;
+
+        try {
+          for (let attempt = 0; attempt < 6; attempt++) {
+            const userLocation = await Mapbox.locationManager.getLastKnownLocation();
+            if (userLocation?.coords) {
+              const { longitude, latitude } = userLocation.coords;
+              cameraRef.current?.setCamera({
+                centerCoordinate: [longitude, latitude],
+                zoomLevel: 12,
+                animationDuration: 900,
+              });
+              didInitialAutoCenterRef.current = true;
+              console.log('[MapView] Initial auto-center succeeded');
+              return;
+            }
+            // wait a bit and retry
+            await new Promise((r) => setTimeout(r, 500));
+          }
+
+          console.log('[MapView] Initial auto-center skipped (no user location available yet)');
+          didInitialAutoCenterRef.current = true;
+        } catch (error) {
+          console.warn('[MapView] Initial auto-center failed:', error);
+          didInitialAutoCenterRef.current = true;
+        } finally {
+          initialAutoCenterInProgressRef.current = false;
+        }
+      };
+
+      // small delay so permission prompt / location subsystem can initialize
+      setTimeout(() => {
+        tryInitialAutoCenter();
+      }, 600);
     }, [onMapReady, handleRegionChange]);
 
     // Handle map load error

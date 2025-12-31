@@ -2,12 +2,13 @@
 
 ## Table of Contents
 1. [Design Principles](#design-principles)
-2. [Navigation Architecture](#navigation-architecture)
-3. [Screen Wireframes](#screen-wireframes)
-4. [Native Functionality](#native-functionality)
-5. [Component Architecture](#component-architecture)
-6. [State Management](#state-management)
-7. [API Requirements](#api-requirements)
+2. [Visual Design System](#visual-design-system)
+3. [Navigation Architecture](#navigation-architecture)
+4. [Screen Wireframes](#screen-wireframes)
+5. [Native Functionality](#native-functionality)
+6. [Component Architecture](#component-architecture)
+7. [State Management](#state-management)
+8. [API Requirements](#api-requirements)
 
 ---
 
@@ -47,6 +48,375 @@ Whenever a map is displayed, the user's current location should always be shown:
 - **Visible on all map screens**: Explore, Peak/Challenge floating cards, You (map mode)
 - **Permission handling**: If location permission denied, show map without puck but prompt to enable
 - **Auto-center option**: "Center on me" button to quickly return to user location
+
+---
+
+## Visual Design System
+
+### Aesthetic Direction: Retro Topographic
+
+PathQuest's visual identity is inspired by **vintage USGS quad maps, 1970s Sierra Club publications, and hand-annotated hiking journals**. The aesthetic balances **authentic cartographic elements** with **modern mobile UX patterns**.
+
+**Core Concept**: Field guide meets trail map — practical, beautiful, and unmistakably "peakbagging."
+
+---
+
+### Color Palette
+
+#### Theme-Aware Colors (System Light/Dark)
+
+The app **follows the system appearance setting** (light/dark) and provides distinct palettes for each:
+
+**Dark Mode** (Field Guide at Night):
+- **Background**: `#25221E` - Dark warm brown (NOT gray)
+- **Card Surface**: `rgba(22, 17, 7, 0.92)` - Semi-transparent dark parchment
+- **Foreground Text**: `#EDE5D8` - Warm off-white
+- **Muted Text**: `#A9A196` - Warm gray
+- **Primary (CTAs)**: `#5B9167` - Bright forest green
+- **Secondary (Accents)**: `#B8845A` - Rust/amber
+- **Summited Blue**: `#4A8BC4` - Sky blue (for summited indicators, trip reports)
+- **Border**: `rgba(69, 65, 60, 0.7)` - Warm dark tones
+
+**Light Mode** (Paper Map by Day):
+- **Background**: `#EDE5D8` - Aged parchment
+- **Card Surface**: `rgba(232, 225, 212, 0.92)` - Slightly darker parchment
+- **Foreground Text**: `#3D3428` - Deep umber ink
+- **Muted Text**: `#736B5E` - Muted brown
+- **Primary (CTAs)**: `#4D7A57` - Forest green
+- **Secondary (Accents)**: `#C9915A` - Rust/umber
+- **Summited Blue**: `#5B9BD5` - Sky blue
+- **Border**: `rgba(201, 194, 181, 0.7)` - Warm light tones
+
+**Contour Ink** (Topo Pattern Color):
+- **Dark Mode**: `rgba(169, 161, 150, 0.14)` - Tan contour ink at 14% opacity
+- **Light Mode**: `rgba(169, 161, 150, 0.10)` - Tan contour ink at 10% opacity
+- Always use **tan/brown tones** for topo lines (never blue or green) to maintain authentic map feel
+
+**Usage**:
+- Access colors via `useTheme()` hook: `const { colors } = useTheme()`
+- Use `colors.primary`, `colors.foreground`, `colors.card`, etc.
+- Never hardcode hex values — always use theme tokens
+
+---
+
+### Typography
+
+**Display Font**: Fraunces (serif)
+- Use for: Headings, titles, labels, body text
+- Weights: Regular (400), Medium (500), SemiBold (600), Bold (700)
+- Tailwind classes: `font-display`, `font-display-medium`, `font-display-semibold`, `font-display-bold`
+- Component: `<Text>` (automatically applies Fraunces)
+
+**Data Font**: IBM Plex Mono (monospace)
+- Use for: Numbers, stats, elevations, dates, data values
+- Weights: Regular (400), Medium (500), SemiBold (600)
+- Tailwind classes: `font-mono`, `font-mono-medium`, `font-mono-semibold`
+- Component: `<Value>` (automatically applies IBM Plex Mono)
+
+**Guidelines**:
+- **Default to `<Text>`** for most UI elements
+- **Use `<Value>`** only for specific data displays (elevations, distances, stats)
+- Never use system fonts or generic sans-serif — always use theme fonts
+
+---
+
+### Topographic Patterns
+
+#### Contour Lines (`TopoPattern`)
+
+**Purpose**: Add authentic map texture without overwhelming content.
+
+**Implementation**:
+- **Component**: `src/components/ui/TopoPattern.tsx`
+- **Deterministic**: Always pass a `seed` prop (e.g., `seed="quickstats"`) so patterns don't change between renders
+- **Variants**:
+  - `full` - Wavy horizontal contour lines across entire area
+  - `corner` - Curved lines in top-left corner (subtle, doesn't fight content)
+  - `subtle` - Scattered short lines (very minimal)
+- **Opacity**: 
+  - Dark mode: `0.12-0.18` (more visible)
+  - Light mode: `0.08-0.12` (subtle)
+- **Stroke Width**: `1.5px` (thick enough to read, not hairline)
+- **Color**: Always tan (`#A9A196`) — never blue/green
+
+**Usage**:
+```tsx
+<TopoPattern 
+  width={cardWidth} 
+  height={cardHeight}
+  lines={3}
+  opacity={0.14}
+  variant="corner"
+  seed="card-unique-id"
+/>
+```
+
+**When to Use**:
+- **Card backgrounds**: Use `variant="corner"` for subtle texture
+- **Screen backgrounds**: Use `variant="full"` or `variant="subtle"` behind entire dashboard
+- **Hero cards**: Can use `variant="full"` with `showMarkers` for elevation dots
+- **Never**: Over content areas with text (use corner/subtle variants)
+
+#### Mountain Ridge Silhouettes (`MountainRidge`)
+
+**Purpose**: Break card edges and add visual interest at bottom of cards.
+
+**Implementation**:
+- **Component**: `src/components/ui/MountainRidge.tsx`
+- **Position**: Always at `bottom` of card (breaks rectangle silhouette)
+- **Variants**:
+  - `jagged` - Sharp, irregular peaks (most common)
+  - `rolling` - Smooth hills (softer feel)
+  - `sharp` - Angular peaks (geometric)
+- **Layers**: `2-3` layers with increasing opacity for depth
+- **Opacity**: `0.06-0.10` (subtle, doesn't dominate)
+- **Height**: `30-50px` depending on card size
+
+**Usage**:
+```tsx
+<MountainRidge 
+  width={cardWidth} 
+  height={40}
+  opacity={0.08}
+  variant="jagged"
+  layers={2}
+/>
+```
+
+**When to Use**:
+- **Hero cards**: Suggested peak, trip report CTA
+- **Large cards**: Dashboard sections, detail panels
+- **Never**: Small cards (stats, list items) — too busy
+
+---
+
+### Card Components
+
+#### CardFrame
+
+**Purpose**: Reusable card wrapper with consistent styling, topo patterns, and ridge silhouettes.
+
+**Component**: `src/components/ui/CardFrame.tsx`
+
+**Props**:
+- `variant`: `'default' | 'hero' | 'cta'` - Controls shadow/elevation
+- `topo`: `'none' | 'corner' | 'full'` - Topo pattern variant
+- `ridge`: `'none' | 'bottom'` - Mountain ridge at bottom
+- `seed`: `string` - Unique seed for deterministic topo pattern
+- `accentColor`: `string` - Color for accent elements (borders, highlights)
+
+**Usage**:
+```tsx
+<CardFrame
+  variant="hero"
+  topo="corner"
+  ridge="bottom"
+  seed="suggested-peak"
+  accentColor={colors.primary}
+>
+  {/* Card content */}
+</CardFrame>
+```
+
+**Guidelines**:
+- **Always use CardFrame** for cards (don't create custom card styling)
+- **Default variant**: Use `variant="default"` for most cards
+- **Hero variant**: Use for prominent cards (suggested peak, trip report CTA)
+- **CTA variant**: Use for call-to-action cards (stronger shadow)
+- **Topo**: Use `corner` for most cards, `full` only for hero cards
+- **Ridge**: Use `bottom` for hero/CTA cards, `none` for small cards
+
+---
+
+### Button Components
+
+#### PrimaryCTA
+
+**Purpose**: Primary action buttons — the most clickable elements on the page.
+
+**Component**: `src/components/ui/PrimaryCTA.tsx`
+
+**Visual Characteristics**:
+- **Background**: Primary green (or custom `backgroundColor` prop)
+- **Bevel**: Subtle top highlight line (white, 15-20% opacity)
+- **Shadow**: Strong shadow (`elevation: 8`, `shadowOpacity: 0.35`) — must be stronger than card shadows
+- **Pressed State**: `translateY(1)` + reduced shadow + haptic feedback
+- **Padding**: `12px vertical, 16px horizontal`
+- **Border Radius**: `10px`
+- **Min Height**: `44px` (touch target)
+
+**Props**:
+- `label`: `string` - Button text
+- `onPress`: `() => void` - Press handler
+- `Icon?`: `LucideIcon` - Optional icon (16px)
+- `disabled?`: `boolean`
+- `backgroundColor?`: `string` - Custom background (e.g., summited blue)
+- `foregroundColor?`: `string` - Custom text color (e.g., white on blue)
+
+**Usage**:
+```tsx
+<PrimaryCTA
+  label="View Details"
+  onPress={handlePress}
+  Icon={Mountain}
+/>
+
+// Custom color (e.g., blue for trip reports)
+<PrimaryCTA
+  label="Add Trip Report"
+  onPress={handlePress}
+  backgroundColor={colors.summited}
+  foregroundColor={colors.summitedForeground}
+/>
+```
+
+**Guidelines**:
+- **Use for**: Primary actions (View Details, Add Report, Submit)
+- **Visual Hierarchy**: PrimaryCTAs should be the most elevated elements (strongest shadows)
+- **Custom Colors**: Use `backgroundColor` prop for accent colors (blue, rust) while maintaining button affordance
+- **Never**: Use for secondary actions (use `SecondaryCTA` instead)
+
+#### SecondaryCTA
+
+**Purpose**: Secondary actions — still clearly tappable but less prominent.
+
+**Component**: `src/components/ui/SecondaryCTA.tsx`
+
+**Visual Characteristics**:
+- **Background**: Transparent (shows muted background on press)
+- **Border**: `1px` border using `colors.border`
+- **Shadow**: Moderate shadow (`elevation: 4`)
+- **Pressed State**: Shows muted background + reduced shadow
+- **Padding**: `12px vertical, 16px horizontal`
+- **Border Radius**: `10px`
+
+**Props**:
+- `label`: `string`
+- `onPress`: `() => void`
+- `Icon?`: `LucideIcon`
+- `disabled?`: `boolean`
+
+**Usage**:
+```tsx
+<SecondaryCTA
+  label="Navigate"
+  onPress={handleNavigate}
+  Icon={Navigation}
+/>
+```
+
+**Guidelines**:
+- **Use for**: Secondary actions (Navigate, Cancel, View All)
+- **Visual Hierarchy**: Less prominent than PrimaryCTA but still clearly tappable
+- **Never**: Use for destructive actions (create separate `DestructiveCTA` if needed)
+
+---
+
+### Visual Hierarchy
+
+#### Clickability Ranking (Most to Least)
+
+1. **PrimaryCTA** - Strongest shadow, bevel, most prominent
+2. **CardFrame (CTA variant)** - Strong shadow, topo texture
+3. **CardFrame (Hero variant)** - Moderate shadow, topo + ridge
+4. **CardFrame (Default)** - Subtle shadow, optional topo
+5. **SecondaryCTA** - Border + moderate shadow
+6. **Text links** - No background, subtle underline
+
+#### Shadow Guidelines
+
+- **PrimaryCTA**: `elevation: 8`, `shadowOpacity: 0.35`, `shadowRadius: 14`
+- **CardFrame (CTA)**: `elevation: 6`, `shadowOpacity: 0.25`
+- **CardFrame (Hero)**: `elevation: 4`, `shadowOpacity: 0.15`
+- **CardFrame (Default)**: `elevation: 2`, `shadowOpacity: 0.1`
+- **SecondaryCTA**: `elevation: 4`, `shadowOpacity: 0.1`
+
+**Rule**: CTAs must have stronger shadows than cards to feel "clickable."
+
+---
+
+### Layout Patterns
+
+#### Dashboard Cards
+
+**Order** (top to bottom):
+1. Quick Stats (3-column grid)
+2. Trip Report CTA (if unreported summit exists) — **Main focus**
+3. Suggested Peak Card (hero)
+4. Favorite Challenges (list)
+
+**Spacing**: `16px` gap between cards (`gap-4`)
+
+#### Card Content Structure
+
+```
+┌─────────────────────────────┐
+│  [Topo Pattern (corner)]    │  ← Subtle texture
+│                              │
+│  [Header Label]              │  ← Optional, with icon
+│  ─────────────────────────   │  ← No horizontal rules
+│                              │
+│  [Main Content]              │  ← Peak name, stats, etc.
+│                              │
+│  [Action Buttons]            │  ← PrimaryCTA + SecondaryCTA
+│                              │
+│  [Mountain Ridge (bottom)]   │  ← Breaks edge
+└─────────────────────────────┘
+```
+
+**Guidelines**:
+- **No horizontal rules/dividers** — conflicts with topo aesthetic
+- **Use spacing** (`gap`, `mb-3`, etc.) to separate sections
+- **Topo patterns** in corners/background, not over content
+- **Ridge silhouettes** only at bottom of hero cards
+
+---
+
+### Component Usage Checklist
+
+When building a new card/component, ensure:
+
+- [ ] Uses `CardFrame` wrapper (not custom card styling)
+- [ ] Uses theme colors via `useTheme()` hook
+- [ ] Uses `<Text>` component (not raw RN Text)
+- [ ] Uses `<Value>` for numbers/stats
+- [ ] Topo pattern has unique `seed` prop
+- [ ] Topo opacity appropriate for light/dark mode
+- [ ] No horizontal rules/dividers (use spacing instead)
+- [ ] PrimaryCTA for main actions (strongest shadow)
+- [ ] SecondaryCTA for secondary actions
+- [ ] Shadows follow hierarchy (CTA > Hero > Default)
+- [ ] Ridge silhouette only on hero/CTA cards
+
+---
+
+### Accessibility
+
+- **Touch Targets**: Minimum `44px` height for all buttons
+- **Contrast**: Text meets WCAG AA (foreground on background)
+- **Color Independence**: Don't rely solely on color (use icons + labels)
+- **Font Scaling**: Respect system font size preferences
+- **Dark Mode**: Always test in both light and dark modes
+
+---
+
+### Implementation Notes
+
+**Theme System**:
+- Theme follows system appearance (light/dark)
+- Access via `useTheme()` hook: `const { colors, isDark } = useTheme()`
+- Colors defined in `src/theme/colors.ts`
+- Navigation theme matches app theme automatically
+
+**SVG Components**:
+- `TopoPattern` and `MountainRidge` use `react-native-svg` (already installed)
+- Always pass deterministic `seed` prop
+- Patterns are subtle — if they're too visible, reduce opacity
+
+**Button Components**:
+- Use explicit background View (Pressable backgroundColor can be unreliable)
+- Padding on content View, not Pressable
+- Bevel highlight adds "physical button" feel
 
 ---
 
@@ -1126,82 +1496,100 @@ const queryClient = new QueryClient({
 
 ## Component Architecture
 
+**Status Legend:**
+- ✅ = Implemented
+- ⏳ = Partially implemented
+- ⬜ = Not yet implemented
+
 ```
 pathquest/
   src/
     components/
       explore/
-        DiscoverySheet.tsx        # Bottom sheet with peak/challenge list
-        DiscoveryList.tsx         # List of nearby peaks or challenges
-        FloatingPeakCard.tsx      # Peak card overlay on map
-        FloatingChallengeCard.tsx # Challenge card overlay on map
+        DiscoverySheet.tsx        ✅ Bottom sheet with peak/challenge list
+        DiscoveryList.tsx         ✅ List of nearby peaks or challenges
+        FloatingPeakCard.tsx      ✅ Peak card overlay on map (with animations)
+        FloatingChallengeCard.tsx ✅ Challenge card overlay on map (with progress)
+        PeakRow.tsx               ✅ Peak list item
+        ChallengeRow.tsx          ✅ Challenge list item
         PeakDetail/
-          index.tsx               # Main screen with collapsible hero
-          HeroCard.tsx            # Animated collapsible header
-          ConditionsTab.tsx       # Weather + recent conditions
-          CommunityTab.tsx        # Public summit reports
-          YourLogsTab.tsx         # User's summits + add report
+          index.tsx               ⬜ Main screen with collapsible hero
+          HeroCard.tsx            ⬜ Animated collapsible header
+          ConditionsTab.tsx       ⬜ Weather + recent conditions
+          CommunityTab.tsx        ⬜ Public summit reports
+          YourLogsTab.tsx         ⬜ User's summits + add report
         ChallengeDetail/
-          index.tsx               # Main screen with progress
-          HeroCard.tsx            # Animated collapsible header
-          ProgressTab.tsx         # User's progress + milestones
-          PeaksTab.tsx            # All peaks in challenge
-        CompassView.tsx           # Full-screen compass navigation
+          index.tsx               ⬜ Main screen with progress
+          HeroCard.tsx            ⬜ Animated collapsible header
+          ProgressTab.tsx         ⬜ User's progress + milestones
+          PeaksTab.tsx            ⬜ All peaks in challenge
+        CompassView.tsx           ⬜ Full-screen compass navigation
       
       map/
-        MapView.tsx               # Full-screen Mapbox wrapper
-        PeakMarkers.tsx           # Peak markers layer (GeoJSON)
-        ChallengeOverlay.tsx      # Challenge peak markers with progress
-        LocationPuck.tsx          # User location indicator (always visible)
-        CenterOnMeButton.tsx      # FAB to recenter on user location
-        LineToTarget.tsx          # Line from user to selected peak
+        MapView.tsx               ✅ Full-screen Mapbox wrapper
+        PeakMarkers.tsx           ✅ Peak markers layer (GeoJSON)
+        ChallengeOverlay.tsx      ⬜ Challenge peak markers with progress
+        LocationPuck.tsx          ✅ User location indicator (always visible)
+        CenterOnMeButton.tsx      ✅ FAB to recenter on user location
+        LineToTarget.tsx          ✅ Line from user to selected peak
       
       home/
-        Dashboard.tsx             # Main dashboard container
-        HeroSummitCard.tsx        # Unreviewed summit prompt
-        QuickStats.tsx            # Stats grid (peaks, gain, %)
-        ChallengeProgress.tsx     # Progress bars for challenges
-        ActivityFeed.tsx          # Recent reports on followed peaks
+        DashboardContent.tsx      ✅ Main dashboard container
+        QuickStats.tsx            ✅ Stats grid (peaks, elevation, challenge)
+        SuggestedPeakCard.tsx   ✅ Suggested next peak hero card
+        TripReportCTA.tsx         ✅ Unreported summit prompt
+        FavoriteChallenges.tsx    ✅ Progress bars for challenges
+        RecentSummits.tsx         ✅ Recent summits list (available, not in main layout)
       
-      you/
-        ProfileScreen.tsx         # Container with list/map toggle
-        ProfileHeader.tsx         # User info + stats summary
-        StatsTab.tsx              # Detailed stats with charts
-        PeaksTab.tsx              # List of summited peaks
-        JournalTab.tsx            # Trip reports list
-        ChallengesTab.tsx         # Challenge progress list
-        ProfileMapView.tsx        # Map of user's peaks
+      profile/ (You tab)
+        ProfileContent.tsx        ✅ Container with sub-tabs
+        ProfileHeader.tsx          ✅ User info + stats summary
+        StatsContent.tsx          ✅ Detailed stats with charts
+        PeaksContent.tsx          ✅ List of summited peaks
+        JournalContent.tsx        ✅ Trip reports list
+        ChallengesContent.tsx     ✅ Challenge progress list
+        ProfileMapView.tsx        ⬜ Map of user's peaks (map mode toggle pending)
       
       modals/
-        AddReportModal.tsx        # Trip report entry
-        ManualSummitModal.tsx     # Manual summit logging
-        LoginPrompt.tsx           # Auth prompt modal
+        AddReportModal.tsx        ⬜ Trip report entry
+        ManualSummitModal.tsx     ⬜ Manual summit logging
+        LoginPrompt.tsx           ⬜ Auth prompt modal
+      
+      ui/ (Design System Primitives)
+        CardFrame.tsx             ✅ Reusable card wrapper (topo/ridge variants)
+        PrimaryCTA.tsx            ✅ Primary action button (bevel, shadows)
+        SecondaryCTA.tsx          ✅ Secondary action button
+        TopoPattern.tsx           ✅ SVG contour line patterns
+        MountainRidge.tsx         ✅ SVG mountain silhouette
+        Text.tsx                  ✅ Typography component (Fraunces serif)
+        Value.tsx                 ✅ Data display component (IBM Plex Mono)
       
       shared/
-        GPSStrip.tsx              # Distance/bearing/vert display
-        ConditionTags.tsx         # Selectable condition chips
-        DifficultyPicker.tsx      # Difficulty selection
-        ExperiencePicker.tsx      # Experience rating selection
-        PhotoCapture.tsx          # Camera-first photo input
-        PeakRow.tsx               # Peak list item
-        ChallengeRow.tsx          # Challenge list item
-        SummitReportCard.tsx      # Summit report display
-        ProgressBar.tsx           # Challenge progress bar
-        CollapsibleHeader.tsx     # Reanimated scroll header
+        GPSStrip.tsx              ⬜ Distance/bearing/vert display
+        ConditionTags.tsx         ⬜ Selectable condition chips
+        DifficultyPicker.tsx      ⬜ Difficulty selection
+        ExperiencePicker.tsx      ⬜ Experience rating selection
+        PhotoCapture.tsx          ⬜ Camera-first photo input
+        SummitReportCard.tsx      ⬜ Summit report display
+        ProgressBar.tsx           ⏳ Challenge progress bar (used in FavoriteChallenges)
+        CollapsibleHeader.tsx     ⬜ Reanimated scroll header
     
     store/
-      mapStore.ts                 # (existing) Map state
-      sheetStore.ts               # (existing) Sheet snap state
-      locationStore.ts            # NEW: User location + permissions
-      selectionStore.ts           # NEW: Selected peak/challenge
-      authStore.ts                # (existing) Auth state
+      mapStore.ts                 ✅ Map state (bounds, zoom, selection mode)
+      sheetStore.ts               ✅ Sheet snap state
+      locationStore.ts            ⬜ User location + permissions (using Mapbox directly)
+      selectionStore.ts           ✅ Selected peak/challenge (integrated into mapStore)
+      authStore.ts                ✅ Auth state
     
     hooks/
-      useLocation.ts              # GPS location hook with permissions
-      useCompass.ts               # Magnetometer heading hook
-      useBearing.ts               # Calculate bearing to target
-      useCollapsibleHeader.ts     # Scroll-based header animation
-      useOfflineQueue.ts          # Queue actions for offline sync
+      useLocation.ts              ✅ GPS location hook (Mapbox locationManager)
+      useMapData.ts               ✅ Fetch peaks/challenges for map bounds
+      useDashboardData.ts         ✅ Dashboard data (stats, recent summits, challenges)
+      useSuggestedPeak.ts         ✅ Suggested peak with weather
+      useCompass.ts               ⬜ Magnetometer heading hook
+      useBearing.ts               ⬜ Calculate bearing to target
+      useCollapsibleHeader.ts     ⬜ Scroll-based header animation
+      useOfflineQueue.ts          ⬜ Queue actions for offline sync
     
     lib/
       location/
@@ -1287,20 +1675,100 @@ interface OfflineState {
 
 ## API Requirements
 
+**Status Legend:**
+- ✅ = Implemented and in use
+- ⬜ = Not yet implemented
+
 ### Existing Endpoints (pathquest-api)
 
-| Endpoint | Method | Used In |
-|----------|--------|---------|
-| `/api/peaks/:id` | GET | Peak Detail |
-| `/api/peaks/:id/summits` | GET | Peak Detail Community tab |
-| `/api/peaks/search` | GET | Discovery search |
-| `/api/challenges/:id` | GET | Challenge Detail |
-| `/api/challenges/:id/peaks` | GET | Challenge peaks list |
-| `/api/users/:id/summits` | GET | You - Peaks tab |
-| `/api/users/:id/challenges` | GET | You - Challenges tab |
-| `/api/users/:id/stats` | GET | You - Stats tab, Home stats |
-| `/api/summits/:id/report` | POST | Add Report |
-| `/api/peaks/:id/manual-summit` | POST | Manual Summit Entry |
+| Endpoint | Method | Used In | Status |
+|----------|--------|---------|--------|
+| `/api/peaks/:id` | GET | Peak Detail | ⬜ |
+| `/api/peaks/:id/summits` | GET | Peak Detail Community tab | ⬜ |
+| `/api/peaks/search` | GET | Discovery search | ✅ |
+| `/api/challenges/:id` | GET | Challenge Detail | ⬜ |
+| `/api/challenges/:id/peaks` | GET | Challenge peaks list | ⬜ |
+| `/api/users/:id/summits` | GET | You - Peaks tab | ✅ |
+| `/api/users/:id/challenges` | GET | You - Challenges tab | ✅ |
+| `/api/users/:id/stats` | GET | You - Stats tab, Home stats | ✅ |
+| `/api/summits/:id/report` | POST | Add Report | ⬜ |
+| `/api/peaks/:id/manual-summit` | POST | Manual Summit Entry | ⬜ |
+
+### ✅ Implemented Endpoints
+
+#### `GET /api/peaks/visible`
+Returns peaks visible in the current map viewport.
+
+**Query Parameters:**
+- `bounds` (required): Map bounds object `{north, south, east, west}`
+- `zoom` (optional): Map zoom level
+
+**Status:** ✅ Implemented and used in `useMapData` hook
+
+#### `GET /api/challenges/visible`
+Returns challenges visible in the current map viewport.
+
+**Query Parameters:**
+- `bounds` (required): Map bounds object `{north, south, east, west}`
+- `zoom` (optional): Map zoom level
+
+**Status:** ✅ Implemented and used in `useMapData` hook
+
+#### `GET /api/dashboard/stats`
+Returns dashboard statistics (total peaks, total elevation, challenge progress).
+
+**Status:** ✅ Implemented and used in `useDashboardData` hook
+
+#### `GET /api/dashboard/recent-summits`
+Returns user's recent summits (for trip report CTA).
+
+**Query Parameters:**
+- `limit` (optional): Max results (default: 10)
+
+**Status:** ✅ Implemented and used in `useDashboardData` hook
+
+#### `GET /api/dashboard/favorite-challenges`
+Returns user's favorite challenges with progress.
+
+**Status:** ✅ Implemented and used in `useDashboardData` hook
+
+#### `GET /api/dashboard/suggested-peak`
+Returns the suggested next peak (closest unclimbed from favorited challenges, or highest nearby peak as fallback) with current weather.
+
+**Query Parameters:**
+- `lat` (required): User's latitude
+- `lng` (required): User's longitude
+- `maxDistanceMiles` (optional): Max distance in miles (default: 100)
+
+**Response:**
+```json
+{
+  "peak": {
+    "id": "abc123",
+    "name": "Mt. Bierstadt",
+    "elevation": 14065,
+    "latitude": 39.5828,
+    "longitude": -105.6686,
+    "distance_miles": 2.3,
+    "challenge": {
+      "id": "challenge123",
+      "name": "Colorado 14ers"
+    }
+  },
+  "weather": {
+    "temperature_f": 45,
+    "wind_mph": 12,
+    "conditions": "Partly Cloudy",
+    "icon": "partly-cloudy"
+  },
+  "isFallback": false
+}
+```
+
+**Status:** ✅ Implemented and used in `useSuggestedPeak` hook
+- Includes fallback logic (highest nearby peak if no challenge peaks found)
+- Integrates with Open-Meteo API for weather data
+- Uses PostGIS for efficient distance calculations
 
 ### New Endpoints Needed
 
@@ -1577,22 +2045,132 @@ Photos captured offline are stored locally:
 
 ## Implementation Phases
 
-### Phase 1: Core Navigation + Explore
-- 3-tab navigation shell
-- Explore tab with map + discovery sheet
-- Peak floating card
-- Basic Peak Detail (no sub-tabs yet)
+### Implementation Status Summary
+
+**Completed:**
+- ✅ Phase 1: Core Navigation + Explore
+- ✅ Phase 3: Home Dashboard (partial - You tab map mode pending)
+- ✅ Visual Design System (all primitives and theme)
+- ✅ Icon migration (FontAwesome → Lucide icons)
+- ✅ Typography system (Text/Value components)
+- ✅ Real API integration (dashboard, map data, suggested peak)
+- ✅ Location services (Mapbox locationManager integration)
+
+**In Progress:**
+- ⏳ Phase 3: You tab map mode toggle
+
+**Pending:**
+- ⏳ Phase 2: Peak Detail + GPS
+- ⏳ Phase 3.5: Photo Infrastructure (Backend)
+- ⏳ Phase 4: Actions + Modals
+- ⏳ Phase 5: Polish + Offline
+
+---
+
+### ✅ Phase 1: Core Navigation + Explore (COMPLETED)
+- ✅ 3-tab navigation shell (Home, Explore, You)
+- ✅ Explore tab with map + discovery sheet
+- ✅ Peak floating card (`FloatingPeakCard` with animations)
+- ✅ Challenge floating card (`FloatingChallengeCard` with progress)
+- ✅ Basic Peak Detail (no sub-tabs yet)
+- ✅ Location puck on map (always visible)
+- ✅ CenterOnMeButton FAB
+- ✅ LineToTarget component (dashed line to selected peak)
+- ✅ Selection mode state management (none/floating/detail)
+- ✅ Real data fetching from API (peaks/challenges for map bounds)
+- ✅ Map data refresh on camera movement
 
 ### Phase 2: Peak Detail + GPS
-- Collapsible hero with GPS strip
+- Collapsible hero with GPS strip (distance/bearing/elevation gain)
 - All three sub-tabs (Conditions, Community, Your Logs)
-- Compass View
-- Location permission flow
+- Compass View (full-screen navigation to peak)
+- Location permission flow (integrated with Mapbox)
 
-### Phase 3: Home + You Tabs
-- Home dashboard with hero card + stats
-- You tab with list mode + all sub-tabs
-- You tab map mode toggle
+**UI Conversion Required:**
+- Convert Peak Detail screen to use `CardFrame` for hero card and content sections
+- Apply `TopoPattern` (corner variant) to hero card
+- Use `PrimaryCTA`/`SecondaryCTA` for action buttons (View on Map, Add Report, etc.)
+- Replace hardcoded colors with theme colors via `useTheme()` hook
+- Use `<Text>` component for all labels and `<Value>` for elevations/distances
+- Apply mountain ridge silhouette to hero card (`ridge="bottom"`)
+- Ensure proper shadow hierarchy (hero card should use `variant="hero"`)
+
+**Data Fetching:**
+- Implement hooks for peak detail data (`usePeakDetail`, `usePeakConditions`, `usePeakCommunity`, `usePeakUserLogs`)
+- Wire up API endpoints: `/api/peaks/:id`, `/api/peaks/:id/summits`, `/api/weather/current`
+- Add loading and error states to all sub-tabs
+
+### ✅ Phase 3: Home + You Tabs (PARTIALLY COMPLETED)
+**Home Dashboard (COMPLETED):**
+- ✅ Quick Stats component (3 lifetime metrics: total peaks, total elevation, closest challenge)
+- ✅ Suggested Peak Card hero (`SuggestedPeakCard` with weather)
+- ✅ Trip Report CTA (`TripReportCTA` for unreported summits)
+- ✅ Favorite Challenges list (`FavoriteChallenges`)
+- ✅ Dashboard data hooks (`useDashboardData`, `useSuggestedPeak`)
+- ✅ `/dashboard/suggested-peak` API endpoint (with fallback to highest nearby peak)
+- ✅ Screen-level topo pattern backdrop
+- ✅ Real data integration (API calls, loading states, error handling)
+
+**You Tab (PARTIAL):**
+- ✅ Profile screens with sub-tabs (Stats, Peaks, Journal, Challenges)
+- ✅ Basic list mode
+- ⏳ Map mode toggle (not yet implemented)
+- ⏳ Enhanced journal entries
+
+**You Tab - Critical Issues to Fix:**
+1. **Data Fetching Not Implemented:**
+   - `ProfileContent` is currently passing hardcoded empty data (`stats={undefined}`, `peaks={[]}`, `entries={[]}`, `challenges={[]}`)
+   - Need to create `useProfileData` hook (similar to `useDashboardData`) that fetches:
+     - User stats: `/api/users/:id/stats`
+     - User peaks: `/api/users/:id/summits`
+     - User journal entries: `/api/users/:id/journal` (or derive from summits with reports)
+     - User challenges: `/api/users/:id/challenges`
+   - Wire up data fetching in `app/(tabs)/_layout.tsx` where `ProfileContent` is rendered
+   - Pass real data props to `ProfileContent` instead of empty arrays/undefined
+
+2. **UI Conversion Required:**
+   - Convert all profile sub-tabs to use `CardFrame` for stat cards and list items
+   - Apply `TopoPattern` (corner variant) to stat cards
+   - Use `PrimaryCTA`/`SecondaryCTA` for action buttons (View Peak, Add Entry, etc.)
+   - Replace hardcoded colors with theme colors via `useTheme()` hook
+   - Use `<Text>` component for all labels and `<Value>` for numbers/stats
+   - Apply consistent spacing and card styling (match dashboard aesthetic)
+   - Ensure proper shadow hierarchy for interactive elements
+
+**Debugging Steps for You Tab Data:**
+1. Check if `user?.id` is available when rendering `ProfileContent`
+2. Verify API endpoints are returning data (check network tab/logs)
+3. Create `useProfileData` hook using TanStack Query (similar to `useDashboardData`)
+4. Add loading and error states to `ProfileContent` and sub-tabs
+5. Test with authenticated user who has summits/challenges
+
+### ✅ Visual Design System (COMPLETED)
+**UI Primitives:**
+- ✅ `CardFrame` component (with variants: default/hero/cta, topo patterns, ridge silhouettes)
+- ✅ `PrimaryCTA` component (bevel, shadows, pressed states, custom colors)
+- ✅ `SecondaryCTA` component (border, moderate shadow)
+- ✅ `TopoPattern` SVG component (deterministic seeding, variants: full/corner/subtle)
+- ✅ `MountainRidge` SVG component (variants: jagged/rolling/sharp)
+
+**Theme System:**
+- ✅ System-following light/dark mode (`useSystemColorScheme`)
+- ✅ Theme colors (`colors.ts` with light/dark palettes)
+- ✅ `ThemeProvider` and `useTheme` hook
+- ✅ Navigation theme matches app theme
+- ✅ Contour ink colors for topo patterns
+
+**Typography:**
+- ✅ Custom `Text` component (Fraunces serif font)
+- ✅ Custom `Value` component (IBM Plex Mono monospace font)
+- ✅ Font weights and styling utilities
+
+**Component Integration:**
+- ✅ QuickStats uses `CardFrame` with topo patterns
+- ✅ SuggestedPeakCard uses `CardFrame` (hero variant) with ridge
+- ✅ TripReportCTA uses `CardFrame` (hero variant) with ridge
+- ✅ FavoriteChallenges uses `CardFrame` for each item
+- ✅ All CTAs use `PrimaryCTA`/`SecondaryCTA` components
+- ✅ Theme colors applied throughout dashboard
 
 ### Phase 3.5: Photo Infrastructure (Backend)
 **Prerequisites for Phase 4 photo uploads:**
@@ -1611,7 +2189,7 @@ Photos captured offline are stored locally:
 - Add Report modal with camera
 - Photo capture + upload flow
 - Manual Summit entry
-- Login prompt
+- Login prompt (for auth-gated actions)
 - Settings screen
 
 ### Phase 5: Polish + Offline

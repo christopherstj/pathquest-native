@@ -290,10 +290,14 @@ Tab-specific layouts:
 
 Only the Explore tab shows the map. Home and You tabs render as full-screen content with the `bg-background` color, respecting safe area insets.
 
-### Selection Flow (Phase 1)
-The app uses a two-stage selection flow:
-1. **Floating mode**: Tap peak/challenge -> floating card appears on map
-2. **Detail mode**: Tap "Details" on floating card -> full detail view in sheet
+### Selection Flow (Current)
+Explore uses a routing-style selection flow tuned for “browse-first”:
+1. **Marker tap (sheet collapsed)** → **Floating mode** (`selectionMode='floating'`): a small card appears over the map.
+2. **Marker tap (sheet not collapsed)** → **Detail mode** (`selectionMode='detail'`) and the sheet auto-expands.
+3. **List row tap (DiscoveryContent)** → **Detail mode** and the sheet auto-expands (skips floating card).
+4. **Omnibar result tap** → **Detail mode** and the sheet auto-expands (skips floating card).
+
+Floating cards are intentionally **collapsed-only**: if the user drags the sheet up while in floating mode, the floating selection is dismissed.
 
 ### Bottom Sheet (`ContentSheet`)
 Uses `@gorhom/bottom-sheet` with 3 snap points:
@@ -301,9 +305,14 @@ Uses `@gorhom/bottom-sheet` with 3 snap points:
 - **Halfway** (~45%): Default, map partially visible
 - **Expanded** (~90%): Full content view
 
+The sheet index is controlled via `sheetStore.snapIndex` to enable programmatic expansion when entering detail.
+
+Note: Scrollable content inside the sheet should use Gorhom's scrollables (`BottomSheetScrollView`, etc.) so vertical swipes scroll content instead of dragging the sheet.
+
 ### Map (`src/components/map/`)
 - **MapView**: Full-screen Mapbox wrapper with outdoor style, 3D terrain, location puck
   - Auto-requests location permissions on mount
+  - Phase 2: auto-centers on the user once on initial map load (best-effort, falls back to default center)
   - `centerOnUser()` method to fly to user location
 - **PeakMarkers**: GeoJSON ShapeSource + CircleLayer for peak markers
   - Different colors for summited (sky blue) vs unsummited (green)
@@ -320,11 +329,21 @@ Uses `@gorhom/bottom-sheet` with 3 snap points:
   - Same animation and gesture handling as peak card
   - Actions: Details, Navigate
 
+### Explore Sheet (`src/components/explore/DiscoveryContent.tsx`)
+- Phase 2: Uses CardFrame-based rows for the new "retro topo" design language.
+- Search functionality moved to top-of-map omnibar overlay (see ExploreOmnibar below).
+
+### Explore Omnibar (`src/components/explore/ExploreOmnibar.tsx`)
+- Top-of-map search overlay (similar to web app).
+- Debounced search (250ms) using shared `searchPeaks` and `searchChallenges` endpoints.
+- Dropdown results show up to 6 peaks + 6 challenges, prioritized with challenges first.
+- Selecting a result triggers `onPeakPress`/`onChallengePress` callbacks (wired to mapStore selection + map flyTo).
+
 ### State Management (`src/store/`)
 - **mapStore**: Visible peaks/challenges, selection state, zoom level, bounds
   - `selectionMode`: `'none' | 'floating' | 'detail'`
-  - `selectPeak(id)` / `selectChallenge(id)`: Select and show floating card
-  - `openDetail()`: Transition from floating card to full detail
+  - `selectPeak(id)` / `selectChallenge(id)`: Select and show floating card (collapsed-only)
+  - `openDetail()`: Transition from floating card to full detail (also expands the sheet)
   - `clearSelection()`: Reset selection state
 - **sheetStore**: Bottom sheet snap index
 
@@ -362,10 +381,18 @@ See [DESIGN.md](./DESIGN.md) for detailed implementation phases and wireframes.
    - Updated DashboardContent to new layout
 
 ### Phase 2: Peak Detail + GPS
-- Collapsible hero with GPS strip (distance/bearing/vert)
-- Conditions, Community, Your Logs sub-tabs
-- Compass View
-- Location permission flow
+- Hero card with GPS strip (distance/bearing/vert) using last-known device location (best-effort)
+  - Uses `CardFrame` hero styling with **full topo texture** (`topo="full"`) and a subtle accent wash
+  - Visual state: **green** for unsummited peaks, **blue** (`colors.summited`) for summited peaks
+- Conditions tab (current weather)
+- Community tab (cursor-paginated public summits)
+- Your Logs tab (auth-gated; displays your ascents)
+- Compass View (moved to Phase 2.5)
+
+### Phase 2.5: Compass View
+- Dedicated Compass screen: `app/compass/[peakId].tsx`
+- Uses `expo-sensors` (Magnetometer) for device heading + GPS bearing to peak to rotate arrow
+- Linked from Explore floating peak card and Peak Detail
 
 ### Phase 3: You Tab Enhancement
 - You tab list mode with all sub-tabs

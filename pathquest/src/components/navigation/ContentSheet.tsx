@@ -12,7 +12,7 @@
 
 import React, { useCallback, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import { View, useWindowDimensions } from 'react-native';
-import BottomSheet, { BottomSheetView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
+import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import type { BottomSheetBackdropProps } from '@gorhom/bottom-sheet';
 import { useSheetStore } from '@/src/store/sheetStore';
 
@@ -22,6 +22,13 @@ interface ContentSheetProps {
    * Bottom padding to account for tab bar (default: 60)
    */
   bottomPadding?: number;
+  /**
+   * Space to reserve at the TOP of the screen when the sheet is fully expanded.
+   * This is useful to avoid overlapping fixed overlays (e.g. omnibar).
+   *
+   * Default: 100px.
+   */
+  expandedTopInset?: number;
 }
 
 export interface ContentSheetRef {
@@ -31,20 +38,21 @@ export interface ContentSheetRef {
 }
 
 const ContentSheet = forwardRef<ContentSheetRef, ContentSheetProps>(
-  ({ children, bottomPadding = 60 }, ref) => {
+  ({ children, bottomPadding = 60, expandedTopInset = 100 }, ref) => {
     const { height: windowHeight } = useWindowDimensions();
     const bottomSheetRef = useRef<BottomSheet>(null);
     const setSnapIndex = useSheetStore((state) => state.setSnapIndex);
+    const snapIndex = useSheetStore((state) => state.snapIndex);
 
     // Calculate snap points based on window height
     // Account for status bar (~44px) and tab bar (bottomPadding)
     const snapPoints = useMemo(() => {
       const collapsedHeight = 80; // Drag handle + peek
       const halfwayHeight = Math.round(windowHeight * 0.45);
-      const expandedHeight = windowHeight - 100; // Leave some space at top
+      const expandedHeight = Math.max(240, windowHeight - expandedTopInset); // Leave space at top for overlays
       
       return [collapsedHeight, halfwayHeight, expandedHeight];
-    }, [windowHeight]);
+    }, [expandedTopInset, windowHeight]);
 
     // Expose methods via ref
     useImperativeHandle(ref, () => ({
@@ -81,7 +89,7 @@ const ContentSheet = forwardRef<ContentSheetRef, ContentSheetProps>(
     return (
       <BottomSheet
         ref={bottomSheetRef}
-        index={1} // Start at halfway
+        index={snapIndex} // Controlled by sheetStore
         snapPoints={snapPoints}
         onChange={handleSheetChanges}
         handleComponent={renderHandle}
@@ -101,13 +109,14 @@ const ContentSheet = forwardRef<ContentSheetRef, ContentSheetProps>(
           elevation: 8,
         }}
         bottomInset={bottomPadding}
+        // Let gorhom coordinate scroll vs sheet drag based on scroll position.
+        // (Disabling content panning prevents both dragging and scrolling in many cases.)
+        enableContentPanningGesture={true}
         enablePanDownToClose={false}
         enableOverDrag={true}
         animateOnMount={true}
       >
-        <BottomSheetView className="flex-1">
-          {children}
-        </BottomSheetView>
+        {children}
       </BottomSheet>
     );
   }

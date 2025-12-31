@@ -19,7 +19,8 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import type { Peak } from '@pathquest/shared';
 import { getElevationString } from '@pathquest/shared';
-import { Text } from '@/src/components/ui';
+import { CardFrame, PrimaryCTA, SecondaryCTA, Text } from '@/src/components/ui';
+import { useTheme } from '@/src/theme';
 
 interface FloatingPeakCardProps {
   peak: Peak;
@@ -34,6 +35,7 @@ const FloatingPeakCard: React.FC<FloatingPeakCardProps> = ({
   onDetailsPress,
   onCompassPress,
 }) => {
+  const { colors } = useTheme();
   const translateY = useSharedValue(200); // Start below screen
   const opacity = useSharedValue(0);
 
@@ -105,93 +107,81 @@ const FloatingPeakCard: React.FC<FloatingPeakCardProps> = ({
     <GestureDetector gesture={panGesture}>
       <Animated.View 
         style={animatedStyle}
-        className="bg-card/95 rounded-2xl mx-4 border border-border overflow-hidden"
       >
-        {/* Drag handle */}
-        <View className="items-center pt-2 pb-1">
-          <View className="w-10 h-1 rounded-full bg-muted-foreground/30" />
-        </View>
-
-        {/* Header */}
-        <View className="flex-row items-start px-4 pb-3">
-          <View className="flex-1">
-            <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
-              {peak.name || 'Unknown Peak'}
-            </Text>
-            <Text className="text-muted-foreground text-sm mt-0.5">
-              {getElevationString(peak.elevation, 'imperial')} · {locationString}
-            </Text>
+        <CardFrame variant="cta" topo="corner" ridge="bottom" seed={`floating-peak:${peak.id}`} style={{ marginHorizontal: 16 }}>
+          {/* Drag handle */}
+          <View className="items-center pt-2 pb-1">
+            <View className="w-10 h-1 rounded-full bg-muted-foreground/30" />
           </View>
-          
-          {/* Close button */}
-          <TouchableOpacity
-            className="w-8 h-8 rounded-full bg-muted items-center justify-center ml-2"
-            onPress={onClose}
-            activeOpacity={0.7}
-          >
-            <X size={14} color="#A9A196" />
-          </TouchableOpacity>
-        </View>
 
-        {/* GPS Strip - Placeholder for Phase 2 */}
-        <View className="flex-row px-4 pb-3 gap-2">
-          <View className="flex-1 bg-muted rounded-lg py-2 items-center">
-            <Text className="text-foreground text-base font-semibold">{distance}</Text>
-            <Text className="text-muted-foreground text-[10px] mt-0.5">away</Text>
-          </View>
-          <View className="flex-1 bg-muted rounded-lg py-2 items-center">
-            <Text className="text-foreground text-base font-semibold">{bearing}</Text>
-            <Text className="text-muted-foreground text-[10px] mt-0.5">bearing</Text>
-          </View>
-          <View className="flex-1 bg-muted rounded-lg py-2 items-center">
-            <Text className="text-foreground text-base font-semibold">{vertRemaining}</Text>
-            <Text className="text-muted-foreground text-[10px] mt-0.5">vert</Text>
-          </View>
-        </View>
+          <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', paddingTop: 6, paddingBottom: 10 }}>
+              <View style={{ flex: 1 }}>
+                <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
+                  {peak.name || 'Unknown Peak'}
+                </Text>
+                <Text className="text-muted-foreground text-sm mt-0.5">
+                  {getElevationString(peak.elevation, 'imperial')} · {locationString}
+                </Text>
+              </View>
 
-        {/* Reports summary */}
-        <View className="px-4 pb-3">
-          <Text className="text-muted-foreground text-xs">
-            {peak.public_summits ?? 0} people have summited this peak
-          </Text>
-        </View>
+              <TouchableOpacity
+                onPress={onClose}
+                activeOpacity={0.7}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 999,
+                  backgroundColor: colors.muted as any,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginLeft: 10,
+                }}
+              >
+                <X size={14} color={colors.mutedForeground as any} />
+              </TouchableOpacity>
+            </View>
 
-        {/* Actions */}
-        <View className="flex-row px-4 pb-4 gap-2">
-          <TouchableOpacity
-            className="flex-1 bg-primary py-3 rounded-lg items-center"
-            onPress={onDetailsPress}
-            activeOpacity={0.8}
-          >
-            <Text className="text-primary-foreground text-sm font-semibold">
-              Details
+            {/* GPS Strip (Phase 2 placeholder; wired in Peak Detail first) */}
+            <View style={{ flexDirection: 'row', gap: 10, paddingBottom: 10 }}>
+              <View style={{ flex: 1, backgroundColor: colors.muted as any, borderRadius: 10, paddingVertical: 10, alignItems: 'center' }}>
+                <Text className="text-foreground text-base font-semibold">{distance}</Text>
+                <Text className="text-muted-foreground text-[10px] mt-0.5">away</Text>
+              </View>
+              <View style={{ flex: 1, backgroundColor: colors.muted as any, borderRadius: 10, paddingVertical: 10, alignItems: 'center' }}>
+                <Text className="text-foreground text-base font-semibold">{bearing}</Text>
+                <Text className="text-muted-foreground text-[10px] mt-0.5">bearing</Text>
+              </View>
+              <View style={{ flex: 1, backgroundColor: colors.muted as any, borderRadius: 10, paddingVertical: 10, alignItems: 'center' }}>
+                <Text className="text-foreground text-base font-semibold">{vertRemaining}</Text>
+                <Text className="text-muted-foreground text-[10px] mt-0.5">vert</Text>
+              </View>
+            </View>
+
+            {/* Reports summary */}
+            <Text className="text-muted-foreground text-xs mb-3">
+              {peak.public_summits ?? 0} people have summited this peak
             </Text>
-          </TouchableOpacity>
-          
-          {onCompassPress && (
-            <TouchableOpacity
-              className="flex-1 bg-muted py-3 rounded-lg items-center flex-row justify-center gap-1.5"
-              onPress={onCompassPress}
-              activeOpacity={0.7}
-            >
-              <Compass size={14} color="#A9A196" />
-              <Text className="text-muted-foreground text-sm font-medium">
-                Compass
-              </Text>
-            </TouchableOpacity>
-          )}
-          
-          <TouchableOpacity
-            className="flex-1 bg-muted py-3 rounded-lg items-center flex-row justify-center gap-1.5"
-            onPress={handleNavigate}
-            activeOpacity={0.7}
-          >
-            <Map size={14} color="#A9A196" />
-            <Text className="text-muted-foreground text-sm font-medium">
-              Navigate
-            </Text>
-          </TouchableOpacity>
-        </View>
+
+            {/* Actions */}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <PrimaryCTA label="Details" onPress={onDetailsPress} />
+              </View>
+
+              {onCompassPress ? (
+                <View style={{ flex: 1 }}>
+                  <SecondaryCTA label="Compass" onPress={onCompassPress} Icon={Compass} />
+                </View>
+              ) : null}
+
+              <View style={{ flex: 1 }}>
+                <SecondaryCTA label="Navigate" onPress={handleNavigate} Icon={Map} />
+              </View>
+            </View>
+          </View>
+        </CardFrame>
       </Animated.View>
     </GestureDetector>
   );

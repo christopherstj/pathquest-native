@@ -18,8 +18,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import type { ChallengeProgress } from '@pathquest/shared';
-import { Text } from '@/src/components/ui';
+import { CardFrame, PrimaryCTA, SecondaryCTA, Text } from '@/src/components/ui';
 import { useAuthStore } from '@/src/lib/auth';
+import { useTheme } from '@/src/theme';
 
 interface FloatingChallengeCardProps {
   challenge: ChallengeProgress;
@@ -41,6 +42,7 @@ const FloatingChallengeCard: React.FC<FloatingChallengeCardProps> = ({
   const translateY = useSharedValue(200); // Start below screen
   const opacity = useSharedValue(0);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { colors } = useTheme();
 
   // Entry animation
   React.useEffect(() => {
@@ -105,100 +107,91 @@ const FloatingChallengeCard: React.FC<FloatingChallengeCardProps> = ({
     <GestureDetector gesture={panGesture}>
       <Animated.View 
         style={animatedStyle}
-        className="bg-card/95 rounded-2xl mx-4 border border-border overflow-hidden"
       >
-        {/* Drag handle */}
-        <View className="items-center pt-2 pb-1">
-          <View className="w-10 h-1 rounded-full bg-muted-foreground/30" />
-        </View>
-
-        {/* Header */}
-        <View className="flex-row items-start px-4 pb-3">
-          <View className="flex-1">
-            <View className="flex-row items-center gap-2">
-              <Trophy size={16} color="#5B9167" />
-              <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
-                {challenge.name || 'Unknown Challenge'}
-              </Text>
-            </View>
-            <Text className="text-muted-foreground text-sm mt-0.5">
-              {totalPeaks} peaks
-            </Text>
+        <CardFrame variant="cta" topo="corner" ridge="bottom" seed={`floating-challenge:${challenge.id}`} style={{ marginHorizontal: 16 }}>
+          {/* Drag handle */}
+          <View className="items-center pt-2 pb-1">
+            <View className="w-10 h-1 rounded-full bg-muted-foreground/30" />
           </View>
-          
-          {/* Close button */}
-          <TouchableOpacity
-            className="w-8 h-8 rounded-full bg-muted items-center justify-center ml-2"
-            onPress={onClose}
-            activeOpacity={0.7}
-          >
-            <X size={14} color="#A9A196" />
-          </TouchableOpacity>
-        </View>
 
-        {/* Progress bar (authenticated only) */}
-        {isAuthenticated && (
-          <View className="px-4 pb-3">
-            <View className="flex-row items-center justify-between mb-1.5">
-              <Text className="text-muted-foreground text-xs">Your Progress</Text>
-              <Text className="text-foreground text-xs font-semibold">
-                {summitedPeaks}/{totalPeaks} ({progressPercent}%)
-              </Text>
-            </View>
-            <View className="h-2 bg-muted rounded-full overflow-hidden">
-              <View 
-                className="h-full bg-primary rounded-full"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </View>
-          </View>
-        )}
-
-        {/* Nearest unsummited peak */}
-        {nearestPeak && (
-          <View className="px-4 pb-3">
-            <Text className="text-muted-foreground text-xs mb-1">
-              Nearest unsummited:
-            </Text>
-            <View className="flex-row items-center gap-2">
-              <MapPin size={12} color="#A9A196" />
-              <Text className="text-foreground text-sm font-medium">
-                {nearestPeak.name}
-              </Text>
-              {nearestPeak.distance && (
-                <Text className="text-muted-foreground text-sm">
-                  · {nearestPeak.distance}
+          <View style={{ paddingHorizontal: 16, paddingBottom: 16 }}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', paddingTop: 6, paddingBottom: 10 }}>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Trophy size={16} color={colors.primary as any} />
+                  <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
+                    {challenge.name || 'Unknown Challenge'}
+                  </Text>
+                </View>
+                <Text className="text-muted-foreground text-sm mt-0.5">
+                  {totalPeaks} peaks
                 </Text>
-              )}
+              </View>
+
+              {/* Close button */}
+              <TouchableOpacity
+                onPress={onClose}
+                activeOpacity={0.7}
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 999,
+                  backgroundColor: colors.muted as any,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginLeft: 10,
+                }}
+              >
+                <X size={14} color={colors.mutedForeground as any} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Progress bar (authenticated only) */}
+            {isAuthenticated ? (
+              <View style={{ paddingBottom: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <Text className="text-muted-foreground text-xs">Your Progress</Text>
+                  <Text className="text-foreground text-xs font-semibold">
+                    {summitedPeaks}/{totalPeaks} ({progressPercent}%)
+                  </Text>
+                </View>
+                <View className="h-2 bg-muted rounded-full overflow-hidden">
+                  <View className="h-full bg-primary rounded-full" style={{ width: `${progressPercent}%` }} />
+                </View>
+              </View>
+            ) : null}
+
+            {/* Nearest unsummited peak */}
+            {nearestPeak ? (
+              <View style={{ paddingBottom: 12 }}>
+                <Text className="text-muted-foreground text-xs mb-1">Nearest unsummited:</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <MapPin size={12} color={colors.mutedForeground as any} />
+                  <Text className="text-foreground text-sm font-medium">
+                    {nearestPeak.name}
+                  </Text>
+                  {nearestPeak.distance ? (
+                    <Text className="text-muted-foreground text-sm">· {nearestPeak.distance}</Text>
+                  ) : null}
+                </View>
+              </View>
+            ) : null}
+
+            {/* Actions */}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flex: 1 }}>
+                <PrimaryCTA label="Details" onPress={onDetailsPress} />
+              </View>
+
+              {nearestPeak?.coords ? (
+                <View style={{ flex: 1 }}>
+                  <SecondaryCTA label="Navigate" onPress={handleNavigate} Icon={Map} />
+                </View>
+              ) : null}
             </View>
           </View>
-        )}
-
-        {/* Actions */}
-        <View className="flex-row px-4 pb-4 gap-2">
-          <TouchableOpacity
-            className="flex-1 bg-primary py-3 rounded-lg items-center"
-            onPress={onDetailsPress}
-            activeOpacity={0.8}
-          >
-            <Text className="text-primary-foreground text-sm font-semibold">
-              Details
-            </Text>
-          </TouchableOpacity>
-          
-          {nearestPeak?.coords && (
-            <TouchableOpacity
-              className="flex-1 bg-muted py-3 rounded-lg items-center flex-row justify-center gap-1.5"
-              onPress={handleNavigate}
-              activeOpacity={0.7}
-            >
-              <Map size={14} color="#A9A196" />
-              <Text className="text-muted-foreground text-sm font-medium">
-                Navigate
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        </CardFrame>
       </Animated.View>
     </GestureDetector>
   );

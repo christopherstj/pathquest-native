@@ -10,7 +10,8 @@ import { View, TouchableOpacity } from 'react-native';
 import { Check, Users, ChevronRight } from 'lucide-react-native';
 import type { Peak } from '@pathquest/shared';
 import { getElevationString } from '@pathquest/shared';
-import { Text } from '@/src/components/ui';
+import { CardFrame, Text } from '@/src/components/ui';
+import { useTheme } from '@/src/theme';
 
 interface PeakRowProps {
   peak: Peak;
@@ -22,6 +23,7 @@ interface PeakRowProps {
 }
 
 const PeakRow: React.FC<PeakRowProps> = ({ peak, onPress, isSummited }) => {
+  const { colors } = useTheme();
   const handlePress = () => {
     onPress?.(peak);
   };
@@ -37,60 +39,56 @@ const PeakRow: React.FC<PeakRowProps> = ({ peak, onPress, isSummited }) => {
 
   return (
     <TouchableOpacity
-      className="flex-row items-center py-3 px-4 border-b border-border"
       onPress={handlePress}
       activeOpacity={0.7}
+      style={{ paddingHorizontal: 16, paddingVertical: 8 }}
     >
-      {/* Peak info */}
-      <View className="flex-1 mr-3">
-        <View className="flex-row items-center gap-2">
-          <Text 
-            className="text-foreground text-base font-semibold flex-1"
-            numberOfLines={1}
-          >
-            {peak.name || 'Unknown Peak'}
-          </Text>
-          {hasSummited && (
-            <View className="flex-row items-center gap-1 bg-summited/20 px-2 py-0.5 rounded-xl">
-              <Check size={10} color="#4A8BC4" />
-              {userSummits > 1 && (
-                <Text className="text-summited text-[11px] font-semibold">
-                  {userSummits}
-                </Text>
+      <CardFrame topo="corner" seed={`peak-row:${peak.id}`} style={{ padding: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {/* Peak info */}
+          <View style={{ flex: 1, marginRight: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text className="text-foreground text-base font-semibold flex-1" numberOfLines={1}>
+                {peak.name || 'Unknown Peak'}
+              </Text>
+              {hasSummited && (
+                <View className="flex-row items-center gap-1 bg-summited/20 px-2 py-0.5 rounded-xl">
+                  <Check size={10} color={colors.summited as any} />
+                  {userSummits > 1 ? (
+                    <Text className="text-summited text-[11px] font-semibold">{userSummits}</Text>
+                  ) : null}
+                </View>
               )}
             </View>
-          )}
-        </View>
 
-        <View className="flex-row items-center gap-2 mt-0.5">
-          {peak.elevation !== undefined && (
-            <Text className="text-foreground text-[13px] font-medium">
-              {getElevationString(peak.elevation, 'imperial')}
-            </Text>
-          )}
-          {locationString && (
-            <Text 
-              className="text-muted-foreground text-xs flex-1"
-              numberOfLines={1}
-            >
-              {locationString}
-            </Text>
-          )}
-        </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
+              {peak.elevation !== undefined ? (
+                <Text className="text-foreground text-[13px] font-medium">
+                  {getElevationString(peak.elevation, 'imperial')}
+                </Text>
+              ) : null}
+              {locationString ? (
+                <Text className="text-muted-foreground text-xs flex-1" numberOfLines={1}>
+                  {locationString}
+                </Text>
+              ) : null}
+            </View>
 
-        {/* Public summit count */}
-        {publicSummits > 0 && (
-          <View className="flex-row items-center gap-1 mt-1">
-            <Users size={10} color="#A9A196" />
-            <Text className="text-muted-foreground text-[11px]">
-              {publicSummits} {publicSummits === 1 ? 'summit' : 'summits'}
-            </Text>
+            {/* Public summit count */}
+            {publicSummits > 0 ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                <Users size={12} color={colors.mutedForeground as any} />
+                <Text className="text-muted-foreground text-[11px]">
+                  {publicSummits} {publicSummits === 1 ? 'summit' : 'summits'}
+                </Text>
+              </View>
+            ) : null}
           </View>
-        )}
-      </View>
 
-      {/* Chevron */}
-      <ChevronRight size={12} color="#A9A196" />
+          {/* Chevron */}
+          <ChevronRight size={14} color={colors.mutedForeground as any} />
+        </View>
+      </CardFrame>
     </TouchableOpacity>
   );
 };
