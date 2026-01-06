@@ -12,7 +12,8 @@
  */
 
 import React, { useMemo, useRef, useEffect, useState } from 'react';
-import { View, ScrollView, TouchableOpacity, Animated, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { View, TouchableOpacity, Animated, LayoutAnimation, Platform, UIManager, ScrollView } from 'react-native';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { 
   ArrowUpDown, 
   Mountain,
@@ -43,6 +44,8 @@ interface PeaksContentProps {
   userId: string;
   onPeakPress?: (peak: Peak) => void;
   isLoading?: boolean;
+  /** When true, use BottomSheetScrollView; otherwise use regular ScrollView */
+  inBottomSheet?: boolean;
 }
 
 type SortOption = 'elevation' | 'name' | 'recent' | 'summits';
@@ -188,8 +191,10 @@ const PeaksContent: React.FC<PeaksContentProps> = ({
   userId,
   onPeakPress,
   isLoading = false,
+  inBottomSheet = false,
 }) => {
   const { colors, isDark } = useTheme();
+  const ScrollContainer = inBottomSheet ? BottomSheetScrollView : ScrollView;
   const [sortBy, setSortBy] = useState<SortOption>('elevation');
   const [sortAsc, setSortAsc] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -471,9 +476,9 @@ const PeaksContent: React.FC<PeaksContentProps> = ({
       </View>
 
       {/* Peaks List */}
-      <ScrollView 
-        className="flex-1"
-        contentContainerClassName="pb-12"
+      <ScrollContainer
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 24 }}
         showsVerticalScrollIndicator={false}
       >
         {sortedPeaks.map((peak, index) => (
@@ -522,7 +527,7 @@ const PeaksContent: React.FC<PeaksContentProps> = ({
             )}
           </TouchableOpacity>
         )}
-      </ScrollView>
+      </ScrollContainer>
     </View>
   );
 };

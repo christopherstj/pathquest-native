@@ -10,12 +10,12 @@
  * - /explore/challenge/[challengeId] → Challenge detail
  */
 
-import React, { useRef, useCallback, useEffect, useMemo } from 'react';
+import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Slot, useRouter, usePathname, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFetching } from '@tanstack/react-query';
-import { MapView, PeakMarkers, ChallengePeaksOverlay, CenterOnMeButton, LineToTarget } from '@/src/components/map';
+import { MapView, PeakMarkers, ChallengePeaksOverlay, UserPeaksOverlay, CenterOnMeButton, LineToTarget } from '@/src/components/map';
 import type { MapViewRef } from '@/src/components/map';
 import { ContentSheet } from '@/src/components/navigation';
 import { RefreshBar } from '@/src/components/shared';
@@ -28,6 +28,9 @@ import {
   FloatingChallengeCard,
 } from '@/src/components/explore';
 import type { Peak, ChallengeProgress } from '@pathquest/shared';
+
+// Debounce delay for map bounds updates (ms)
+const MAP_BOUNDS_DEBOUNCE_MS = 500;
 
 export default function ExploreLayout() {
   const insets = useSafeAreaInsets();
@@ -45,12 +48,13 @@ export default function ExploreLayout() {
   const isRefreshing = isFetchingPeaks || isFetchingChallenges || isFetchingAllChallenges || isFetchingPeakDetails || isFetchingChallengeDetails;
   
   // Determine if we're on a detail page
-  const isDetailView = segments.includes('peak') || segments.includes('challenge');
+  const isDetailView = segments.includes('peak') || segments.includes('challenge') || segments.includes('users');
   
   // Map store state
   const visiblePeaks = useMapStore((state) => state.visiblePeaks);
   const visibleChallenges = useMapStore((state) => state.visibleChallenges);
   const challengeOverlayPeaks = useMapStore((state) => state.challengeOverlayPeaks);
+  const userOverlayPeaks = useMapStore((state) => state.userOverlayPeaks);
   const selectedPeakId = useMapStore((state) => state.selectedPeakId);
   const selectedChallengeId = useMapStore((state) => state.selectedChallengeId);
   const selectionMode = useMapStore((state) => state.selectionMode);
@@ -64,6 +68,7 @@ export default function ExploreLayout() {
   const setChallengeOverlayPeaks = useMapStore((state) => state.setChallengeOverlayPeaks);
   const currentBounds = useMapStore((state) => state.currentBounds);
   const isZoomedOutTooFar = useMapStore((state) => state.isZoomedOutTooFar);
+  const isInitialLocationReady = useMapStore((state) => state.isInitialLocationReady);
   const pendingFitBounds = useMapStore((state) => state.pendingFitBounds);
   const clearPendingFitBounds = useMapStore((state) => state.clearPendingFitBounds);
 
@@ -73,15 +78,45 @@ export default function ExploreLayout() {
   const sheetSnapTo = useSheetStore((s) => s.snapTo);
   const sheetCollapse = useSheetStore((s) => s.collapse);
 
-  // Convert bounds for API
-  const apiBounds = currentBounds ? {
-    northWest: [currentBounds[1][1], currentBounds[0][0]] as [number, number],
-    southEast: [currentBounds[0][1], currentBounds[1][0]] as [number, number],
+  // Debounced bounds for API queries (only update after user stops panning)
+  // This prevents excessive API calls while the user is actively panning
+  // IMPORTANT: We don't set bounds until isInitialLocationReady to avoid querying Boulder
+  const [debouncedBounds, setDebouncedBounds] = useState<typeof currentBounds>(null);
+  const hasSetInitialBounds = useRef(false);
+  
+  useEffect(() => {
+    // Don't update bounds until initial location is ready
+    // This prevents querying Boulder before we know where the user is
+    if (!isInitialLocationReady) {
+      return;
+    }
+    
+    // First time isInitialLocationReady becomes true: set bounds immediately
+    if (!hasSetInitialBounds.current) {
+      hasSetInitialBounds.current = true;
+      setDebouncedBounds(currentBounds);
+      console.log('[ExploreLayout] Initial location ready, setting bounds immediately');
+      return;
+    }
+    
+    // After initial set, debounce subsequent updates (panning)
+    const timer = setTimeout(() => {
+      setDebouncedBounds(currentBounds);
+    }, MAP_BOUNDS_DEBOUNCE_MS);
+    
+    return () => clearTimeout(timer);
+  }, [currentBounds, isInitialLocationReady]);
+
+  // Convert bounds for API (use debounced bounds to prevent excessive queries)
+  const apiBounds = debouncedBounds ? {
+    northWest: [debouncedBounds[1][1], debouncedBounds[0][0]] as [number, number],
+    southEast: [debouncedBounds[0][1], debouncedBounds[1][0]] as [number, number],
   } : null;
 
-  // Fetch peaks and challenges
-  const { data: peaksData } = useMapPeaks(apiBounds, !isZoomedOutTooFar);
-  const { data: challengesData } = useMapChallenges(apiBounds, !isZoomedOutTooFar);
+  // Fetch peaks and challenges (using debounced bounds)
+  // Only query when initial location is ready (prevents Boulder query before user location)
+  const { data: peaksData } = useMapPeaks(apiBounds, !isZoomedOutTooFar && isInitialLocationReady);
+  const { data: challengesData } = useMapChallenges(apiBounds, !isZoomedOutTooFar && isInitialLocationReady);
 
   useEffect(() => {
     if (peaksData) setVisiblePeaks(peaksData);
@@ -91,16 +126,23 @@ export default function ExploreLayout() {
     if (challengesData) setVisibleChallenges(challengesData);
   }, [challengesData, setVisibleChallenges]);
 
-  // Resolve selected items
+  // Resolve selected items (check both regular peaks and overlay peaks)
   const selectedPeak = selectedPeakId 
-    ? visiblePeaks.find(p => p.id === selectedPeakId) 
+    ? (visiblePeaks.find(p => p.id === selectedPeakId) 
+       ?? userOverlayPeaks?.find(p => p.id === selectedPeakId)
+       ?? challengeOverlayPeaks?.find(p => p.id === selectedPeakId))
     : null;
   const selectedChallenge = selectedChallengeId
     ? visibleChallenges.find(c => c.id === selectedChallengeId)
     : null;
 
   // Sync selectionMode with route
+  // NOTE: Don't override 'floating' mode - it takes precedence for showing the floating card
   useEffect(() => {
+    if (selectionMode === 'floating') {
+      // Don't override floating mode - user clicked a peak and wants to see the card
+      return;
+    }
     if (isDetailView) {
       setSelectionMode('detail');
     } else if (selectionMode === 'detail') {
@@ -114,6 +156,8 @@ export default function ExploreLayout() {
   useEffect(() => {
     if (pendingFitBounds) {
       mapRef.current?.fitBounds(pendingFitBounds.bounds, pendingFitBounds.padding);
+      // Update debounced bounds immediately when fitBounds is requested (no debounce delay)
+      setDebouncedBounds(pendingFitBounds.bounds);
       clearPendingFitBounds();
     }
   }, [pendingFitBounds, clearPendingFitBounds]);
@@ -139,9 +183,10 @@ export default function ExploreLayout() {
   }, []);
 
   // Peak marker press → floating card
+  // NOTE: Collapse sheet FIRST, then select - otherwise the "clear floating when sheet not collapsed" effect fires
   const handlePeakMarkerPress = useCallback((peak: Peak) => {
-    selectPeak(peak.id);
     sheetCollapse();
+    selectPeak(peak.id);
   }, [selectPeak, sheetCollapse]);
 
   // Open peak detail (from floating card, omnibar, or list)
@@ -196,8 +241,8 @@ export default function ExploreLayout() {
         onRegionChange={handleRegionChange}
         onMapReady={handleMapReady}
       >
-        {/* Only show regular peaks when NOT in challenge overlay mode */}
-        {!challengeOverlayPeaks && (
+        {/* Only show regular peaks when NOT in overlay mode */}
+        {!challengeOverlayPeaks && !userOverlayPeaks && (
           <PeakMarkers
             peaks={visiblePeaks}
             selectedPeakId={selectedPeakId}
@@ -208,6 +253,14 @@ export default function ExploreLayout() {
         {/* Challenge overlay peaks (Show on Map) */}
         {challengeOverlayPeaks && (
           <ChallengePeaksOverlay peaks={challengeOverlayPeaks} isDark={true} />
+        )}
+        {/* User overlay peaks (Explore user profile) */}
+        {userOverlayPeaks && (
+          <UserPeaksOverlay 
+            peaks={userOverlayPeaks} 
+            isDark={true} 
+            onPeakPress={handlePeakMarkerPress}
+          />
         )}
         {selectionMode === 'floating' && selectedPeak?.location_coords && (
           <LineToTarget
@@ -233,6 +286,10 @@ export default function ExploreLayout() {
           visible={!isDetailView}
           onPeakPress={openPeakDetail}
           onChallengePress={openChallengeDetail}
+          onPlacePress={({ coords, zoom }) => {
+            // coords are [lng, lat]
+            mapRef.current?.flyTo(coords, zoom);
+          }}
         />
       </View>
 

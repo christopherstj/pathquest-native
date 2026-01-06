@@ -48,6 +48,7 @@ import { getElevationString } from '@pathquest/shared';
 import { Text, CardFrame } from '@/src/components/ui';
 import { useTheme } from '@/src/theme';
 import type { LucideIcon } from 'lucide-react-native';
+import { UserAvatar } from "@/src/components/shared/UserAvatar";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -75,6 +76,8 @@ export interface SummitCardData {
   windSpeed?: number; // km/h
   // Community
   summiterName?: string;
+  summiterId?: string;
+  summiterPic?: string | null;
 }
 
 export interface SummitCardProps {
@@ -87,6 +90,8 @@ export interface SummitCardProps {
   isOwned?: boolean;
   /** Called when the card is pressed */
   onPress?: () => void;
+  /** Called when the summiter avatar/name is pressed (community mode) */
+  onSummiterPress?: () => void;
   /** Called when "Add report" is pressed */
   onAddNotes?: () => void;
   /** Called when edit is pressed */
@@ -372,6 +377,7 @@ const SummitCard: React.FC<SummitCardProps> = ({
   accentColor,
   isOwned = false,
   onPress, 
+  onSummiterPress,
   onAddNotes,
   onEdit,
   delay = 0,
@@ -456,20 +462,35 @@ const SummitCard: React.FC<SummitCardProps> = ({
           {/* Row 1: Header + Edit button */}
           {(headerText || (isOwned && hasUserContent)) && (
             <View className="flex-row items-start justify-between mb-1.5">
-              <View className="flex-1 mr-2">
+              <View className="flex-1 mr-2" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                {!showPeakInfo && summit.summiterName ? (
+                  <UserAvatar
+                    size="sm"
+                    name={summit.summiterName}
+                    uri={summit.summiterPic ?? null}
+                    onPress={onSummiterPress}
+                  />
+                ) : null}
                 {headerText && (
-                  <Text 
-                    className="text-sm font-semibold leading-tight"
-                    style={{ color: colors.foreground }}
-                    numberOfLines={1}
+                  <TouchableOpacity
+                    disabled={!(onSummiterPress && !showPeakInfo && summit.summiterName)}
+                    onPress={onSummiterPress}
+                    activeOpacity={0.7}
+                    style={{ flex: 1 }}
                   >
-                    {headerText}
-                    {subText && (
-                      <Text style={{ color: colors.mutedForeground, fontWeight: '400' }}>
-                        {' · '}{subText}
-                      </Text>
-                    )}
-                  </Text>
+                    <Text 
+                      className="text-sm font-semibold leading-tight"
+                      style={{ color: colors.foreground }}
+                      numberOfLines={1}
+                    >
+                      {headerText}
+                      {subText && (
+                        <Text style={{ color: colors.mutedForeground, fontWeight: '400' }}>
+                          {' · '}{subText}
+                        </Text>
+                      )}
+                    </Text>
+                  </TouchableOpacity>
                 )}
               </View>
               {isOwned && hasUserContent && onEdit && (

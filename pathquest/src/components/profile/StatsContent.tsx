@@ -13,7 +13,8 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { View, ScrollView, Animated, Dimensions } from 'react-native';
+import { View, Animated, Dimensions, ScrollView } from 'react-native';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { 
   Flag, 
   Repeat, 
@@ -73,6 +74,8 @@ interface ProfileStats {
 interface StatsContentProps {
   stats?: ProfileStats;
   isLoading?: boolean;
+  /** When true, use BottomSheetScrollView; otherwise use regular ScrollView */
+  inBottomSheet?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -322,7 +325,8 @@ const JourneyStat: React.FC<{
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-const StatsContent: React.FC<StatsContentProps> = ({ stats, isLoading = false }) => {
+const StatsContent: React.FC<StatsContentProps> = ({ stats, isLoading = false, inBottomSheet = false }) => {
+  const ScrollContainer = inBottomSheet ? BottomSheetScrollView : ScrollView;
   const { colors, isDark } = useTheme();
   
   // Staggered animation refs
@@ -396,9 +400,9 @@ const StatsContent: React.FC<StatsContentProps> = ({ stats, isLoading = false })
 
 
   return (
-    <ScrollView 
-      className="flex-1"
-      contentContainerClassName="p-4 gap-4 pb-12"
+    <ScrollContainer
+      style={{ flex: 1 }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 24, gap: 16 }}
       showsVerticalScrollIndicator={false}
     >
       {/* ═══════════════════════════════════════════════════════════════════
@@ -709,7 +713,7 @@ const StatsContent: React.FC<StatsContentProps> = ({ stats, isLoading = false })
           </View>
         </View>
       )}
-    </ScrollView>
+    </ScrollContainer>
   );
 };
 

@@ -14,6 +14,7 @@ import React, { useRef, useCallback, useEffect } from 'react';
 import { StyleSheet, View, Platform } from 'react-native';
 import Mapbox, { Camera, MapView as RNMapView, LocationPuck } from '@rnmapbox/maps';
 import { useTheme } from '@/src/theme';
+import { useMapStore } from '@/src/store/mapStore';
 
 // Initialize Mapbox with access token
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
@@ -106,6 +107,7 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
     ref
   ) => {
     const { isDark } = useTheme();
+    const setInitialLocationReady = useMapStore((s) => s.setInitialLocationReady);
     const mapRef = useRef<RNMapView>(null);
     const cameraRef = useRef<Camera>(null);
     const didInitialAutoCenterRef = useRef(false);
@@ -181,15 +183,10 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
     const handleMapReady = useCallback(async () => {
       console.log('[MapView] Map finished loading!');
       onMapReady?.();
-      
-      // Trigger initial region fetch after map is ready
-      // Small delay to ensure map is fully initialized
-      setTimeout(() => {
-        handleRegionChange();
-      }, 300);
 
-      // Phase 2: Auto-center on user once at startup (keeps Explore “proximity-based”)
+      // Phase 2: Auto-center on user once at startup (keeps Explore "proximity-based")
       // We retry briefly because lastKnownLocation can be null immediately after permission prompt.
+      // Once complete (success or fail), we mark isInitialLocationReady so queries can start.
       const tryInitialAutoCenter = async () => {
         if (didInitialAutoCenterRef.current || initialAutoCenterInProgressRef.current) return;
         initialAutoCenterInProgressRef.current = true;
@@ -205,18 +202,31 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
                 animationDuration: 900,
               });
               didInitialAutoCenterRef.current = true;
-              console.log('[MapView] Initial auto-center succeeded');
+              console.log('[MapView] Initial auto-center succeeded, waiting for animation...');
+              
+              // Wait for camera animation to complete, then update bounds and signal ready
+              setTimeout(async () => {
+                console.log('[MapView] Animation complete, updating region...');
+                await handleRegionChange();  // MUST await - this is async!
+                console.log('[MapView] Setting initial location ready');
+                setInitialLocationReady(true);
+              }, 1000);
               return;
             }
             // wait a bit and retry
             await new Promise((r) => setTimeout(r, 500));
           }
 
+          // No user location found after retries - fall back to default (Boulder)
           console.log('[MapView] Initial auto-center skipped (no user location available yet)');
           didInitialAutoCenterRef.current = true;
+          await handleRegionChange();
+          setInitialLocationReady(true);
         } catch (error) {
           console.warn('[MapView] Initial auto-center failed:', error);
           didInitialAutoCenterRef.current = true;
+          await handleRegionChange();
+          setInitialLocationReady(true);
         } finally {
           initialAutoCenterInProgressRef.current = false;
         }
@@ -226,7 +236,7 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
       setTimeout(() => {
         tryInitialAutoCenter();
       }, 600);
-    }, [onMapReady, handleRegionChange]);
+    }, [onMapReady, handleRegionChange, setInitialLocationReady]);
 
     // Handle map load error
     const handleMapLoadError = useCallback((error: any) => {

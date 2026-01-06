@@ -13,7 +13,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { View, ScrollView, TouchableOpacity, Platform } from 'react-native';
-import { Map, LogIn, Flag, Trophy, MapPin, User } from 'lucide-react-native';
+import { useRouter } from "expo-router";
+import { Map, LogIn, Flag, Trophy, MapPin } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import Mapbox from '@rnmapbox/maps';
 import { useAuthStore } from '@/src/lib/auth';
@@ -22,6 +23,7 @@ import { useDashboardData, useSuggestedPeak } from '@/src/hooks';
 import { useTheme } from '@/src/theme';
 import TopoPattern from '@/src/components/ui/TopoPattern';
 import { Text } from '@/src/components/ui';
+import { UserAvatar } from "@/src/components/shared";
 import QuickStats from './QuickStats';
 import SuggestedPeakCard from './SuggestedPeakCard';
 import TripReportCTA from './TripReportCTA';
@@ -43,6 +45,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   onTripReportPress,
 }) => {
   const { colors, isDark } = useTheme();
+  const router = useRouter();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
 
@@ -220,12 +223,12 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
               {user?.name || 'Explorer'}
             </Text>
           </View>
-          <View
-            className="w-11 h-11 rounded-full items-center justify-center"
-            style={{ backgroundColor: colors.muted }}
-          >
-            <User size={20} color={colors.mutedForeground} />
-          </View>
+          <UserAvatar
+            size="md"
+            name={user?.name}
+            uri={user?.pic}
+            onPress={() => router.navigate("/profile" as any)}
+          />
         </View>
 
       {/* Quick Stats - 3 lifetime metrics */}

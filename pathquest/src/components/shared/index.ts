@@ -5,5 +5,6 @@ export * from "./WeatherBadge";
 export * from "./GPSStrip";
 export * from "./StateFilterDropdown";
 export * from "./RefreshBar";
+export * from "./UserAvatar";
 
 

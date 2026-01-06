@@ -1,5 +1,6 @@
 import React from "react";
 import { View } from "react-native";
+import { useRouter } from "expo-router";
 import { Activity, Users } from "lucide-react-native";
 import type { PeakActivity } from "@pathquest/shared";
 import { CardFrame, SecondaryCTA, Text, Value } from "@/src/components/ui";
@@ -26,6 +27,7 @@ export function PeakDetailCommunityTab({
   onLoadMore: () => void;
 }) {
   const { colors, isDark } = useTheme();
+  const router = useRouter();
 
   // Community tab uses "primary" (forest green) accents.
   const accent = colors.primary as string;
@@ -128,11 +130,22 @@ export function PeakDetailCommunityTab({
                 weatherCode: s.weather_code,
                 windSpeed: s.wind_speed,
                 summiterName: s.user_name,
+                summiterId: s.user_id,
               }}
               showPeakInfo={false}
               accentColor={accent}
               delay={index * 60}
               animated={true}
+              onSummiterPress={
+                s.user_id
+                  ? () =>
+                      router.push({
+                        // Keep the user in Explore: open user profile inside the bottom sheet.
+                        pathname: "/explore/users/[userId]" as any,
+                        params: { userId: s.user_id },
+                      })
+                  : undefined
+              }
             />
           ))}
 

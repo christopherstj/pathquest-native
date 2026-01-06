@@ -47,8 +47,6 @@ export type JournalEntry = {
  * Fetch user profile data (stats + accepted challenges)
  */
 export function useUserProfile(userId: string | undefined) {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  
   return useQuery({
     queryKey: ['userProfile', userId],
     queryFn: async (): Promise<UserProfileResponse> => {
@@ -67,7 +65,8 @@ export function useUserProfile(userId: string | undefined) {
         throw error;
       }
     },
-    enabled: isAuthenticated && !!userId,
+    // Optional auth endpoint; allow fetching for public profiles too.
+    enabled: !!userId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
@@ -87,8 +86,6 @@ export type PeaksFilters = {
  * Fetch list of states where user has summited peaks
  */
 export function useUserSummitStates(userId: string | undefined) {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  
   return useQuery({
     queryKey: ['userSummitStates', userId],
     queryFn: async (): Promise<string[]> => {
@@ -102,8 +99,41 @@ export function useUserSummitStates(userId: string | undefined) {
         throw error;
       }
     },
-    enabled: isAuthenticated && !!userId,
+    // Optional auth endpoint; allow fetching for public profiles too.
+    enabled: !!userId,
     staleTime: 1000 * 60 * 10, // 10 minutes - states don't change often
+  });
+}
+
+/**
+ * Fetch ALL user summited peaks for map display (no pagination, max 2000)
+ */
+export function useUserAllSummitedPeaks(userId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ['userAllSummitedPeaks', userId],
+    queryFn: async (): Promise<UserPeakWithSummitCount[]> => {
+      if (!userId) throw new Error('No userId provided');
+      const client = getApiClient();
+      console.log('[useUserAllSummitedPeaks] Fetching ALL peaks for:', userId);
+      try {
+        // Fetch up to 2000 peaks - should cover almost all users
+        const result = await endpoints.searchUserPeaks(client, userId, {
+          page: 1,
+          pageSize: 2000,
+          filters: { 
+            sortBy: 'elevation'
+          },
+        });
+        
+        console.log('[useUserAllSummitedPeaks] Fetched', result.peaks.length, 'peaks');
+        return result.peaks;
+      } catch (error) {
+        console.error('[useUserAllSummitedPeaks] Error:', error);
+        throw error;
+      }
+    },
+    enabled: !!userId && enabled,
+    staleTime: 1000 * 60 * 10, // 10 minutes
   });
 }
 
@@ -116,8 +146,6 @@ export function useUserPeaks(
   pageSize = 50,
   filters?: PeaksFilters
 ) {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  
   return useQuery({
     queryKey: ['userPeaks', userId, page, pageSize, filters],
     queryFn: async (): Promise<PeaksResult> => {
@@ -141,7 +169,8 @@ export function useUserPeaks(
         throw error;
       }
     },
-    enabled: isAuthenticated && !!userId,
+    // Optional auth endpoint; allow fetching for public profiles too.
+    enabled: !!userId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }
@@ -166,8 +195,6 @@ export function useUserJournal(
   pageSize = 30,
   filters?: JournalFilters
 ) {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  
   return useQuery({
     queryKey: ['userJournal', userId, page, pageSize, filters],
     queryFn: async (): Promise<JournalResult> => {
@@ -218,7 +245,8 @@ export function useUserJournal(
         throw error;
       }
     },
-    enabled: isAuthenticated && !!userId,
+    // Optional auth endpoint; allow fetching for public profiles too.
+    enabled: !!userId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 }

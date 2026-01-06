@@ -8,7 +8,8 @@
  */
 
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, ScrollView, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity, ScrollView } from 'react-native';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { 
   BookOpen, 
   PenLine,
@@ -30,6 +31,8 @@ interface JournalContentProps {
   onAddNotes?: (entry: JournalEntry) => void;
   onEditEntry?: (entry: JournalEntry) => void;
   isLoading?: boolean;
+  /** When true, use BottomSheetScrollView; otherwise use regular ScrollView */
+  inBottomSheet?: boolean;
 }
 
 /**
@@ -61,8 +64,10 @@ const JournalContent: React.FC<JournalContentProps> = ({
   onAddNotes,
   onEditEntry,
   isLoading = false,
+  inBottomSheet = false,
 }) => {
   const { colors, isDark } = useTheme();
+  const ScrollContainer = inBottomSheet ? BottomSheetScrollView : ScrollView;
   const [showNotesOnly, setShowNotesOnly] = useState(false);
   const [stateFilter, setStateFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -191,9 +196,9 @@ const JournalContent: React.FC<JournalContentProps> = ({
   }
 
   return (
-    <ScrollView 
-      className="flex-1"
-      contentContainerClassName="p-4 gap-4 pb-12"
+    <ScrollContainer
+      style={{ flex: 1 }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 24, gap: 16 }}
       showsVerticalScrollIndicator={false}
     >
       {/* Journal header */}
@@ -317,7 +322,7 @@ const JournalContent: React.FC<JournalContentProps> = ({
           )}
         </TouchableOpacity>
       )}
-    </ScrollView>
+    </ScrollContainer>
   );
 };
 

@@ -52,6 +52,13 @@ pathquest-native/
             [peakId].tsx        # Peak detail route
           challenge/
             [challengeId].tsx   # Challenge detail route
+          users/
+            [userId].tsx        # User profile route rendered inside Explore bottom sheet (also overlays map with user's peaks)
+      users/
+        [userId].tsx            # Full-screen user profile route (deep links / non-Explore entry)
+        [userId]/
+          challenges/
+            [challengeId].tsx   # User challenge progress detail route (deep link)
       auth/
         callback.tsx            # OAuth redirect handler (handles Strava callback)
       modal.tsx
@@ -89,6 +96,7 @@ pathquest-native/
           MapView.tsx           # Full-screen Mapbox map wrapper
           PeakMarkers.tsx       # Peak markers layer (GeoJSON + CircleLayer)
           ChallengePeaksOverlay.tsx # Challenge peaks overlay layer (Show on Map)
+          UserPeaksOverlay.tsx  # User summited peaks overlay (Explore user profile)
           index.ts
         navigation/             # Navigation components
           ContentSheet.tsx      # Draggable bottom sheet (3 snap points)
@@ -114,10 +122,13 @@ pathquest-native/
           WeatherDisplay.tsx    # Compact weather row (temp/precip/clouds)
           WeatherBadge.tsx      # Small badge pill (e.g. GOOD/FAIR/POOR)
           GPSStrip.tsx          # GPS strip (distance/bearing/vert)
+          UserAvatar.tsx        # Reusable avatar (image/initials/fallback icon)
       lib/
         api/
           client.ts             # API client with auth injection
           index.ts
+        map/
+          getMapboxToken.ts     # Mapbox token helper (used for geocoding/place search)
         auth/
           index.ts              # Auth exports
           store.ts              # Zustand auth store

@@ -14,6 +14,7 @@ import { LogOut, LogIn, UserCircle } from 'lucide-react-native';
 import { ProfileContent } from '@/src/components/profile';
 import { RefreshBar } from '@/src/components/shared';
 import { Text } from '@/src/components/ui';
+import { UserAvatar } from "@/src/components/shared";
 import { useAuthStore } from '@/src/lib/auth';
 import { startStravaAuth } from '@/src/lib/auth/strava';
 import type { Peak, ChallengeProgress } from '@pathquest/shared';
@@ -152,22 +153,7 @@ export default function ProfileRoute() {
         style={{ borderColor: 'rgba(69, 65, 60, 0.5)' }}
       >
         <View className="flex-row items-center gap-3">
-          {user?.pic ? (
-            <View 
-              className="w-10 h-10 rounded-full overflow-hidden"
-              style={{ borderWidth: 2, borderColor: '#5B9167' }}
-            >
-              {/* Profile picture would go here */}
-              <View className="w-full h-full bg-muted" />
-            </View>
-          ) : (
-            <View 
-              className="w-10 h-10 rounded-full items-center justify-center"
-              style={{ backgroundColor: 'rgba(91, 145, 103, 0.2)' }}
-            >
-              <UserCircle size={24} color="#5B9167" />
-            </View>
-          )}
+          <UserAvatar size="md" name={user?.name} uri={user?.pic} />
           <View>
             <Text className="font-semibold" style={{ color: '#F5F0E8' }}>
               {user?.name}

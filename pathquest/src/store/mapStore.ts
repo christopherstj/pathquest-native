@@ -39,6 +39,9 @@ interface MapState {
 
   // Challenge overlay state (Show on Map)
   challengeOverlayPeaks: Array<Peak & { is_summited?: boolean }> | null;
+
+  // User overlay state (Explore user profile: show user's summited peaks)
+  userOverlayPeaks: Peak[] | null;
   
   // Selection state
   selectedPeakId: string | null;
@@ -52,6 +55,9 @@ interface MapState {
   currentCenter: [number, number] | null;
   currentBounds: [[number, number], [number, number]] | null;
   
+  // Initial location ready flag (prevents querying Boulder before user location is found)
+  isInitialLocationReady: boolean;
+  
   // Hover state (for highlighting peaks in lists)
   hoveredPeakId: string | null;
   
@@ -62,6 +68,7 @@ interface MapState {
   setVisiblePeaks: (peaks: Peak[]) => void;
   setVisibleChallenges: (challenges: ChallengeProgress[]) => void;
   setChallengeOverlayPeaks: (peaks: Array<Peak & { is_summited?: boolean }> | null) => void;
+  setUserOverlayPeaks: (peaks: Peak[] | null) => void;
   setSelectedPeakId: (id: string | null) => void;
   setSelectedChallengeId: (id: string | null) => void;
   setSelectionMode: (mode: SelectionMode) => void;
@@ -71,6 +78,7 @@ interface MapState {
   setCurrentCenter: (center: [number, number]) => void;
   setCurrentBounds: (bounds: [[number, number], [number, number]]) => void;
   setHoveredPeakId: (id: string | null) => void;
+  setInitialLocationReady: (ready: boolean) => void;
   
   // Compound actions
   selectPeak: (id: string) => void;
@@ -95,6 +103,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   visiblePeaks: [],
   visibleChallenges: [],
   challengeOverlayPeaks: null,
+  userOverlayPeaks: null,
   selectedPeakId: null,
   selectedChallengeId: null,
   selectionMode: 'none',
@@ -102,6 +111,7 @@ export const useMapStore = create<MapState>((set, get) => ({
   isSatellite: false,
   currentZoom: 11,
   currentCenter: null,
+  isInitialLocationReady: false,
   currentBounds: null,
   hoveredPeakId: null,
   pendingFitBounds: null,
@@ -110,8 +120,19 @@ export const useMapStore = create<MapState>((set, get) => ({
   setVisiblePeaks: (peaks) => set({ visiblePeaks: peaks }),
   setVisibleChallenges: (challenges) => set({ visibleChallenges: challenges }),
   setChallengeOverlayPeaks: (peaks) => set({ challengeOverlayPeaks: peaks }),
-  setSelectedPeakId: (id) => set({ selectedPeakId: id, selectedChallengeId: null, challengeOverlayPeaks: null }),
-  setSelectedChallengeId: (id) => set({ selectedChallengeId: id, selectedPeakId: null, challengeOverlayPeaks: null }),
+  setUserOverlayPeaks: (peaks) => set({ userOverlayPeaks: peaks }),
+  setSelectedPeakId: (id) =>
+    set({
+      selectedPeakId: id,
+      selectedChallengeId: null,
+      // Do NOT clear overlays - they should persist until explicitly cleared
+    }),
+  setSelectedChallengeId: (id) =>
+    set({
+      selectedChallengeId: id,
+      selectedPeakId: null,
+      // Do NOT clear overlays - they should persist until explicitly cleared
+    }),
   setSelectionMode: (mode) => set({ selectionMode: mode }),
   setIsZoomedOutTooFar: (value) => set({ isZoomedOutTooFar: value }),
   setIsSatellite: (value) => set({ isSatellite: value }),
@@ -122,19 +143,22 @@ export const useMapStore = create<MapState>((set, get) => ({
   setCurrentCenter: (center) => set({ currentCenter: center }),
   setCurrentBounds: (bounds) => set({ currentBounds: bounds }),
   setHoveredPeakId: (id) => set({ hoveredPeakId: id }),
+  setInitialLocationReady: (ready) => set({ isInitialLocationReady: ready }),
   
   // Compound actions - select and show floating card
+  // NOTE: These preserve overlays so clicking a peak in an overlay doesn't clear it
   selectPeak: (id) => set({
     selectedPeakId: id,
     selectedChallengeId: null,
-    challengeOverlayPeaks: null,
     selectionMode: 'floating',
+    // Do NOT clear challengeOverlayPeaks or userOverlayPeaks here!
+    // Overlays should persist until explicitly cleared (e.g., navigating to discovery)
   }),
   selectChallenge: (id) => set({
     selectedChallengeId: id,
     selectedPeakId: null,
-    challengeOverlayPeaks: null,
     selectionMode: 'floating',
+    // Do NOT clear overlays here either
   }),
   
   // Open full detail view from floating card
@@ -152,10 +176,10 @@ export const useMapStore = create<MapState>((set, get) => ({
   },
   
   // Clear selection and reset mode
+  // NOTE: This does NOT clear overlays - overlays are cleared separately when navigating to discovery
   clearSelection: () => set({
     selectedPeakId: null,
     selectedChallengeId: null,
-    challengeOverlayPeaks: null,
     selectionMode: 'none',
   }),
   

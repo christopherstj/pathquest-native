@@ -12,7 +12,8 @@
  */
 
 import React, { useEffect, useRef, useMemo } from 'react';
-import { View, ScrollView, TouchableOpacity, Animated } from 'react-native';
+import { View, TouchableOpacity, Animated, ScrollView } from 'react-native';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { 
   Trophy, 
   Check, 
@@ -33,6 +34,8 @@ interface ChallengesContentProps {
   challenges?: ChallengeProgress[];
   onChallengePress?: (challenge: ChallengeProgress) => void;
   isLoading?: boolean;
+  /** When true, use BottomSheetScrollView; otherwise use regular ScrollView */
+  inBottomSheet?: boolean;
 }
 
 // Muted earth tone accent colors (same as home dashboard)
@@ -309,8 +312,10 @@ const ChallengesContent: React.FC<ChallengesContentProps> = ({
   challenges = [],
   onChallengePress,
   isLoading = false,
+  inBottomSheet = false,
 }) => {
   const { colors, isDark } = useTheme();
+  const ScrollContainer = inBottomSheet ? BottomSheetScrollView : ScrollView;
   const headerFade = useRef(new Animated.Value(0)).current;
   
   useEffect(() => {
@@ -386,9 +391,9 @@ const ChallengesContent: React.FC<ChallengesContentProps> = ({
   }
 
   return (
-    <ScrollView 
-      className="flex-1"
-      contentContainerClassName="gap-6 pb-12"
+    <ScrollContainer
+      style={{ flex: 1 }}
+      contentContainerStyle={{ gap: 24, paddingBottom: 24 }}
       showsVerticalScrollIndicator={false}
     >
       {/* Trophy Case Header */}
@@ -530,7 +535,7 @@ const ChallengesContent: React.FC<ChallengesContentProps> = ({
           ))}
         </View>
       )}
-    </ScrollView>
+    </ScrollContainer>
   );
 };
 

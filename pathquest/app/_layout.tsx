@@ -131,6 +131,9 @@ function RootLayoutNav() {
                   }} 
                 />
                 <Stack.Screen name="compass/[peakId]" options={{ headerShown: false }} />
+                {/* User profile routes render their own headers */}
+                <Stack.Screen name="users/[userId]" options={{ headerShown: false }} />
+                <Stack.Screen name="users/[userId]/challenges/[challengeId]" options={{ headerShown: false }} />
               </Stack>
             </NavigationThemeProvider>
           </ThemeProvider>

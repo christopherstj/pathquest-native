@@ -3099,3 +3099,143 @@ Premium subscription tier ($4/month) providing proactive weather alerts, enhance
 - [ ] Trail data sources for trailhead navigation (OSM, Hiking Project, etc.)
 - [ ] Mapbox offline map storage limits and pricing
 
+---
+
+#### Phase 8: Route Planning & Multi-Peak Routes
+
+**Overview:**
+Full-featured route planning system that generates routes from trailheads to peaks using Valhalla routing engine, with support for multi-peak adventures. Routes intelligently handle off-trail segments to summits.
+
+**Key Features:**
+
+**1. Single Peak Route Planning**
+- Find trailheads near peak (OSM data)
+- Route from trailhead to nearest trail point to peak (Valhalla)
+- Calculate off-trail segment from trail endpoint to summit
+- Show complete route with elevation profile, distance, time estimates
+- Drive directions to trailhead (Google Maps/Apple Maps deep links)
+
+**2. Off-Trail Segment Handling**
+- Routes to nearest trail point (not directly to summit)
+- Calculates straight-line distance + bearing to summit
+- Estimates actual walking distance (terrain multiplier)
+- Time estimation using modified Naismith's rule:
+  - Base speed: 1.5 mph (off-trail)
+  - Elevation penalty: +1 hour per 1500ft gain
+  - Altitude penalty: +10-30% above 10,000ft
+- Shows difficulty note based on slope/elevation
+
+**3. Multi-Peak Route Extension**
+- "Add Another Peak" button on route view
+- Finds nearby peaks within 5 miles
+- Chains routes: trailhead → peak1 → peak2 → peak3
+- Optimizes peak ordering (nearest-neighbor algorithm)
+- Supports loops, out-and-back, and point-to-point routes
+
+**4. Route Saving & Management**
+- Save suggested routes to user account
+- Saved routes appear in user profile
+- Routes can be shared (if user makes them public)
+- View saved routes on map
+
+**5. Pre-computed Routes**
+- Background job pre-computes routes for challenge peaks
+- Instant results for popular challenge peaks
+- Weekly updates as OSM data changes
+
+**Technical Architecture:**
+
+**Routing Service:**
+- Valhalla (containerized, Cloud Run)
+- 8GB RAM, 2 CPU, min instances = 1
+- Pre-built Valhalla tiles baked into container (~8GB)
+- Weekly tile rebuild pipeline (OSM updates)
+
+**Data Flow:**
+```
+User requests route → pathquest-api
+  ↓
+Find trailheads (OSM Overpass)
+  ↓
+Valhalla /locate (find nearest trail point to peak)
+  ↓
+Valhalla /route (trailhead → trail point)
+  ↓
+Calculate off-trail segment (distance, bearing, time)
+  ↓
+Return complete route with segments
+```
+
+**UI Components:**
+
+**Route Planning Screen:**
+- Map view with route overlay
+- Route stats card (distance, elevation, time)
+- Elevation profile chart
+- Trail segment + off-trail segment breakdown
+- "Add Another Peak" button
+- "Save Route" button
+- Drive directions button
+
+**Route Builder (Multi-Peak):**
+- Peak list (drag to reorder)
+- Route type selector (loop/out-and-back/point-to-point)
+- Route stats (total distance, elevation, time)
+- Map preview with full route polyline
+- "Optimize Order" button
+
+**Saved Routes List:**
+- User's saved routes
+- Filter by peak/challenge
+- Link to map view
+- Share/delete options
+
+**Implementation Files:**
+
+**Backend (`pathquest-api/`):**
+- `src/routes/routes.ts` - Route endpoints
+- `src/helpers/routes/findTrailheads.ts` - OSM trailhead finder
+- `src/helpers/routes/generateRoute.ts` - Single peak route generation
+- `src/helpers/routes/generateMultiPeakRoute.ts` - Multi-peak routing
+- `src/helpers/routes/calculateOffTrail.ts` - Off-trail segment calculation
+- `src/helpers/routes/saveRoute.ts` - Route saving
+- `src/helpers/routes/findNearbyPeaks.ts` - Nearby peaks for extension
+- `src/clients/valhalla.ts` - Valhalla API client
+- `src/jobs/precomputeRoutes.ts` - Background job for challenge routes
+- Database migrations for `routes`, `route_segments`, `precomputed_routes` tables
+
+**Routing Service (`pathquest-valhalla/`):**
+- Containerized Valhalla instance
+- Weekly tile build pipeline
+- Cloud Run deployment (8GB, 2 CPU, min=1)
+
+**Frontend (`pathquest-native/pathquest/`):**
+- `src/components/routes/RoutePlanningScreen.tsx`
+- `src/components/routes/RouteBuilder.tsx`
+- `src/components/routes/RouteStatsCard.tsx`
+- `src/components/routes/ElevationProfile.tsx`
+- `src/components/routes/SavedRoutesList.tsx`
+- `src/components/routes/RouteSegmentBreakdown.tsx`
+- `src/hooks/useRoute.ts`
+- `src/hooks/useSavedRoutes.ts`
+
+**Frontend (`pathquest-frontend/`):**
+- Similar components for web interface
+- Map integration with route overlays
+
+**Considerations:**
+- **Valhalla Setup**: Requires weekly tile builds, ~8GB container image
+- **Off-Trail Accuracy**: ±30% time estimate (acceptable for short segments)
+- **Multi-Peak Performance**: Cache segments, only recompute affected parts
+- **Pre-computation**: Run weekly, process challenge peaks in batches
+- **Cost**: ~$90-110/month for Valhalla service (Cloud Run)
+
+**Effort Estimate:**
+- Valhalla setup + tile building: 1 week
+- Single-peak routes: 1 week
+- Multi-peak extension: 1 week
+- Route saving + API: 1 week
+- UI (native + web): 2 weeks
+- Pre-computation job: 0.5 weeks
+- **Total: 6-7 weeks**
+
