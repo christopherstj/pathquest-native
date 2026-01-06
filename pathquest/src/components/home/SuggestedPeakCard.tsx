@@ -17,6 +17,7 @@ import {
   Trophy, 
   Compass,
   Sun, 
+  CloudSun,
   Cloud, 
   CloudRain, 
   CloudSnow, 
@@ -43,23 +44,16 @@ interface SuggestedPeakCardProps {
   onChallengePress?: (challengeId: string) => void;
 }
 
-// Map weather icon strings to Lucide icons
-const weatherIconMap: Record<string, LucideIcon> = {
-  clear: Sun,
-  mostly_clear: Sun,
-  partly_cloudy: Cloud,
-  overcast: Cloud,
-  fog: CloudFog,
-  drizzle: CloudRain,
-  rain: CloudRain,
-  heavy_rain: CloudRain,
-  freezing_rain: CloudRain,
-  snow: CloudSnow,
-  heavy_snow: CloudSnow,
-  snow_showers: CloudSnow,
-  rain_showers: CloudRain,
-  thunderstorm: CloudLightning,
-  unknown: Cloud,
+import { getConditionsIconKey } from "@/src/utils";
+
+// Map our shared icon keys to Lucide icons (native UI layer)
+const iconMap: Record<string, LucideIcon> = {
+  sun: Sun,
+  cloudSun: CloudSun,
+  cloud: Cloud,
+  cloudFog: CloudFog,
+  cloudRain: CloudRain,
+  cloudSnow: CloudSnow,
 };
 
 const SuggestedPeakCard: React.FC<SuggestedPeakCardProps> = ({
@@ -133,8 +127,8 @@ const SuggestedPeakCard: React.FC<SuggestedPeakCardProps> = ({
     );
   }
 
-  // Get weather icon component
-  const WeatherIcon = weatherIconMap[suggestedPeak.weather.conditions_icon] || Cloud;
+  // Get weather icon component (shared mapping for conditions_icon string)
+  const WeatherIcon = iconMap[getConditionsIconKey(suggestedPeak.weather.conditions_icon)];
   
   // is_fallback=false means it's from a challenge, is_fallback=true means it's a nearby explore peak
   const isChallenge = !suggestedPeak.is_fallback;

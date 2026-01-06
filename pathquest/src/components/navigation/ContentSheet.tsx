@@ -61,8 +61,19 @@ const ContentSheet = forwardRef<ContentSheetRef, ContentSheetProps>(
       snapToIndex: (index: number) => bottomSheetRef.current?.snapToIndex(index),
     }));
 
-    // Handle snap index changes
+    // Handle snap index changes - guard against invalid indices
     const handleSheetChanges = useCallback((index: number) => {
+      // Prevent snapping to -1 (closed) or other invalid indices
+      if (index < 0) {
+        // Force back to collapsed state
+        bottomSheetRef.current?.snapToIndex(0);
+        return;
+      }
+      if (index > 2) {
+        // Cap at expanded
+        bottomSheetRef.current?.snapToIndex(2);
+        return;
+      }
       setSnapIndex(index);
     }, [setSnapIndex]);
 
@@ -95,7 +106,7 @@ const ContentSheet = forwardRef<ContentSheetRef, ContentSheetProps>(
         handleComponent={renderHandle}
         backdropComponent={renderBackdrop}
         backgroundStyle={{
-          backgroundColor: 'rgba(22, 17, 7, 0.92)',
+          backgroundColor: '#1A1612', // Fully opaque warm dark brown
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
           borderTopWidth: 0.5,
@@ -113,8 +124,11 @@ const ContentSheet = forwardRef<ContentSheetRef, ContentSheetProps>(
         // (Disabling content panning prevents both dragging and scrolling in many cases.)
         enableContentPanningGesture={true}
         enablePanDownToClose={false}
-        enableOverDrag={true}
+        // Hard-stop at snap points (prevents swiping past the reserved top inset under the omnibar).
+        enableOverDrag={false}
         animateOnMount={true}
+        // Ensure we never close the sheet completely
+        enableDynamicSizing={false}
       >
         {children}
       </BottomSheet>

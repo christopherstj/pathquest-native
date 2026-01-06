@@ -15,6 +15,9 @@ interface MapBounds {
   southEast: [number, number]; // [lat, lng]
 }
 
+// Maximum number of peaks to fetch/render (prevents crashes on wide zoom)
+const MAX_PEAKS = 200;
+
 /**
  * Fetch peaks within the given bounds
  */
@@ -36,11 +39,19 @@ export function useMapPeaks(bounds: MapBounds | null, enabled = true) {
           northWestLng: String(bounds.northWest[1]),
           southEastLat: String(bounds.southEast[0]),
           southEastLng: String(bounds.southEast[1]),
-          perPage: '200',
+          page: '1', // Must provide page for perPage limit to work
+          perPage: String(MAX_PEAKS),
           showSummittedPeaks: 'true', // Include peaks the user has already summited
         });
         
         console.log('[useMapPeaks] Fetched', peaks.length, 'peaks');
+        
+        // Client-side safeguard: limit to MAX_PEAKS to prevent rendering crashes
+        if (peaks.length > MAX_PEAKS) {
+          console.warn(`[useMapPeaks] Capping peaks from ${peaks.length} to ${MAX_PEAKS}`);
+          return peaks.slice(0, MAX_PEAKS);
+        }
+        
         return peaks;
       } catch (error) {
         console.error('[useMapPeaks] Error fetching peaks:', error);

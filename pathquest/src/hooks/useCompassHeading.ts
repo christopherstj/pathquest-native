@@ -1,15 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Magnetometer } from "expo-sensors";
+import { normalizeDegrees } from "@/src/utils";
 
 type HeadingState = {
   headingDeg: number | null;
   isAvailable: boolean;
 };
-
-function normalizeDegrees(deg: number) {
-  const d = deg % 360;
-  return d < 0 ? d + 360 : d;
-}
 
 /**
  * Best-effort device heading using Magnetometer.
@@ -39,8 +35,9 @@ export function useCompassHeading(updateIntervalMs = 100): HeadingState {
           const { x, y } = data as any;
           if (typeof x !== "number" || typeof y !== "number") return;
 
-          // heading around Z axis
-          const rad = Math.atan2(y, x);
+          // heading around Z axis, adjusted for portrait orientation
+          // atan2(-x, y) gives angle from top of phone (Y-axis) instead of right side (X-axis)
+          const rad = Math.atan2(-x, y);
           const deg = normalizeDegrees((rad * 180) / Math.PI);
 
           // low-pass

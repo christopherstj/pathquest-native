@@ -27,15 +27,19 @@ import SuggestedPeakCard from './SuggestedPeakCard';
 import TripReportCTA from './TripReportCTA';
 import FavoriteChallenges from './FavoriteChallenges';
 
+import type { ChallengeProgress } from '@pathquest/shared';
+
 interface DashboardContentProps {
   onPeakPress?: (peakId: string) => void;
-  onChallengePress?: (challengeId: string) => void;
+  onChallengePress?: (challenge: ChallengeProgress) => void;
+  onChallengePressById?: (challengeId: string) => void; // For SuggestedPeakCard which only has challenge_id
   onTripReportPress?: (summitId: string, peakId: string) => void;
 }
 
 const DashboardContent: React.FC<DashboardContentProps> = ({
   onPeakPress,
   onChallengePress,
+  onChallengePressById,
   onTripReportPress,
 }) => {
   const { colors, isDark } = useTheme();
@@ -245,13 +249,13 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
         suggestedPeak={suggestedPeak ?? null}
         isLoading={isSuggestedLoading || (userCoords === null && isAuthenticated)}
         onPeakPress={onPeakPress}
-        onChallengePress={onChallengePress}
+        onChallengePress={onChallengePressById}
       />
 
       {/* Favorite Challenges */}
       <FavoriteChallenges 
         challenges={favoriteChallenges}
-        onChallengePress={(challenge) => onChallengePress?.(challenge.id)}
+        onChallengePress={onChallengePress}
         isLoading={isLoading}
       />
       </ScrollView>

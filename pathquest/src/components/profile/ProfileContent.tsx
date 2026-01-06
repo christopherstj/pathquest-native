@@ -8,11 +8,11 @@
  * - Challenges: Accepted challenges with progress
  */
 
-import React, { useState } from 'react';
-import { View, TouchableOpacity, ScrollView } from 'react-native';
-import { BarChart3, MapPin, BookOpen, Trophy } from 'lucide-react-native';
-import type { LucideIcon } from 'lucide-react-native';
-import { Text } from '@/src/components/ui';
+import React, { useState, useCallback } from 'react';
+import { View, Alert } from 'react-native';
+import { TabSwitcher } from '@/src/components/shared';
+import { useProfileData } from '@/src/hooks';
+import type { JournalEntry } from '@/src/hooks';
 import StatsContent from './StatsContent';
 import PeaksContent from './PeaksContent';
 import JournalContent from './JournalContent';
@@ -24,74 +24,85 @@ interface ProfileContentProps {
   userId: string;
   onPeakPress?: (peakId: string) => void;
   onChallengePress?: (challengeId: string) => void;
-  isLoading?: boolean;
 }
-
-interface TabButtonProps {
-  Icon: LucideIcon;
-  label: string;
-  isActive: boolean;
-  onPress: () => void;
-}
-
-const TabButton: React.FC<TabButtonProps> = ({ Icon, label, isActive, onPress }) => {
-  return (
-    <TouchableOpacity
-      className={`flex-row items-center gap-1.5 py-2 px-3 rounded-lg ${
-        isActive ? 'bg-background' : ''
-      }`}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <Icon
-        size={14} 
-        color={isActive ? '#EDE5D8' : '#A9A196'} 
-      />
-      <Text className={`text-[13px] ${isActive ? 'text-foreground font-semibold' : 'text-muted-foreground font-medium'}`}>
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-};
 
 const ProfileContent: React.FC<ProfileContentProps> = ({
   userId,
   onPeakPress,
   onChallengePress,
-  isLoading = false,
 }) => {
   const [activeTab, setActiveTab] = useState<ProfileTab>('stats');
+  
+  // Fetch profile data
+  const {
+    stats,
+    peaks,
+    peaksTotalCount,
+    journalEntries,
+    journalTotalCount,
+    challenges,
+    isStatsLoading,
+    isPeaksLoading,
+    isJournalLoading,
+    isChallengesLoading,
+  } = useProfileData(userId);
+  
+  // Journal entry handlers (placeholder - will wire to modals later)
+  const handleAddNotes = useCallback((entry: JournalEntry) => {
+    // TODO: Open add report modal
+    Alert.alert(
+      'Add Report',
+      `Add trip report for ${entry.peakName}`,
+      [{ text: 'OK' }]
+    );
+  }, []);
+  
+  const handleEditEntry = useCallback((entry: JournalEntry) => {
+    // TODO: Open edit report modal
+    Alert.alert(
+      'Edit Report',
+      `Edit trip report for ${entry.peakName}`,
+      [{ text: 'OK' }]
+    );
+  }, []);
 
   const renderContent = () => {
     switch (activeTab) {
       case 'stats':
         return (
           <StatsContent 
-            stats={undefined}
-            isLoading={isLoading}
+            stats={stats}
+            isLoading={isStatsLoading}
           />
         );
       case 'peaks':
         return (
           <PeaksContent 
-            peaks={[]}
+            initialPeaks={peaks}
+            totalCount={peaksTotalCount}
+            totalSummitsCount={stats?.totalSummits}
+            userId={userId}
             onPeakPress={(peak) => onPeakPress?.(peak.id)}
-            isLoading={isLoading}
+            isLoading={isPeaksLoading}
           />
         );
       case 'journal':
         return (
           <JournalContent 
-            entries={[]}
-            isLoading={isLoading}
+            initialEntries={journalEntries}
+            totalCount={journalTotalCount}
+            userId={userId}
+            onAddNotes={handleAddNotes}
+            onEditEntry={handleEditEntry}
+            isLoading={isJournalLoading}
           />
         );
       case 'challenges':
         return (
           <ChallengesContent 
-            challenges={[]}
+            challenges={challenges}
             onChallengePress={(challenge) => onChallengePress?.(challenge.id)}
-            isLoading={isLoading}
+            isLoading={isChallengesLoading}
           />
         );
       default:
@@ -102,39 +113,17 @@ const ProfileContent: React.FC<ProfileContentProps> = ({
   return (
     <View className="flex-1">
       {/* Sub-tab bar */}
-      <View className="py-2 border-b border-border">
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="px-4"
-        >
-          <View className="flex-row p-1 rounded-lg bg-muted gap-1">
-            <TabButton
-              Icon={BarChart3}
-              label="Stats"
-              isActive={activeTab === 'stats'}
-              onPress={() => setActiveTab('stats')}
-            />
-            <TabButton
-              Icon={MapPin}
-              label="Peaks"
-              isActive={activeTab === 'peaks'}
-              onPress={() => setActiveTab('peaks')}
-            />
-            <TabButton
-              Icon={BookOpen}
-              label="Journal"
-              isActive={activeTab === 'journal'}
-              onPress={() => setActiveTab('journal')}
-            />
-            <TabButton
-              Icon={Trophy}
-              label="Challenges"
-              isActive={activeTab === 'challenges'}
-              onPress={() => setActiveTab('challenges')}
-            />
-          </View>
-        </ScrollView>
+      <View className="px-4 py-2 border-b border-border">
+        <TabSwitcher
+          tabs={[
+            { id: 'stats', label: 'Stats' },
+            { id: 'peaks', label: 'Peaks' },
+            { id: 'journal', label: 'Journal' },
+            { id: 'challenges', label: 'Challenges' },
+          ]}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
       </View>
 
       {/* Content */}

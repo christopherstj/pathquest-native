@@ -77,9 +77,16 @@ interface MapViewProps {
   children?: React.ReactNode;
 }
 
+export type FitBoundsPadding = number | {
+  paddingTop?: number;
+  paddingBottom?: number;
+  paddingLeft?: number;
+  paddingRight?: number;
+};
+
 export interface MapViewRef {
   flyTo: (center: [number, number], zoom?: number) => void;
-  fitBounds: (bounds: [[number, number], [number, number]], padding?: number) => void;
+  fitBounds: (bounds: [[number, number], [number, number]], padding?: FitBoundsPadding) => void;
   getCenter: () => Promise<[number, number] | null>;
   getZoom: () => Promise<number | null>;
   centerOnUser: () => void;
@@ -118,7 +125,7 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
           animationDuration: 1000,
         });
       },
-      fitBounds: (bounds: [[number, number], [number, number]], padding = 50) => {
+      fitBounds: (bounds: [[number, number], [number, number]], padding: FitBoundsPadding = 50) => {
         cameraRef.current?.fitBounds(bounds[0], bounds[1], padding, 1000);
       },
       getCenter: async () => {

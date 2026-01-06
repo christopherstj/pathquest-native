@@ -504,6 +504,43 @@ When building a new card/component, ensure:
 | 12 | Login Prompt | No | N/A | Any auth-gated action |
 | 13 | Settings | No | Yes | You tab header |
 | 14 | Onboarding | No | No | First launch only |
+| 15 | Email Signup | No | No | Auth flow (Phase 6) |
+| 16 | Email Verification | No | No | Email signup flow (Phase 6) |
+| 17 | Account Linking | No | Yes | Settings (Phase 6) |
+| 18 | Connected Devices | No | Yes | Settings (Phase 6) |
+| 19 | Activity Import Review | No | Yes | Device sync (Phase 6) |
+| 20 | Premium Upgrade | No | No | Premium features (Phase 7) |
+| 21 | Alert Preferences | No | Yes (Premium) | Settings > Premium (Phase 7) |
+| 22 | Alert List | No | Yes (Premium) | Bell icon in header (Phase 7) |
+| 23 | Subscription Management | No | Yes (Premium) | Settings > Premium (Phase 7) |
+
+### Navigation Implementation
+
+**Expo Router (File-Based Routing):**
+- ✅ Using Expo Router with Next.js-style file hierarchy
+- ✅ Routes structure:
+  ```
+  app/
+    (tabs)/
+      _layout.tsx          # Tab bar navigation
+      index.tsx            # Home tab
+      profile.tsx         # You tab
+      explore/
+        _layout.tsx        # Explore layout (map + ContentSheet)
+        index.tsx          # Discovery content
+        peak/[peakId].tsx  # Peak detail route
+        challenge/[challengeId].tsx  # Challenge detail route
+  ```
+- ✅ Native navigation stack with swipe-back gesture support
+- ✅ State persistence: Discovery tab state (active tab, filters) persists across navigation
+- ✅ Back navigation: Native back button and swipe gesture navigate through history
+- ✅ Dismiss navigation: X button on detail pages returns directly to discovery view
+
+**ContentSheet Integration:**
+- Bottom sheet renders `<Slot />` from Expo Router
+- Detail pages render inside the sheet
+- Sheet snap points: collapsed (map only), halfway (discovery), expanded (detail)
+- Sheet state managed by `sheetStore` (Zustand)
 
 ---
 
@@ -1506,24 +1543,21 @@ pathquest/
   src/
     components/
       explore/
-        DiscoverySheet.tsx        ✅ Bottom sheet with peak/challenge list
-        DiscoveryList.tsx         ✅ List of nearby peaks or challenges
+        DiscoveryContent.tsx      ✅ Bottom sheet with peak/challenge list
+        ExploreOmnibar.tsx        ✅ Search bar overlay
         FloatingPeakCard.tsx      ✅ Peak card overlay on map (with animations)
         FloatingChallengeCard.tsx ✅ Challenge card overlay on map (with progress)
         PeakRow.tsx               ✅ Peak list item
         ChallengeRow.tsx          ✅ Challenge list item
-        PeakDetail/
-          index.tsx               ⬜ Main screen with collapsible hero
-          HeroCard.tsx            ⬜ Animated collapsible header
-          ConditionsTab.tsx       ⬜ Weather + recent conditions
-          CommunityTab.tsx        ⬜ Public summit reports
-          YourLogsTab.tsx         ⬜ User's summits + add report
-        ChallengeDetail/
-          index.tsx               ⬜ Main screen with progress
-          HeroCard.tsx            ⬜ Animated collapsible header
-          ProgressTab.tsx         ⬜ User's progress + milestones
-          PeaksTab.tsx            ⬜ All peaks in challenge
-        CompassView.tsx           ⬜ Full-screen compass navigation
+        PeakDetail.tsx            ✅ Main orchestrator with tab switching
+        PeakDetailHero.tsx        ✅ Hero card with GPS strip and actions
+        PeakDetailConditionsTab.tsx ✅ Weather + forecast + recent conditions
+        PeakDetailCommunityTab.tsx ✅ Public summit reports (cursor-paginated)
+        PeakDetailYourLogsTab.tsx ✅ User's summits + add report CTA
+        PeakDetailForecastCard.tsx ✅ 7-day forecast horizontal scroller
+        PeakDetailDaylightCard.tsx ✅ Sunrise/sunset + daylight duration
+        ChallengeDetail.tsx       ✅ Complete redesign with hero card, Progress/Peaks tabs, animations
+        DetailSkeleton.tsx         ✅ Loading skeleton for detail pages
       
       map/
         MapView.tsx               ✅ Full-screen Mapbox wrapper
@@ -1532,6 +1566,11 @@ pathquest/
         LocationPuck.tsx          ✅ User location indicator (always visible)
         CenterOnMeButton.tsx      ✅ FAB to recenter on user location
         LineToTarget.tsx          ✅ Line from user to selected peak
+        MapOverlayControls.tsx    ⬜ Toggle buttons for each overlay (Phase 7)
+        WeatherOverlay.tsx        ⬜ Weather data rendering (Phase 7)
+        SnowPackOverlay.tsx       ⬜ Snow pack data rendering (Phase 7)
+        ParkAlertsOverlay.tsx     ⬜ Park alerts rendering (Phase 7)
+        OverlayLegend.tsx         ⬜ Legend component for each overlay (Phase 7)
       
       home/
         DashboardContent.tsx      ✅ Main dashboard container
@@ -1555,6 +1594,28 @@ pathquest/
         ManualSummitModal.tsx     ⬜ Manual summit logging
         LoginPrompt.tsx           ⬜ Auth prompt modal
       
+      auth/ (Phase 6)
+        EmailSignupScreen.tsx     ⬜ Email signup form
+        EmailVerificationScreen.tsx ⬜ Magic link/code verification
+        OAuthProviderButton.tsx   ⬜ Reusable OAuth provider button (Google, Apple, Strava)
+        AccountLinkingScreen.tsx  ⬜ Link multiple auth providers
+      
+      settings/
+        SettingsScreen.tsx        ⬜ User settings page (profile, account, app preferences)
+        ConnectedDevicesScreen.tsx ⬜ Device connection management (Phase 6)
+        ActivityImportScreen.tsx  ⬜ Review imported activities and detected summits (Phase 6)
+      
+      premium/ (Phase 7)
+        PremiumBadge.tsx          ⬜ Badge showing premium status
+        PremiumUpgradeModal.tsx   ⬜ Upgrade prompt modal
+        AlertPreferencesScreen.tsx ⬜ Configure alert thresholds and methods
+        SubscriptionManagementScreen.tsx ⬜ Manage subscription (in Settings)
+      
+      alerts/ (Phase 7)
+        AlertListScreen.tsx       ⬜ List of all alerts (in-app notifications)
+        AlertCard.tsx             ⬜ Individual alert card component
+        AlertBadge.tsx            ⬜ Badge showing unread alert count
+      
       ui/ (Design System Primitives)
         CardFrame.tsx             ✅ Reusable card wrapper (topo/ridge variants)
         PrimaryCTA.tsx            ✅ Primary action button (bevel, shadows)
@@ -1565,31 +1626,48 @@ pathquest/
         Value.tsx                 ✅ Data display component (IBM Plex Mono)
       
       shared/
-        GPSStrip.tsx              ⬜ Distance/bearing/vert display
-        ConditionTags.tsx         ⬜ Selectable condition chips
-        DifficultyPicker.tsx      ⬜ Difficulty selection
-        ExperiencePicker.tsx      ⬜ Experience rating selection
-        PhotoCapture.tsx          ⬜ Camera-first photo input
-        SummitReportCard.tsx      ⬜ Summit report display
-        ProgressBar.tsx           ⏳ Challenge progress bar (used in FavoriteChallenges)
-        CollapsibleHeader.tsx     ⬜ Reanimated scroll header
+        GPSStrip.tsx              ✅ Distance/bearing/vert display
+        TabSwitcher.tsx           ✅ Generic tab switcher component
+        SummitCard.tsx            ✅ Reusable summit card (user/date with year/weather/tags/notes)
+        StateFilterDropdown.tsx   ✅ State filter dropdown with modal selection
+        WeatherDisplay.tsx        ✅ Compact weather row (temp/precip/clouds)
+        WeatherBadge.tsx          ✅ Small badge pill (e.g. GOOD/FAIR/POOR)
+        RefreshBar.tsx            ✅ Animated loading bar for data refresh states
+        UserAvatar.tsx            ⬜ Reusable user avatar component (for Phase 3.5)
+        ConditionTags.tsx         ⬜ Selectable condition chips (for Add Report modal)
+        DifficultyPicker.tsx      ⬜ Difficulty selection (for Add Report modal)
+        ExperiencePicker.tsx      ⬜ Experience rating selection (for Add Report modal)
+        PhotoCapture.tsx          ⬜ Camera-first photo input (for Add Report modal)
+        CollapsibleHeader.tsx     ⬜ Reanimated scroll header (not needed - using BottomSheetScrollView)
     
     store/
-      mapStore.ts                 ✅ Map state (bounds, zoom, selection mode)
-      sheetStore.ts               ✅ Sheet snap state
-      locationStore.ts            ⬜ User location + permissions (using Mapbox directly)
-      selectionStore.ts           ✅ Selected peak/challenge (integrated into mapStore)
-      authStore.ts                ✅ Auth state
+      mapStore.ts                 ✅ Map state (bounds, zoom, selection mode, visible peaks/challenges)
+      sheetStore.ts               ✅ Sheet snap state (collapsed/halfway/expanded)
+      authStore.ts                ✅ Auth state (tokens, user, login/logout)
     
     hooks/
       useLocation.ts              ✅ GPS location hook (Mapbox locationManager)
-      useMapData.ts               ✅ Fetch peaks/challenges for map bounds
+      useLocationPolling.ts       ✅ Polls device location on interval
+      useMapData.ts               ✅ Fetch peaks/challenges for map bounds (useMapPeaks, useMapChallenges)
+      useAllChallenges.ts         ✅ Fetch all challenges (for Explore "All" mode)
       useDashboardData.ts         ✅ Dashboard data (stats, recent summits, challenges)
       useSuggestedPeak.ts         ✅ Suggested peak with weather
-      useCompass.ts               ⬜ Magnetometer heading hook
-      useBearing.ts               ⬜ Calculate bearing to target
-      useCollapsibleHeader.ts     ⬜ Scroll-based header animation
+      usePeakDetailData.ts        ✅ Peak detail hooks (usePeakDetails, usePeakWeather, usePeakForecast, usePeakActivity, usePeakPublicSummitsCursor)
+      useChallengeDetails.ts      ✅ Challenge detail hook (useChallengeDetails)
+      useUserChallengeProgress.ts ✅ User challenge progress hook (useUserChallengeProgress)
+      useNextPeakSuggestion.ts   ✅ Next peak suggestion hook (useNextPeakSuggestion)
+      useProfileData.ts           ✅ Profile data hooks (useUserProfile, useUserPeaks with filters, useUserJournal with filters, useUserSummitStates)
+      useGPSNavigation.ts         ✅ GPS navigation (distance/bearing/vert calculations)
+      useCompassHeading.ts       ✅ Magnetometer heading hook
+      useCollapsibleHeader.ts     ⬜ Scroll-based header animation (not needed - using BottomSheetScrollView)
       useOfflineQueue.ts          ⬜ Queue actions for offline sync
+      useAuthProviders.ts         ⬜ OAuth provider management (Phase 6)
+      useEmailAuth.ts             ⬜ Email signup/verification hooks (Phase 6)
+      useDeviceConnections.ts     ⬜ Device connection management (Phase 6)
+      useActivityImport.ts        ⬜ Activity import and sync hooks (Phase 6)
+      useSubscription.ts          ⬜ Check subscription status (Phase 7)
+      useAlertPreferences.ts      ⬜ Manage alert preferences (Phase 7)
+      useAlerts.ts                ⬜ Fetch and manage alerts (Phase 7)
     
     lib/
       location/
@@ -1688,8 +1766,11 @@ interface OfflineState {
 | `/api/peaks/search` | GET | Discovery search | ✅ |
 | `/api/challenges/:id` | GET | Challenge Detail | ⬜ |
 | `/api/challenges/:id/peaks` | GET | Challenge peaks list | ⬜ |
-| `/api/users/:id/summits` | GET | You - Peaks tab | ✅ |
+| `/api/users/:id/summits` | GET | You - Journal tab | ✅ |
+| `/api/users/:id/peaks` | GET | You - Peaks tab | ✅ |
+| `/api/users/:id/peaks/states` | GET | State filter dropdown | ✅ |
 | `/api/users/:id/challenges` | GET | You - Challenges tab | ✅ |
+| `/api/users/:id/profile` | GET | You - Profile data | ✅ |
 | `/api/users/:id/stats` | GET | You - Stats tab, Home stats | ✅ |
 | `/api/summits/:id/report` | POST | Add Report | ⬜ |
 | `/api/peaks/:id/manual-summit` | POST | Manual Summit Entry | ⬜ |
@@ -1769,6 +1850,93 @@ Returns the suggested next peak (closest unclimbed from favorited challenges, or
 - Includes fallback logic (highest nearby peak if no challenge peaks found)
 - Integrates with Open-Meteo API for weather data
 - Uses PostGIS for efficient distance calculations
+
+#### `GET /api/users/:id/profile`
+Returns user profile data including stats, accepted challenges, and completed challenges.
+
+**Status:** ✅ Implemented and used in `useUserProfile` hook
+
+#### `GET /api/users/:id/peaks`
+Returns user's summited peaks with pagination and filtering.
+
+**Query Parameters:**
+- `page` (optional): Page number (default: 1)
+- `pageSize` (optional): Results per page (default: 50)
+- `state` (optional): Filter by state (e.g., "Colorado")
+- `search` (optional): Search peak names
+- `sortBy` (optional): Sort order (`elevation`, `name`, `summits`, `recent`)
+
+**Response:**
+```json
+{
+  "peaks": [
+    {
+      "id": "abc123",
+      "name": "Mt. Bierstadt",
+      "elevation": 14065,
+      "state": "Colorado",
+      "summit_count": 2,
+      "publicLand": {
+        "name": "Arapaho National Forest",
+        "type": "NF",
+        "typeName": "National Forest",
+        "manager": "USDA Forest Service"
+      }
+    }
+  ],
+  "totalCount": 42
+}
+```
+
+**Status:** ✅ Implemented and used in `useUserPeaks` hook with state filtering
+
+#### `GET /api/users/:id/summits`
+Returns user's summit journal entries (all summits) with pagination and filtering.
+
+**Query Parameters:**
+- `page` (optional): Page number (default: 1)
+- `pageSize` (optional): Results per page (default: 30)
+- `state` (optional): Filter by state (e.g., "Colorado")
+- `search` (optional): Search peak names
+
+**Response:**
+```json
+{
+  "summits": [
+    {
+      "id": "summit123",
+      "timestamp": "2024-12-27T10:30:00Z",
+      "peak": {
+        "id": "abc123",
+        "name": "Mt. Bierstadt",
+        "elevation": 14065,
+        "state": "Colorado"
+      },
+      "notes": "Beautiful day!",
+      "difficulty": "moderate",
+      "experience_rating": "amazing",
+      "condition_tags": ["clear", "windy"],
+      "temperature": 45,
+      "wind_speed": 15
+    }
+  ],
+  "totalCount": 58
+}
+```
+
+**Status:** ✅ Implemented and used in `useUserJournal` hook with state filtering
+
+#### `GET /api/users/:id/peaks/states`
+Returns list of states where the user has summited peaks (for filter dropdown).
+
+**Response:**
+```json
+{
+  "states": ["Colorado", "Wyoming", "Utah"]
+}
+```
+
+**Status:** ✅ Implemented and used in `useUserSummitStates` hook
 
 ### New Endpoints Needed
 
@@ -2049,21 +2217,32 @@ Photos captured offline are stored locally:
 
 **Completed:**
 - ✅ Phase 1: Core Navigation + Explore
-- ✅ Phase 3: Home Dashboard (partial - You tab map mode pending)
+- ✅ Phase 2: Peak Detail + GPS (fully implemented with all tabs, GPS navigation, and compass)
+- ✅ Phase 2.5: Compass View (full-screen compass with magnetometer integration)
+- ✅ Phase 2.9: Challenge Detail (complete redesign with hero card, Progress/Peaks tabs, animations, "Show on Map")
+- ✅ Phase 3: Home Dashboard + You Tab data fetching
 - ✅ Visual Design System (all primitives and theme)
 - ✅ Icon migration (FontAwesome → Lucide icons)
 - ✅ Typography system (Text/Value components)
-- ✅ Real API integration (dashboard, map data, suggested peak)
+- ✅ Real API integration (dashboard, map data, suggested peak, peak details, weather, forecasts)
 - ✅ Location services (Mapbox locationManager integration)
+- ✅ GPS navigation hooks (`useGPSNavigation`, `useCompassHeading`)
+- ✅ Expo Router navigation (file-based routing with native stack)
+- ✅ RefreshBar component (loading indicators across Home, Explore, Profile)
+- ✅ Optimistic updates and cache invalidation (challenge accept/un-accept)
+- ✅ Performance optimizations (peak limit: 200 max, client-side safeguard)
 
 **In Progress:**
-- ⏳ Phase 3: You tab map mode toggle
+- None (Phase 2.9 completed)
 
 **Pending:**
-- ⏳ Phase 2: Peak Detail + GPS
-- ⏳ Phase 3.5: Photo Infrastructure (Backend)
-- ⏳ Phase 4: Actions + Modals
+- ⏳ Phase 3: You tab map mode toggle
+- ⏳ Phase 3.5: User Profile & Challenge Progress Pages (User Detail, User Challenge Progress) + Improve Search Bar Functionality
+- ⏳ Phase 3.9: Photo Infrastructure (Backend)
+- ⏳ Phase 4: Actions + Modals + User Settings (Add Report, Manual Summit, Login Prompt, Settings Page)
 - ⏳ Phase 5: Polish + Offline
+- ⏳ Phase 6: Auth & Data Integrations (Multiple OAuth providers, Email signup, Fitness device integrations)
+- ⏳ Phase 7: Premium Features (Subscription system, Proactive alerts, Map overlays)
 
 ---
 
@@ -2072,33 +2251,114 @@ Photos captured offline are stored locally:
 - ✅ Explore tab with map + discovery sheet
 - ✅ Peak floating card (`FloatingPeakCard` with animations)
 - ✅ Challenge floating card (`FloatingChallengeCard` with progress)
-- ✅ Basic Peak Detail (no sub-tabs yet)
 - ✅ Location puck on map (always visible)
 - ✅ CenterOnMeButton FAB
 - ✅ LineToTarget component (dashed line to selected peak)
 - ✅ Selection mode state management (none/floating/detail)
 - ✅ Real data fetching from API (peaks/challenges for map bounds)
 - ✅ Map data refresh on camera movement
+- ✅ ExploreOmnibar search functionality
 
-### Phase 2: Peak Detail + GPS
-- Collapsible hero with GPS strip (distance/bearing/elevation gain)
-- All three sub-tabs (Conditions, Community, Your Logs)
-- Compass View (full-screen navigation to peak)
-- Location permission flow (integrated with Mapbox)
+### ✅ Phase 2: Peak Detail + GPS (COMPLETED)
+- ✅ Peak Detail orchestrator component (`PeakDetail.tsx`)
+- ✅ Hero card (`PeakDetailHero`) with GPS strip (distance/bearing/elevation gain)
+  - Uses `CardFrame` with `variant="hero"`, `topo="full"`, `ridge="bottom"`
+  - Theme colors and accent washes (green for unsummited, blue for summited)
+  - Status chip (SUMMITED/UNSUMMITED)
+  - Compass and Navigate action buttons
+  - Add Report CTA (when applicable)
+- ✅ Conditions Tab (`PeakDetailConditionsTab`)
+  - Current weather display with wind direction arrows
+  - 7-day forecast horizontal scroller (`PeakDetailForecastCard`)
+  - Daylight card (`PeakDetailDaylightCard`) with sunrise/sunset
+  - Recent condition tags and reports with notes
+- ✅ Community Tab (`PeakDetailCommunityTab`)
+  - Cursor-paginated public summits list
+  - Activity summary header
+  - `SummitCard` components for each summit
+  - Load more functionality
+- ✅ Your Logs Tab (`PeakDetailYourLogsTab`)
+  - Auth-gated user ascents display
+  - Unreported ascent detection and CTA
+  - Login prompt for unauthenticated users
+  - Weather display for each ascent
+- ✅ GPS Navigation (`useGPSNavigation` hook)
+  - Real-time distance, bearing, and vertical calculations
+  - Polls device location on configurable interval
+  - Handles missing location gracefully
+- ✅ Data Fetching Hooks
+  - `usePeakDetails` - Full peak data with ascents/challenges
+  - `usePeakWeather` - Current weather conditions
+  - `usePeakForecast` - 7-day forecast
+  - `usePeakActivity` - Activity summary (summits this week/month)
+  - `usePeakPublicSummitsCursor` - Cursor-paginated public summits
+- ✅ Location permission flow (integrated with Mapbox locationManager)
 
-**UI Conversion Required:**
-- Convert Peak Detail screen to use `CardFrame` for hero card and content sections
-- Apply `TopoPattern` (corner variant) to hero card
-- Use `PrimaryCTA`/`SecondaryCTA` for action buttons (View on Map, Add Report, etc.)
-- Replace hardcoded colors with theme colors via `useTheme()` hook
-- Use `<Text>` component for all labels and `<Value>` for elevations/distances
-- Apply mountain ridge silhouette to hero card (`ridge="bottom"`)
-- Ensure proper shadow hierarchy (hero card should use `variant="hero"`)
+### ✅ Phase 2.5: Compass View (COMPLETED)
+- ✅ Full-screen compass screen (`app/compass/[peakId].tsx`)
+- ✅ Magnetometer integration (`useCompassHeading` hook)
+- ✅ Rotating arrow pointing toward peak
+- ✅ GPS strip with distance/bearing/vert
+- ✅ Cardinal directions (N/S/E/W) display
+- ✅ "Open in Maps" and "Refresh GPS" actions
+- ✅ CardFrame styling with topo patterns
 
-**Data Fetching:**
-- Implement hooks for peak detail data (`usePeakDetail`, `usePeakConditions`, `usePeakCommunity`, `usePeakUserLogs`)
-- Wire up API endpoints: `/api/peaks/:id`, `/api/peaks/:id/summits`, `/api/weather/current`
-- Add loading and error states to all sub-tabs
+### ✅ Phase 2.9: Challenge & Activity Detail Pages (COMPLETED)
+
+**Challenge Detail Page (COMPLETED):**
+- ✅ Component exists (`ChallengeDetail.tsx`)
+- ✅ **Redesigned hero card** with topographic styling:
+  - Color-coded hero card (green for un-accepted, amber for accepted, blue for completed)
+  - Circular progress indicator with completion percentage
+  - CompassRose decorative element
+  - Milestone badges (circular, stamp-like, animated)
+  - "Accept Challenge" primary CTA (or "Challenge Accepted" badge with un-accept functionality)
+  - "Show on Map" secondary CTA (collapses drawer, zooms to challenge peaks)
+- ✅ **Progress Tab** - "Your Expedition Log":
+  - Next Objective card with CompassRose, cardinal direction, distance, elevation
+  - Fallback logic for peaks when location unavailable or far from challenge
+  - Recent summits timeline with SummitCheckBadge and formatted dates
+  - Completion celebration styling (blue accent, "Challenge Complete!" message)
+  - Staggered fade and slide animations
+- ✅ **Peaks Tab** - "The Route":
+  - Default sort by elevation (descending)
+  - Filter buttons: "All", "Summited", "Remaining" (with counts)
+  - Peak rows with SummitMedal badges (retro boy scout medal style with summit count)
+  - UnsummitedBadge for uncompleted peaks
+  - Distance and elevation display
+  - Sort options: elevation, distance, A-Z
+- ✅ Data fetching hooks implemented:
+  - `useChallengeDetails` - Fetches challenge data
+  - `useUserChallengeProgress` - Fetches user-specific progress and peak status
+  - `useNextPeakSuggestion` - Fetches closest unsummited peak
+- ✅ "Show on Map" functionality:
+  - Calculates bounding box of challenge peaks
+  - Fits map with asymmetric padding (accounts for omnibar, drawer, tab bar)
+  - Shows ONLY challenge peaks (hides other map markers)
+  - Collapses drawer while staying on challenge detail page
+  - Clears overlay when navigating away
+- ✅ Navigation:
+  - Back button (←) for navigation history
+  - Dismiss button (X) to return directly to discovery view
+  - Native swipe-back gesture support via Expo Router
+- ✅ Loading states:
+  - `DetailSkeleton` component for initial load
+  - Shimmer animations
+- ✅ Cache invalidation:
+  - Optimistic updates for accept/un-accept challenge
+  - Proper cache invalidation across all related queries (dashboard, profile, map, etc.)
+- ✅ API integration:
+  - `/api/challenges/:id` - Public challenge details
+  - `/api/challenges/:id/progress` - User challenge progress with summit counts
+  - `/api/challenges/:id/next-peak` - Next peak suggestion
+  - `/api/challenges/:id/favorite` - Accept/un-accept challenge
+
+**Activity Detail Page (NOT STARTED):**
+- Full activity view with map, elevation profile, splits
+- Summit markers on elevation profile
+- Weather conditions during activity
+- Linked peaks summited during activity
+- Share/export functionality
 
 ### ✅ Phase 3: Home + You Tabs (PARTIALLY COMPLETED)
 **Home Dashboard (COMPLETED):**
@@ -2111,38 +2371,95 @@ Photos captured offline are stored locally:
 - ✅ Screen-level topo pattern backdrop
 - ✅ Real data integration (API calls, loading states, error handling)
 
-**You Tab (PARTIAL):**
-- ✅ Profile screens with sub-tabs (Stats, Peaks, Journal, Challenges)
-- ✅ Basic list mode
+**You Tab (UI POLISH COMPLETE):**
+- ✅ Profile component structure (`ProfileContent.tsx`)
+- ✅ Sub-tab navigation (Stats, Peaks, Journal, Challenges)
+- ✅ Sub-tab components exist (`StatsContent`, `PeaksContent`, `JournalContent`, `ChallengesContent`)
+- ✅ **Data fetching implemented** via `useProfileData` hook:
+  - `useUserProfile`: Fetches stats and accepted challenges via `/api/users/:id/profile`
+  - `useUserPeaks`: Fetches summited peaks via `/api/users/:id/peaks`
+  - `useUserJournal`: Fetches journal entries (summits with notes) via `/api/users/:id/summits`
+- ✅ Loading states for each sub-tab
+
+**You Tab UI Polish (COMPLETED):**
+- ✅ **Profile Header** - Expedition card style with gradient accent bar, avatar ring, user info
+- ✅ **StatsContent** - "The Summit Registry" design:
+  - Hero card with CompassRose decoration and topo pattern
+  - Large summit count with secondary stats (total summits, elevation)
+  - Crown Jewel card for highest peak (award badge, CardFrame styling)
+  - Milestone badges (Trophy, States, Countries) with animated reveal
+  - "Your Journey" section with universal stats (elevation range, climbing streak, favorite peak)
+  - All journey stats computed by backend (`/api/users/:id/profile`)
+  - Staggered animation on card appearance
+- ✅ **PeaksContent** - "The Summit Collection" design:
+  - Collection header with peak count and stats
+  - **State filter dropdown** (server-side filtering via API)
+  - Sort bar (elevation, name, summits) with toggle direction
+  - Enhanced peak rows with SummitCountIcon (flag icon with count)
+  - Public land badge display (when available)
+  - Pagination support with "Load more" button
+  - Staggered slide-in animations
+- ✅ **JournalContent** - "The Field Notes" design:
+  - **State filter dropdown** (server-side filtering via API)
+  - "With notes" toggle filter (client-side)
+  - DateStamp component (vintage passport entry style) **with year display**
+  - Journal entry cards with CardFrame styling
+  - Condition tags with color coding
+  - Notes displayed in italics with quote styling
+  - Weather data display when available
+  - Pagination support with "Load more" button
+  - Staggered fade-in animations
+- ✅ **ChallengesContent** - "The Trophy Case" design:
+  - Hero card with trophy case stats
+  - CircularProgress ring indicators for each challenge
+  - CompletionBadge (star) for completed challenges
+  - Progress bars with animated fill
+  - In Progress vs Completed sections
+  - "Almost there" indicators when close to completion
+- ✅ **Login Screen** - Enhanced with gradient background, larger CTA, better copy
 - ⏳ Map mode toggle (not yet implemented)
-- ⏳ Enhanced journal entries
 
-**You Tab - Critical Issues to Fix:**
-1. **Data Fetching Not Implemented:**
-   - `ProfileContent` is currently passing hardcoded empty data (`stats={undefined}`, `peaks={[]}`, `entries={[]}`, `challenges={[]}`)
-   - Need to create `useProfileData` hook (similar to `useDashboardData`) that fetches:
-     - User stats: `/api/users/:id/stats`
-     - User peaks: `/api/users/:id/summits`
-     - User journal entries: `/api/users/:id/journal` (or derive from summits with reports)
-     - User challenges: `/api/users/:id/challenges`
-   - Wire up data fetching in `app/(tabs)/_layout.tsx` where `ProfileContent` is rendered
-   - Pass real data props to `ProfileContent` instead of empty arrays/undefined
+### ✅ Loading States & Refresh Indicators (COMPLETED)
 
-2. **UI Conversion Required:**
-   - Convert all profile sub-tabs to use `CardFrame` for stat cards and list items
-   - Apply `TopoPattern` (corner variant) to stat cards
-   - Use `PrimaryCTA`/`SecondaryCTA` for action buttons (View Peak, Add Entry, etc.)
-   - Replace hardcoded colors with theme colors via `useTheme()` hook
-   - Use `<Text>` component for all labels and `<Value>` for numbers/stats
-   - Apply consistent spacing and card styling (match dashboard aesthetic)
-   - Ensure proper shadow hierarchy for interactive elements
+**RefreshBar Component:**
+- ✅ Thin animated loading bar at top of screens
+- ✅ Indeterminate shimmer animation (left-to-right loop)
+- ✅ Fades in/out smoothly (150ms in, 300ms out)
+- ✅ Uses primary theme color (green)
+- ✅ Positioned absolutely at top (z-index: 100)
+- ✅ Non-interactive (pointerEvents="none")
 
-**Debugging Steps for You Tab Data:**
-1. Check if `user?.id` is available when rendering `ProfileContent`
-2. Verify API endpoints are returning data (check network tab/logs)
-3. Create `useProfileData` hook using TanStack Query (similar to `useDashboardData`)
-4. Add loading and error states to `ProfileContent` and sub-tabs
-5. Test with authenticated user who has summits/challenges
+**Implementation:**
+- ✅ **Home Tab**: Tracks `dashboardStats`, `favoriteChallenges`, `recentSummits`, `suggestedPeak`
+- ✅ **Profile Tab**: Tracks `userProfile`, `userPeaks`, `userJournal`
+- ✅ **Explore Tab**: Tracks `mapPeaks`, `mapChallenges`, `allChallenges`, `peakDetails`, `challengeDetails`
+- ✅ Uses TanStack Query's `useIsFetching` hook to detect background refetches
+- ✅ Shows during both initial loads and background refreshes
+
+**Detail Page Loading:**
+- ✅ `DetailSkeleton` component for peak/challenge detail pages
+- ✅ Shimmer animations for loading states
+- ✅ Functional back button during loading
+- ✅ Prevents "Unknown Peak" flash by waiting for valid data
+
+### ✅ Performance Optimizations (COMPLETED)
+
+**Peak Fetching Limits:**
+- ✅ Maximum 200 peaks per map viewport fetch
+- ✅ Client-side safeguard: Caps results if API returns more than 200
+- ✅ Prevents app crashes on wide zoom levels
+- ✅ Proper pagination: Sends `page: '1'` along with `perPage: '200'` to ensure API applies LIMIT
+
+**Cache Management:**
+- ✅ Optimistic updates for challenge accept/un-accept
+- ✅ Proper cache invalidation across all related queries:
+  - `challengeDetails` (detail page)
+  - `mapChallenges` (map markers)
+  - `allChallenges` (explore list)
+  - `favoriteChallenges` (dashboard)
+  - `dashboardStats` (dashboard)
+  - `userProfile` (profile page)
+- ✅ TanStack Query optimistic update pattern with rollback on error
 
 ### ✅ Visual Design System (COMPLETED)
 **UI Primitives:**
@@ -2169,10 +2486,100 @@ Photos captured offline are stored locally:
 - ✅ SuggestedPeakCard uses `CardFrame` (hero variant) with ridge
 - ✅ TripReportCTA uses `CardFrame` (hero variant) with ridge
 - ✅ FavoriteChallenges uses `CardFrame` for each item
+- ✅ PeakDetailHero uses `CardFrame` (hero variant) with full topo pattern and ridge
+- ✅ PeakDetailConditionsTab uses `CardFrame` for weather and forecast cards
+- ✅ PeakDetailCommunityTab uses `CardFrame` for activity summary
+- ✅ Compass screen uses `CardFrame` for compass display
 - ✅ All CTAs use `PrimaryCTA`/`SecondaryCTA` components
-- ✅ Theme colors applied throughout dashboard
+- ✅ Theme colors applied throughout dashboard and peak detail
+- ✅ **Profile Tab Components:**
+  - StatsContent: CardFrame (hero) with CompassRose, MilestoneBadge, TerrainBand
+  - PeaksContent: EnhancedPeakRow with SummitCountIcon, PublicLandDisplay
+  - JournalContent: CardFrame with DateStamp (with year), ConditionTag, SummitCard
+  - ChallengesContent: CardFrame (hero) with CircularProgress, CompletionBadge
 
-### Phase 3.5: Photo Infrastructure (Backend)
+**Profile Tab Filtering (COMPLETED):**
+- ✅ **StateFilterDropdown** component:
+  - Pill-style dropdown button with MapPin icon
+  - Modal bottom sheet for state selection
+  - Checkmarks indicate selected state
+  - "All States" option to clear filter
+  - Fetches available states via `useUserSummitStates` hook
+- ✅ **Peaks Tab Filtering:**
+  - Server-side state filtering via `/api/users/:id/peaks?state=Colorado`
+  - Filter resets pagination to page 1
+  - Total count updates based on filtered results
+  - Clear button appears when filter is active
+- ✅ **Journal Tab Filtering:**
+  - Server-side state filtering via `/api/users/:id/summits?state=Colorado`
+  - Client-side "With notes" toggle filter
+  - Both filters work together (state filter applied server-side, notes filter client-side)
+  - Filter resets pagination to page 1
+  - Total count updates based on filtered results
+- ✅ **API Updates:**
+  - `searchUserSummits` helper accepts `state` parameter
+  - `/api/users/:id/summits` endpoint accepts `state` query parameter
+  - `useUserJournal` hook accepts `JournalFilters` with `state` field
+  - `useUserPeaks` hook accepts `PeaksFilters` with `state` field
+  - `useUserSummitStates` hook fetches available states for dropdown
+
+### Phase 3.5: User Profile & Challenge Progress Pages + Improve Search Bar Functionality
+
+Build out user profile and challenge progress detail pages, following the same design patterns established in Peak Detail:
+
+**User Detail Page (Profile):**
+- Hero card with user name, avatar, location, and stats summary
+- Tabs: "Stats", "Summits", "Challenges", "Activity" (if authenticated and viewing own profile)
+- **Stats tab**: Lifetime statistics (total peaks, total elevation, climbing streak, favorite regions, etc.)
+  - Similar to web profile stats page
+  - Visual charts/graphs for elevation over time, peaks by month/year
+  - Achievement badges/milestones
+- **Summits tab**: List of user's summited peaks with dates and photos
+- **Challenges tab**: Active challenge progress and completed challenges
+- **Activity tab**: Recent activity feed (summits, reports, etc.)
+- Public profile view for other users (limited tabs/data - Stats and Summits only)
+
+**User Challenge Progress Detail:**
+- Focused view of a user's progress on a specific challenge
+- Progress visualization (completion percentage, milestones)
+- List of summited peaks with dates
+- List of remaining peaks sorted by distance
+- "View Challenge" link to full challenge detail
+
+**Improve Search Bar Functionality:**
+- Enhanced search experience in ExploreOmnibar
+- Better search result ranking and relevance
+- Search history/predictions
+- Quick filters (peaks only, challenges only, nearby)
+- Improved autocomplete suggestions
+- Search result highlighting
+
+**Add User Profile Icons Throughout App:**
+- Display user profile pictures/avatars wherever users are shown:
+  - **Peak Detail Community Tab**: User avatars next to public summit reports
+  - **Challenge Detail**: User avatars in progress/activity sections
+  - **Home Dashboard**: User avatar in header/profile section
+  - **You Tab**: User avatar in profile header (already implemented)
+  - **Search Results**: User avatars for user-related results
+  - **Activity Feeds**: User avatars in activity timelines
+  - **Comments/Notes**: User avatars next to user-generated content
+- Fallback to initials or default icon when profile picture unavailable
+- Consistent avatar sizing and styling across components
+- Support for circular avatars with border styling
+- Lazy loading and caching of profile images
+
+**Implementation Notes:**
+- Reuse Peak Detail component patterns (hero card, tabs, CardFrame styling)
+- Create shared hooks: `useUserProfile`, `useUserStats`, `useUserChallengeProgress`
+- Wire up existing API endpoints: `/api/users/:id`, `/api/users/:id/stats`, `/api/challenges/:id/progress`
+- Ensure consistent navigation patterns (back button, deep linking)
+- Add loading/error states matching Peak Detail patterns
+- Stats tab should match web app profile stats design
+- Enhance `/api/peaks/search` and `/api/challenges/search` endpoints for better search functionality
+- Create reusable `UserAvatar` component for consistent profile icon display
+- Implement image caching strategy for profile pictures
+
+### Phase 3.9: Photo Infrastructure (Backend)
 **Prerequisites for Phase 4 photo uploads:**
 - Create GCS bucket (`pathquest-photos`)
 - Configure CORS and service account
@@ -2185,16 +2592,510 @@ Photos captured offline are stored locally:
 - Add `sharp` for server-side image processing
 - Test signed URL upload flow
 
-### Phase 4: Actions + Modals
-- Add Report modal with camera
+### Phase 4: Actions + Modals + User Settings
+
+**Add Report Modal:**
+- Trip report entry form with camera integration
 - Photo capture + upload flow
-- Manual Summit entry
-- Login prompt (for auth-gated actions)
-- Settings screen
+- Condition tags selection
+- Optional notes field
+- Weather data pre-population
+- Submit with offline queue support
+
+**Manual Summit Entry:**
+- Manual summit logging form
+- Date picker for summit date
+- Peak selection/search
+- Optional notes and conditions
+- Photo upload support
+
+**Login Prompt:**
+- Modal for auth-gated actions
+- Clear messaging about why auth is needed
+- Quick login flow (Strava OAuth)
+- Dismissible with graceful degradation
+
+**User Settings Page:**
+- **Profile Settings:**
+  - Edit profile picture/avatar
+  - Update display name
+  - Edit location (city, state, country)
+  - Privacy settings (public/private profile)
+- **Account Settings:**
+  - Email preferences
+  - Notification settings
+  - Connected accounts (Strava)
+  - Account deletion
+- **App Settings:**
+  - Theme preference (light/dark/auto)
+  - Units (imperial/metric)
+  - Map preferences (default zoom, map style)
+  - Location permissions management
+- **Data & Privacy:**
+  - Export user data
+  - Privacy policy link
+  - Terms of service link
+  - Data deletion options
+- **About:**
+  - App version
+  - Credits/attributions
+  - Support/contact information
+- Navigation: Accessible from You tab header (gear icon)
+- Consistent with app design system (CardFrame, topo patterns)
 
 ### Phase 5: Polish + Offline
 - Offline queue for reports + photos
 - TanStack Query persistence
 - Onboarding flow
 - Push notification setup
+
+### Phase 6: Auth & Data Integrations
+
+#### Phase 6.1: Additional OAuth Providers
+
+**Google OAuth:**
+- Google Sign-In integration via `@react-native-google-signin/google-signin`
+- OAuth 2.0 flow with Google Cloud Console setup
+- Profile picture and basic info sync
+- Account linking (allow users to link Google to existing Strava account)
+
+**Apple Sign-In:**
+- Apple Authentication Services integration via `expo-apple-authentication`
+- Native iOS implementation (required for App Store)
+- Privacy-focused (minimal data sharing, relay email)
+- Account linking support
+
+**Strava OAuth (Already Implemented):**
+- Maintain existing Strava integration
+- Allow account linking with other providers
+
+**Provider Management:**
+- Settings page: Show connected auth providers
+- Ability to link/unlink providers
+- Primary login method designation
+
+**API Endpoints:**
+- `POST /api/auth/google` - Google OAuth callback
+- `POST /api/auth/apple` - Apple Sign-In callback
+- `GET /api/auth/providers` - List user's connected auth providers
+- `DELETE /api/auth/providers/:provider` - Unlink auth provider
+
+#### Phase 6.2: Email Signup & Passwordless Auth
+
+**Email Signup Flow:**
+- Email address collection
+- Verification via magic link or code
+- Passwordless authentication (no password required)
+
+**Magic Link Authentication:**
+- Send email with secure, time-limited link
+- Link opens app via deep linking (Expo Linking)
+- Web fallback for email clients that block deep links
+- Link expiration: 15 minutes
+- One-time use (invalidate after use)
+
+**Email Code Authentication:**
+- Send 6-digit code to email
+- Code entry screen in app
+- Code expiration: 10 minutes
+- Rate limiting: Max 3 requests per 10 minutes
+
+**Email Verification:**
+- Verify email on signup before account creation
+- Resend verification email option (with rate limiting)
+- Email change flow with re-verification
+
+**Password Option (Future):**
+- Optional password creation for email accounts
+- Password reset flow
+- Two-factor authentication (2FA) support
+
+**API Endpoints:**
+- `POST /api/auth/email/signup` - Email signup (sends verification)
+- `POST /api/auth/email/magic-link` - Request magic link
+- `POST /api/auth/email/verify-code` - Verify email code
+- `GET /api/auth/email/verify-link` - Verify magic link (GET for email click)
+- `POST /api/auth/email/resend` - Resend verification email
+
+**Backend Requirements:**
+- Email service integration (SendGrid or AWS SES)
+- Magic link/code generation with cryptographic tokens
+- Token storage with expiration (Redis or database)
+- Rate limiting middleware
+
+#### Phase 6.3: Fitness Device Integrations
+
+**Supported Devices:**
+
+- **Garmin Connect:**
+  - OAuth integration with Garmin Connect API
+  - Activity sync (runs, hikes, climbs)
+  - Elevation gain and heart rate data
+  - Sync: Manual trigger or automatic (webhook on new activity)
+
+- **COROS:**
+  - OAuth integration with COROS API
+  - Activity sync (runs, hikes, climbs)
+  - Elevation and performance metrics
+  - Sync: Manual trigger or automatic
+
+**Activity Import & Processing:**
+- **Initial Backfill:** Import ALL available historical activities on first connect (this is the hook!)
+- **Ongoing Sync:** New activities synced automatically or on manual trigger
+- **Activity Filtering:** Filter by activity type (hike, run, climb, etc.)
+- **GPS Track Processing:**
+  - Fetch GPX/TCX data from device API
+  - Pass GPS tracks through existing summit detection system
+  - Detect multiple summits in single activity
+  - Handle activities with no summit matches gracefully
+
+**Summit Detection (Use Existing System):**
+- Existing `checkForSummits` logic already handles GPS → peak matching
+- No changes needed to detection algorithm
+- Just need to feed imported GPS tracks into existing pipeline
+
+**Manual Review & Confirmation:**
+- Show detected summits to user for confirmation
+- Allow user to add/remove summits from activity
+- Add notes and conditions to auto-detected summits
+- Batch confirmation for multiple activities
+
+**Activity Display:**
+- Show imported activities in user's journal
+- Link activities to detected summits
+- Display activity stats (distance, elevation, time)
+- Show activity map with GPS track
+- Deep link to original activity in Garmin/COROS app
+
+**Settings & Management:**
+- **Connected Devices Screen:**
+  - List connected devices with last sync time
+  - Connect/disconnect device accounts
+  - Manual sync button per device
+  - Sync progress indicator
+- **Privacy:**
+  - Clear data sharing explanation
+  - Ability to revoke device access
+  - Delete imported activities option
+
+**API Endpoints:**
+- `POST /api/devices/garmin/connect` - Initiate Garmin OAuth
+- `GET /api/devices/garmin/callback` - Garmin OAuth callback
+- `POST /api/devices/coros/connect` - Initiate COROS OAuth
+- `GET /api/devices/coros/callback` - COROS OAuth callback
+- `GET /api/devices` - List connected devices
+- `DELETE /api/devices/:id` - Disconnect device
+- `POST /api/devices/:id/sync` - Trigger manual sync
+- `GET /api/activities/imported` - List imported activities (paginated)
+- `GET /api/activities/:id` - Get activity details with GPS track
+- `POST /api/activities/:id/confirm-summits` - Confirm/edit detected summits
+- `DELETE /api/activities/:id` - Delete imported activity
+
+**Backend Implementation:**
+- Background job queue (Bull/BullMQ) for activity processing
+- Garmin/COROS API clients with token refresh
+- GPS track parsing (GPX/TCX/FIT formats)
+- Activity storage in database with GPS track in S3/blob storage
+- Webhook endpoints for real-time sync (if device APIs support)
+
+**Frontend Components:**
+- `ConnectedDevicesScreen.tsx` - Device management
+- `ActivityImportScreen.tsx` - Review imported activities
+- `ActivityDetailScreen.tsx` - Single activity with map
+- `SummitConfirmationModal.tsx` - Confirm detected summits
+
+### Phase 7: Premium Features
+
+Premium subscription tier ($4/month) providing proactive weather alerts, enhanced map overlays, offline maps, extended forecasts, and trailhead navigation.
+
+**Free Tier:** Everything built in Phases 1-6 (all current features).
+
+**Premium Tier:** Weather alerts, map overlays, offline maps, 14-day forecasts, trailhead navigation.
+
+#### Phase 7.1: Premium Subscription System
+
+**Pricing:**
+- **$4/month** (single tier)
+- Optional free trial (7 days, TBD)
+- Annual option: $36/year (25% discount)
+
+**Subscription Infrastructure:**
+- **Database Schema:**
+  - `subscriptions` table: `user_id`, `status` (enum: 'active', 'canceled', 'expired', 'trial'), `starts_at`, `ends_at`, `trial_ends_at`, `stripe_subscription_id`, `stripe_customer_id`
+  - `alert_preferences` table: `user_id`, `alert_methods` (JSON: {push: bool, email: bool, in_app: bool}), `alert_frequency` (enum: 'immediate', 'daily_digest')
+- **API Endpoints:**
+  - `GET /api/subscription/status` - Check user's subscription status
+  - `POST /api/subscription/checkout` - Create Stripe Checkout session
+  - `POST /api/subscription/cancel` - Cancel subscription
+  - `POST /api/subscription/webhook` - Stripe webhook handler
+  - `GET /api/subscription/portal` - Get Stripe Customer Portal URL
+- **Middleware:**
+  - `requirePremium` middleware for premium-only endpoints
+  - Check subscription status on relevant routes
+
+**Frontend Components:**
+- `PremiumBadge.tsx` - Badge showing premium status
+- `PremiumUpgradeModal.tsx` - Upgrade prompt modal with feature list
+- `SubscriptionManagementScreen.tsx` - Manage subscription (in Settings)
+- `useSubscription.ts` hook - Check subscription status, manage upgrade flow
+- Update `authStore` to include subscription state (`isPremium`, `subscriptionStatus`, `trialEndsAt`)
+
+**Stripe Integration:**
+- Stripe Checkout for payment processing (web-based, opens in browser)
+- Stripe Customer Portal for subscription management
+- Webhook handling for subscription lifecycle events
+- Handle subscription lapse gracefully (features disabled, data retained)
+
+**What Happens on Lapse:**
+- Premium features disabled immediately
+- All user data retained (summits, favorites, etc.)
+- Offline maps remain downloaded but can't download new ones
+- Clear messaging: "Your premium subscription has ended. Upgrade to restore features."
+
+#### Phase 7.2: Proactive Weather Alerts
+
+**Alert System (Simplified):**
+- **Alert Source:** Official weather service alerts only (no custom thresholds)
+  - NWS (National Weather Service) alerts for US locations
+  - Open-Meteo weather alerts for international
+- **What Triggers Alerts:**
+  - Active weather advisories/warnings for favorited peak locations
+  - Examples: Winter storm warning, high wind advisory, flash flood watch
+- **Uses existing favorites system** - Alerts only sent for favorited peaks/lands
+
+**Backend Implementation:**
+- **Alert Service** (`src/services/alertService.ts`):
+  - Background job runs hourly
+  - For each premium user with favorited peaks:
+    1. Get all favorited peaks/lands with coordinates
+    2. Check NWS/Open-Meteo for active alerts at those coordinates
+    3. Generate app alerts for any active weather alerts
+    4. Queue for delivery (push, email, in-app)
+  - **Deduplication:** Don't re-alert same weather event for 24 hours
+  - **Batching:** Group multiple alerts in same region into single notification
+- **Alert Queue:**
+  - Use Bull/BullMQ job queue
+  - Rate limiting to prevent notification spam
+- **Alert Storage:**
+  - `alerts` table: `user_id`, `peak_id` (or `land_id`), `alert_type`, `nws_event_id`, `title`, `message`, `severity`, `triggered_at`, `read_at`, `dismissed_at`, `expires_at`, `metadata` (JSON)
+
+**Push Notification Infrastructure (Expo Push):**
+- **Setup:**
+  - Use `expo-notifications` package
+  - Register for push token on app startup (after permission granted)
+  - Store push tokens in `user_push_tokens` table: `user_id`, `token`, `platform`, `created_at`
+- **Sending:**
+  - Use Expo Push API (`https://exp.host/--/api/v2/push/send`)
+  - Batch notifications (up to 100 per request)
+  - Handle delivery receipts and failed tokens
+- **Notification Channels (Android):**
+  - `weather-alerts` - Weather warnings and advisories
+  - `park-alerts` - Closures and park information
+- **Deep Linking:**
+  - Tap notification → open peak/land detail page
+  - Use Expo Linking for deep link handling
+
+**API Endpoints:**
+- `GET /api/alerts` - Get user's alerts (paginated)
+- `PUT /api/alerts/:id/read` - Mark alert as read
+- `PUT /api/alerts/:id/dismiss` - Dismiss alert
+- `DELETE /api/alerts/all` - Clear all alerts
+- `POST /api/push-tokens` - Register push token
+- `DELETE /api/push-tokens/:token` - Unregister push token
+
+**Frontend Implementation:**
+- **Components:**
+  - `AlertListScreen.tsx` - List of all alerts
+  - `AlertCard.tsx` - Individual alert with severity color coding
+  - `AlertPreferencesScreen.tsx` - Configure delivery methods (push/email/in-app)
+  - `AlertBadge.tsx` - Unread count badge
+- **UI Integration:**
+  - Bell icon in header (all tabs)
+  - Badge showing unread count
+  - Alert preferences in Settings > Premium
+
+#### Phase 7.3: Map Overlays
+
+**Weather Overlay:**
+- **Data Source:** Open-Meteo API (works globally, already in use)
+  - Gridded weather data for current conditions
+  - Can also use weather.gov WMS tiles for US (pre-rendered)
+- **Implementation:**
+  - Add overlay toggle in `MapView.tsx`
+  - Fetch weather grid data for current map bounds
+  - Render as semi-transparent colored overlay
+    - Temperature: Heat map (blue → green → yellow → red)
+    - Precipitation: Blue gradient
+  - Update overlay as map moves/zooms (debounced)
+- **UI:**
+  - Overlay toggle button in map controls
+  - Legend panel showing color scale
+  - Time selector (current, +6h, +12h, +24h forecast)
+
+**Snow Pack Overlay:**
+- **Data Source:** SNODAS (Snow Data Assimilation System) from NOAA
+  - Gridded data at 1km resolution (much better than sparse SNOTEL stations!)
+  - Daily snow depth and SWE (Snow Water Equivalent) estimates
+  - Continental US coverage
+  - Data URL: `https://nohrsc.noaa.gov/snow_model/`
+- **International:** Open-Meteo provides snow depth data globally
+- **Implementation:**
+  - Fetch SNODAS grid tiles for map bounds (or Open-Meteo for non-US)
+  - Render as colored overlay:
+    - Color scale: White (no snow) → Light blue → Deep blue (deep snow)
+    - Contour lines for depth thresholds (optional)
+  - Update overlay as map moves/zooms
+- **UI:**
+  - Overlay toggle in map controls
+  - Legend showing snow depth scale
+  - Date selector (current + last 7 days)
+
+**Park Alerts/Closures Overlay:**
+- **Data Sources (NEEDS MORE RESEARCH):**
+  - **NPS**: National Park Service API (`https://developer.nps.gov/api/v1/alerts`) ✅ Confirmed available
+  - **USFS**: US Forest Service - Need to research API availability
+  - **BLM**: Bureau of Land Management - Need to research API availability
+  - **State Parks**: Varies by state - Need to research
+  - **Recreation.gov**: May have consolidated closure data
+- **TODO:** Research and document available APIs for each agency
+- **Implementation:**
+  - Fetch alerts/closures for current map bounds
+  - Render as colored polygons/markers:
+    - Red: Closures
+    - Yellow: Warnings/Cautions
+    - Blue: Information
+  - Tap on alert to show details popup
+- **UI:**
+  - Overlay toggle in map controls
+  - Alert markers on map
+  - Alert detail popup when marker clicked
+  - Filter by alert type
+
+#### Phase 7.4: Offline Maps
+
+**Implementation:**
+- **Map Tile Downloads:**
+  - Use Mapbox Offline API or tile download approach
+  - Allow user to select region on map and zoom levels
+  - Download tiles to device storage
+  - Show download progress and storage used
+- **Storage Management:**
+  - Show total storage used by offline maps
+  - Delete individual regions
+  - Automatic cleanup of expired tiles
+- **Offline Mode:**
+  - Detect when offline
+  - Use downloaded tiles instead of network
+  - Show "Offline" indicator
+  - Peak/challenge data cached via TanStack Query persistence
+
+**UI:**
+- `OfflineMapsScreen.tsx` - Manage downloaded regions
+- `DownloadRegionModal.tsx` - Select region and zoom levels
+- Download button on map for current view
+- Storage usage display in Settings
+
+#### Phase 7.5: Extended Forecasts & Trailhead Navigation
+
+**Extended Forecasts (14-day):**
+- Extend current 7-day forecast to 14 days
+- Use Open-Meteo extended forecast endpoint
+- Show in peak detail view (premium badge on days 8-14)
+
+**Trailhead/Road-to-Peak Navigation:**
+- **Data Source:** Need to research (OpenStreetMap trails? Hiking Project API? AllTrails?)
+- **Features:**
+  - Show nearest trailhead to peak
+  - Driving directions to trailhead (link to Google Maps/Apple Maps)
+  - Trail route from trailhead to peak (if data available)
+  - Estimated hiking time/distance
+- **TODO:** Research trail data sources and feasibility
+
+**Map Overlay System:**
+- **Component Architecture:**
+  - `MapOverlayControls.tsx` - Toggle buttons for each overlay
+  - `WeatherOverlay.tsx` - Weather data rendering
+  - `SnowPackOverlay.tsx` - Snow pack data rendering
+  - `ParkAlertsOverlay.tsx` - Park alerts rendering
+  - `OverlayLegend.tsx` - Legend component for each overlay
+- **State Management:**
+  - Add to `mapStore`:
+    - `activeOverlays: string[]` (array of overlay IDs)
+    - `overlayOpacity: number` (0-1)
+    - `overlayTime: Date` (for time-based overlays)
+- **Performance:**
+  - Cache overlay data (15-30 minute TTL for weather, 24h for snow)
+  - Debounce map movement for overlay updates
+  - Lazy load overlay data (only fetch when overlay enabled)
+  - Consider pre-rendered WMS tiles where available
+
+**Premium Gating:**
+- Show lock icon on premium features for free users
+- Tap locked feature → show `PremiumUpgradeModal`
+- Check `isPremium` before enabling:
+  - Weather alerts configuration
+  - Map overlay toggles
+  - Offline map downloads
+  - Days 8-14 of forecast
+  - Trailhead navigation
+
+**Settings Integration:**
+- Settings > Premium Section:
+  - Subscription status and renewal date
+  - Manage subscription (opens Stripe Portal)
+  - Alert delivery preferences (push/email/in-app)
+  - Offline maps management
+
+**Implementation Files:**
+
+**Backend (`pathquest-api/`):**
+- `src/routes/subscription.ts` - Subscription endpoints
+- `src/routes/alerts.ts` - Alert endpoints
+- `src/routes/push-tokens.ts` - Push token management
+- `src/services/alertService.ts` - Alert generation service
+- `src/services/nwsService.ts` - NWS weather alerts API
+- `src/services/snodasService.ts` - SNODAS snow data API
+- `src/services/parkAlertsService.ts` - Park alerts API integration
+- `src/jobs/alertProcessor.ts` - Hourly alert check job
+- `src/jobs/pushNotificationSender.ts` - Push notification delivery
+- `src/middleware/requirePremium.ts` - Premium gating middleware
+- Database migrations for `subscriptions`, `alert_preferences`, `alerts`, `user_push_tokens` tables
+
+**Frontend (`pathquest-native/pathquest/`):**
+- `src/components/premium/PremiumBadge.tsx`
+- `src/components/premium/PremiumUpgradeModal.tsx`
+- `src/components/premium/SubscriptionManagementScreen.tsx`
+- `src/components/alerts/AlertListScreen.tsx`
+- `src/components/alerts/AlertCard.tsx`
+- `src/components/alerts/AlertPreferencesScreen.tsx`
+- `src/components/map/MapOverlayControls.tsx`
+- `src/components/map/WeatherOverlay.tsx`
+- `src/components/map/SnowPackOverlay.tsx`
+- `src/components/map/ParkAlertsOverlay.tsx`
+- `src/components/map/OverlayLegend.tsx`
+- `src/components/offline/OfflineMapsScreen.tsx`
+- `src/components/offline/DownloadRegionModal.tsx`
+- `src/hooks/useSubscription.ts`
+- `src/hooks/useAlerts.ts`
+- `src/hooks/useAlertPreferences.ts`
+- `src/hooks/useOfflineMaps.ts`
+- `src/lib/subscription/stripe.ts` - Stripe Checkout/Portal integration
+- `src/lib/notifications/expo-push.ts` - Push notification setup
+- Update `src/store/authStore.ts` to include subscription state
+- Update `src/store/mapStore.ts` to include overlay state
+
+**Considerations:**
+- **Rate Limiting**: Weather and park APIs may have rate limits - implement caching
+- **International Support**: Open-Meteo works globally; SNODAS is US-only (use Open-Meteo snow for international)
+- **Performance**: Map overlays can be heavy - use debouncing, lazy loading, and tile caching
+- **Offline Storage**: Monitor device storage usage, provide cleanup tools
+- **Testing**: Test alert system with various weather scenarios; test offline mode thoroughly
+- **Privacy**: Only check weather for favorited locations, not browsing history
+
+**Research TODOs:**
+- [ ] USFS API for forest closures/alerts
+- [ ] BLM API for land closures/alerts
+- [ ] State parks APIs (may need per-state research)
+- [ ] Trail data sources for trailhead navigation (OSM, Hiking Project, etc.)
+- [ ] Mapbox offline map storage limits and pricing
 

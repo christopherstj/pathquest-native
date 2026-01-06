@@ -5,37 +5,80 @@
  * This is the default content for the Explore tab when no detail is selected.
  */
 
-import React, { useState } from 'react';
-import { View, TouchableOpacity } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View } from 'react-native';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { ZoomIn, MapPin, Trophy } from 'lucide-react-native';
-import { Text } from '@/src/components/ui';
+import { SecondaryCTA, Text } from '@/src/components/ui';
+import { TabSwitcher } from '@/src/components/shared';
 import { useTheme } from '@/src/theme';
 import { useMapStore } from '@/src/store/mapStore';
+import { useAllChallenges } from '@/src/hooks';
 import PeakRow from './PeakRow';
 import ChallengeRow from './ChallengeRow';
 import type { Peak, ChallengeProgress } from '@pathquest/shared';
 
 type DiscoveryTab = 'peaks' | 'challenges';
+type ChallengeMode = 'inView' | 'all';
 
 interface DiscoveryContentProps {
   onPeakPress?: (peak: Peak) => void;
   onChallengePress?: (challenge: ChallengeProgress) => void;
+  /** Controlled active tab (persisted by parent) */
+  activeTab?: DiscoveryTab;
+  onTabChange?: (tab: DiscoveryTab) => void;
+  /** Controlled challenge filter (persisted by parent) */
+  challengeFilter?: ChallengeMode;
+  onChallengeFilterChange?: (filter: ChallengeMode) => void;
 }
 
 const DiscoveryContent: React.FC<DiscoveryContentProps> = ({
   onPeakPress,
   onChallengePress,
+  activeTab: controlledTab,
+  onTabChange,
+  challengeFilter: controlledFilter,
+  onChallengeFilterChange,
 }) => {
-  const [activeTab, setActiveTab] = useState<DiscoveryTab>('peaks');
+  // Support both controlled and uncontrolled modes
+  const [internalTab, setInternalTab] = useState<DiscoveryTab>('peaks');
+  const [internalFilter, setInternalFilter] = useState<ChallengeMode>('inView');
+  const [allChallengesLimit, setAllChallengesLimit] = useState(50);
+  
+  const activeTab = controlledTab ?? internalTab;
+  const setActiveTab = onTabChange ?? setInternalTab;
+  const challengeMode = controlledFilter ?? internalFilter;
+  const setChallengeMode = onChallengeFilterChange ?? setInternalFilter;
   const { colors } = useTheme();
   
   const visiblePeaks = useMapStore((state) => state.visiblePeaks);
   const visibleChallenges = useMapStore((state) => state.visibleChallenges);
   const isZoomedOutTooFar = useMapStore((state) => state.isZoomedOutTooFar);
 
-  // Show zoom prompt if too zoomed out
-  if (isZoomedOutTooFar) {
+  const isAllChallengesMode = activeTab === 'challenges' && challengeMode === 'all';
+
+  const { data: allChallengesData, isLoading: allChallengesLoading } = useAllChallenges(isAllChallengesMode);
+
+  // Sort by percent complete (descending) — most progress at top
+  const sortByProgress = (list: ChallengeProgress[]) =>
+    [...list].sort((a, b) => {
+      const aTotal = a.total > 0 ? a.total : (a.num_peaks ?? 1);
+      const bTotal = b.total > 0 ? b.total : (b.num_peaks ?? 1);
+      const aPct = aTotal > 0 ? (a.completed ?? 0) / aTotal : 0;
+      const bPct = bTotal > 0 ? (b.completed ?? 0) / bTotal : 0;
+      return bPct - aPct; // descending
+    });
+
+  const allChallenges = useMemo(() => sortByProgress(allChallengesData ?? []), [allChallengesData]);
+
+  // Also sort visible (in-view) challenges by progress
+  const sortedVisibleChallenges = useMemo(() => sortByProgress(visibleChallenges), [visibleChallenges]);
+
+  const allChallengesVisible = allChallenges.slice(0, allChallengesLimit);
+  const allHasMore = allChallenges.length > allChallengesVisible.length;
+
+  // Show zoom prompt if too zoomed out (except when browsing all challenges).
+  if (isZoomedOutTooFar && !isAllChallengesMode) {
     return (
       <View className="flex-1 items-center justify-center p-8">
         <ZoomIn size={32} color={colors.mutedForeground} />
@@ -55,48 +98,39 @@ const DiscoveryContent: React.FC<DiscoveryContentProps> = ({
   return (
     <View style={{ flex: 1 }}>
       {/* Tab switcher */}
-      <View className="flex-row mx-4 mt-3 mb-3 p-1 rounded-lg bg-muted gap-1">
-        <TouchableOpacity
-          className={`flex-1 flex-row items-center justify-center gap-1.5 py-2 px-3 rounded-lg ${
-            activeTab === 'peaks' ? 'bg-background' : ''
-          }`}
-          onPress={() => setActiveTab('peaks')}
-          activeOpacity={0.7}
-        >
-          <MapPin
-            size={14} 
-            color={activeTab === 'peaks' ? (colors.foreground as any) : (colors.mutedForeground as any)} 
-          />
-          <Text className={`text-[13px] font-medium font-display ${
-            activeTab === 'peaks' ? 'text-foreground' : 'text-muted-foreground'
-          }`}>
-            Peaks ({peakCount})
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity
-          className={`flex-1 flex-row items-center justify-center gap-1.5 py-2 px-3 rounded-lg ${
-            activeTab === 'challenges' ? 'bg-background' : ''
-          }`}
-          onPress={() => setActiveTab('challenges')}
-          activeOpacity={0.7}
-        >
-          <Trophy
-            size={14} 
-            color={activeTab === 'challenges' ? (colors.foreground as any) : (colors.mutedForeground as any)} 
-          />
-          <Text className={`text-[13px] font-medium ${
-            activeTab === 'challenges' ? 'text-foreground' : 'text-muted-foreground'
-          }`}>
-            Challenges ({challengeCount})
-          </Text>
-        </TouchableOpacity>
+      <View style={{ marginHorizontal: 16, marginTop: 12, marginBottom: 12 }}>
+        <TabSwitcher
+          tabs={[
+            { id: 'peaks', label: 'Peaks', badge: peakCount },
+            { id: 'challenges', label: 'Challenges', badge: challengeCount },
+          ]}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
       </View>
+
+      {/* Challenges mode toggle (viewport vs all) */}
+      {activeTab === 'challenges' ? (
+        <View style={{ marginHorizontal: 16, marginBottom: 12 }}>
+          <TabSwitcher
+            tabs={[
+              { id: 'inView', label: 'In view', badge: challengeCount },
+              { id: 'all', label: 'All' },
+            ]}
+            activeTab={challengeMode}
+            onTabChange={(next) => {
+              setChallengeMode(next);
+              if (next === "all") setAllChallengesLimit(50);
+            }}
+          />
+        </View>
+      ) : null}
 
       {/* Content */}
       <BottomSheetScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 20 }}
+        // Extra bottom padding so the last row (and "Load more") don't tuck behind the bottom tab bar.
+        contentContainerStyle={{ paddingBottom: 96 }}
         showsVerticalScrollIndicator={false}
       >
         {activeTab === 'peaks' ? (
@@ -116,23 +150,48 @@ const DiscoveryContent: React.FC<DiscoveryContentProps> = ({
               </Text>
             </View>
           )
-        ) : (
-          challengeCount > 0 ? (
-            visibleChallenges.map((challenge) => (
-              <ChallengeRow
-                key={challenge.id}
-                challenge={challenge}
-                onPress={onChallengePress}
-              />
-            ))
+        ) : isAllChallengesMode ? (
+          allChallengesLoading ? (
+            <View className="items-center justify-center p-8">
+              <Trophy size={24} color={colors.mutedForeground} />
+              <Text className="text-muted-foreground text-sm mt-3 text-center">
+                Loading all challenges…
+              </Text>
+            </View>
+          ) : allChallengesVisible.length > 0 ? (
+            <View>
+              {allChallengesVisible.map((challenge) => (
+                <ChallengeRow key={challenge.id} challenge={challenge} onPress={onChallengePress} />
+              ))}
+
+              {allHasMore ? (
+                <View style={{ paddingHorizontal: 16, marginTop: 8 }}>
+                  <SecondaryCTA
+                    label="Load more"
+                    onPress={() => setAllChallengesLimit((n) => n + 50)}
+                  />
+                </View>
+              ) : null}
+            </View>
           ) : (
             <View className="items-center justify-center p-8">
               <Trophy size={24} color={colors.mutedForeground} />
               <Text className="text-muted-foreground text-sm mt-3 text-center">
-                No challenges in this area
+                No challenges found
               </Text>
             </View>
           )
+        ) : challengeCount > 0 ? (
+          sortedVisibleChallenges.map((challenge) => (
+            <ChallengeRow key={challenge.id} challenge={challenge} onPress={onChallengePress} />
+          ))
+        ) : (
+          <View className="items-center justify-center p-8">
+            <Trophy size={24} color={colors.mutedForeground} />
+            <Text className="text-muted-foreground text-sm mt-3 text-center">
+              No challenges in this area
+            </Text>
+          </View>
         )}
       </BottomSheetScrollView>
     </View>

@@ -42,8 +42,16 @@ pathquest-native/
     app/                        # Expo Router routes (screens)
       _layout.tsx               # Root layout (providers, theme, navigation chrome)
       (tabs)/                   # Tab-based navigation
-        _layout.tsx             # Unified layout with map + all tab content
-        index.tsx               # Route placeholder (content in _layout)
+        _layout.tsx             # Tab navigator with custom tab bar
+        index.tsx               # Home tab (DashboardContent)
+        profile.tsx             # Profile tab (ProfileContent)
+        explore/                # Explore tab with nested stack routing
+          _layout.tsx           # Map + ContentSheet wrapper, renders <Slot />
+          index.tsx             # Discovery (peaks/challenges lists)
+          peak/
+            [peakId].tsx        # Peak detail route
+          challenge/
+            [challengeId].tsx   # Challenge detail route
       auth/
         callback.tsx            # OAuth redirect handler (handles Strava callback)
       modal.tsx
@@ -57,10 +65,18 @@ pathquest-native/
     src/
       components/
         explore/                # Explore tab components
-          ChallengeDetail.tsx   # Challenge detail view with sub-tabs
+          ChallengeDetail.tsx   # Challenge detail view with retro topo aesthetic (hero card, CircularProgress, MilestoneBadge, CompassRose, recent summits timeline, grouped peaks list)
           ChallengeRow.tsx      # Challenge list item
           DiscoveryContent.tsx  # Discovery mode content (peaks/challenges lists)
-          PeakDetail.tsx        # Peak detail view with sub-tabs
+          PeakDetail.tsx        # Peak detail orchestrator (data + tab routing)
+          PeakDetailHero.tsx    # Peak detail hero card (GPS strip + CTAs + public lands)
+          PublicLandBadge.tsx   # Public land badge with agency icon
+          WeatherSection.tsx    # Always-visible weather (current + forecast + conditions)
+          PeakDetailCommunityTab.tsx  # Community tab content
+          PeakDetailYourLogsTab.tsx   # Your Logs tab content
+          PeakDetailForecastCard.tsx  # 7-day forecast horizontal scroller (legacy, see WeatherSection)
+          PeakDetailDaylightCard.tsx  # Sunrise/sunset + daylight duration (legacy, see WeatherSection)
+          PeakDetailConditionsTab.tsx # Conditions tab content (legacy, replaced by WeatherSection)
           PeakRow.tsx           # Peak list item
           index.ts
         home/                   # Home tab components
@@ -72,21 +88,32 @@ pathquest-native/
         map/                    # Map components
           MapView.tsx           # Full-screen Mapbox map wrapper
           PeakMarkers.tsx       # Peak markers layer (GeoJSON + CircleLayer)
+          ChallengePeaksOverlay.tsx # Challenge peaks overlay layer (Show on Map)
           index.ts
         navigation/             # Navigation components
           ContentSheet.tsx      # Draggable bottom sheet (3 snap points)
           index.ts
-        profile/                # Profile tab components
-          ChallengesContent.tsx # Challenges sub-tab
-          JournalContent.tsx    # Journal sub-tab
-          PeaksContent.tsx      # Peaks list sub-tab
-          ProfileContent.tsx    # Profile wrapper with sub-tab nav
-          StatsContent.tsx      # Stats sub-tab
+        profile/                # Profile tab components ("Summit Journal" aesthetic)
+          ChallengesContent.tsx # "Trophy Case" - challenges with CircularProgress rings
+          JournalContent.tsx    # "Field Notes" - journal entries with DateStamp styling
+          PeaksContent.tsx      # "Summit Collection" - peaks with ElevationTierBadge
+          ProfileContent.tsx    # Profile wrapper with sub-tab nav + useProfileData
+          StatsContent.tsx      # "Summit Registry" - hero card with CompassRose, milestones
           index.ts
         ui/                     # Core UI components
           gluestack-provider.tsx # gluestack-ui provider wrapper
           Text.tsx              # Custom Text/Value with baked-in fonts
           index.ts              # Re-exports gluestack + custom components
+        shared/                 # Reusable cross-feature components
+          TabSwitcher.tsx       # Generic tab switcher (used by Explore/Profile/Challenge/Peak detail)
+          SummitCard.tsx        # Reusable summit card with 3-mode layout:
+                                #   - Empty state: prominent CTA to add report
+                                #   - With content: ratings, tags, notes
+                                #   - Profile journal: with peak name header
+                                # Features: WMO weather codes, intensity-scaled rating badges
+          WeatherDisplay.tsx    # Compact weather row (temp/precip/clouds)
+          WeatherBadge.tsx      # Small badge pill (e.g. GOOD/FAIR/POOR)
+          GPSStrip.tsx          # GPS strip (distance/bearing/vert)
       lib/
         api/
           client.ts             # API client with auth injection
@@ -100,11 +127,17 @@ pathquest-native/
         index.ts
         mapStore.ts             # Map state (visible peaks, selection, zoom)
         sheetStore.ts           # Bottom sheet snap state
+        exploreNavStore.ts      # Explore tab nav history + discovery state persistence
       theme/                    # Theme system
         colors.ts               # Color palette (light/dark)
         index.ts
         ThemeProvider.tsx       # Theme context provider
         typography.ts           # Font scales and styles
+      utils/                    # Shared utilities (no UI)
+        geo.ts                  # Haversine/bearing + unit helpers for geo math
+        formatting.ts           # Timezone-aware date/time formatting (web parity)
+        units.ts                # Unit conversions (C->F, kmh->mph)
+        weather.ts              # Weather code + rating helpers
     app.config.ts               # Dynamic Expo config (Mapbox token injection)
     app.json                    # Expo config (static values)
     babel.config.js             # Babel config with NativeWind preset
@@ -122,6 +155,43 @@ PathQuest uses `@pathquest/shared` (GitHub git dependency) for:
 - API endpoint wrappers (pure TypeScript, platform-agnostic)
 
 Both web and native call the same endpoint functions, injecting platform-specific auth headers.
+
+## Peak Detail UI notes
+
+### Layout Structure
+Peak Detail uses a redesigned layout that surfaces critical planning information (weather, public lands) more prominently:
+
+```
+Hero (with public lands badge)
+  ↓
+Weather Section (always visible)
+  ↓
+TabSwitcher → [Community | Your Logs]  (2 tabs)
+```
+
+### Public Lands Badge
+- Displayed in the hero card, below the location string
+- Shows the most important public land designation (prioritized by hierarchy: NP > NM > WILD > NF > SP > SF, etc.)
+- Agency-specific icons (Landmark for NPS, TreePine for USFS, etc.)
+- Uses the peak's accent color (green for unsummited, blue for summited)
+
+### Weather Section (Always Visible)
+- **Current Weather Card**: Icon + description, temperature, feels-like, wind with direction arrow, precip probability, humidity
+- **Forecast Cards** (horizontal scroll): Each card shows:
+  - Day name and date
+  - Weather icon
+  - High/low temps
+  - **Sunrise/sunset times for that specific day**
+  - Day rating badge (GOOD/FAIR/POOR)
+- **Recent Conditions Tags**: Aggregated from recent public summit reports
+
+### Accent colors
+- **Weather**: `colors.secondary` (rust/amber)
+- **Community tab**: `colors.primary` (forest green)
+- **Your Logs tab**: `colors.summited` (sky blue)
+
+### Hero actions
+`PeakDetailHero` renders **Compass + Navigate** side-by-side, and when applicable shows **Add Report** as a full-width primary CTA beneath them.
 
 ## Authentication
 
@@ -236,12 +306,15 @@ Since React Native doesn't support font inheritance, we created custom component
 ```tsx
 import { Text, Value } from '@/src/components/ui';
 
-// Text - uses Fraunces (serif/display font) - for labels, headings, body
+// Text - uses Fraunces (serif/display font) - for labels, headings, body, elevations, aggregations
 <Text className="text-foreground text-lg font-semibold">Peak Name</Text>
+<Text className="text-muted-foreground text-sm">14,259 ft</Text>
 
-// Value - uses IBM Plex Mono - for numbers, stats, data
-<Value className="text-muted-foreground text-sm">14,259 ft</Value>
+// Value - uses IBM Plex Mono - ONLY for live navigation data (compass bearing, GPS coordinates)
+<Value className="text-muted-foreground text-sm">N 45° 32.1'</Value>
 ```
+
+**Important:** In profile/stats contexts, use `Text` even for numbers like elevations and aggregations. Reserve `Value` (mono font) only for real-time navigation data like compass bearings, GPS coordinates, and live distance readings.
 
 This avoids needing to add `font-display` or `font-mono` to every Text element.
 
@@ -309,6 +382,8 @@ The sheet index is controlled via `sheetStore.snapIndex` to enable programmatic 
 
 Note: Scrollable content inside the sheet should use Gorhom's scrollables (`BottomSheetScrollView`, etc.) so vertical swipes scroll content instead of dragging the sheet.
 
+To avoid the sheet sliding into reserved overlay space (e.g. the Explore omnibar gap), over-drag is disabled so the expanded snap point behaves as a hard stop.
+
 ### Map (`src/components/map/`)
 - **MapView**: Full-screen Mapbox wrapper with outdoor style, 3D terrain, location puck
   - Auto-requests location permissions on mount
@@ -332,6 +407,10 @@ Note: Scrollable content inside the sheet should use Gorhom's scrollables (`Bott
 ### Explore Sheet (`src/components/explore/DiscoveryContent.tsx`)
 - Phase 2: Uses CardFrame-based rows for the new "retro topo" design language.
 - Search functionality moved to top-of-map omnibar overlay (see ExploreOmnibar below).
+- **Challenges browsing**: Challenges list supports two modes:
+  - **In view**: Uses `mapStore.visibleChallenges` (viewport-driven)
+  - **All**: Uses `useAllChallenges()` (calls `/challenges/search` with no bounds), independent of map zoom/viewport, with a “Load more” CTA (client-side pagination)
+  - Challenge rows show a **progress bar** plus badges for **Accepted** (favorited) and **Completed**.
 
 ### Explore Omnibar (`src/components/explore/ExploreOmnibar.tsx`)
 - Top-of-map search overlay (similar to web app).
@@ -345,13 +424,31 @@ Note: Scrollable content inside the sheet should use Gorhom's scrollables (`Bott
   - `selectPeak(id)` / `selectChallenge(id)`: Select and show floating card (collapsed-only)
   - `openDetail()`: Transition from floating card to full detail (also expands the sheet)
   - `clearSelection()`: Reset selection state
+  - `challengeOverlayPeaks`: Optional peak overlay used by Challenge Detail "Show on Map" (cleared on selection changes)
 - **sheetStore**: Bottom sheet snap index
+- **exploreNavStore**: Discovery state persistence (navigation handled by Expo Router)
+  - `discoveryState`: Persisted discovery state (active tab, challenge filter)
+  - `setDiscoveryTab(tab)`: Set active discovery tab ('peaks' | 'challenges')
+  - `setChallengeFilter(filter)`: Set challenge filter ('inView' | 'all')
+  - Note: Navigation history is now handled by Expo Router's native stack
 
 ### Hooks (`src/hooks/`)
 - **useLocation**: Location permission management
 - **useMapPeaks/useMapChallenges**: Fetch peaks/challenges for map bounds
+- **useAllChallenges**: Fetch all challenges (progress-aware via `/challenges/search`) for Explore "All challenges" mode
+- **useChallengeDetails**: Fetch `/challenges/:id/details` (public challenge + peak list)
+- **useUserChallengeProgress**: Fetch `/users/:userId/challenges/:challengeId` (auth-gated per-user completion + summit dates)
+- **useNextPeakSuggestion**: Fetch `/challenges/:id/next-peak` (auth-gated next peak suggestion, uses lat/lng when available)
 - **useDashboardData**: Combined dashboard data hook
 - **useSuggestedPeak**: Fetch suggested next peak with weather
+- **useLocationPolling**: Poll last-known device location (Mapbox) on an interval
+- **useGPSNavigation**: Compute distance/bearing/vert-to-target from polled location + target coords
+- **useProfileData**: Combined profile data hook (stats, peaks, journal, challenges)
+  - `useUserProfile`: Fetch user profile with stats and accepted challenges
+  - `useUserPeaks`: Fetch user's summited peaks with summit counts
+  - `useUserJournal`: Fetch user's summit journal entries (summits with notes)
+- **usePeakDetails/usePeakWeather/usePeakForecast/usePeakActivity**: Peak detail data hooks
+- **useCompassHeading**: Magnetometer heading for compass navigation
 
 ## Next Steps
 
@@ -379,25 +476,53 @@ See [DESIGN.md](./DESIGN.md) for detailed implementation phases and wireframes.
    - Created SuggestedPeakCard hero component
    - Created TripReportCTA for unreported summits
    - Updated DashboardContent to new layout
+9. ✅ **Phase 2: Peak Detail + GPS**
+   - Full Peak Detail with hero card, GPS strip, 3 tabs
+   - Conditions tab with weather, forecast, daylight card
+   - Community tab with cursor-paginated public summits
+   - Your Logs tab with user ascents and "Add Report" CTA
+   - GPS navigation hooks (useGPSNavigation, useLocationPolling)
+   - Peak data hooks (usePeakDetails, usePeakWeather, usePeakForecast, etc.)
+10. ✅ **Phase 2.5: Compass View**
+    - Full-screen compass with magnetometer
+    - Real-time bearing/distance updates
+    - Open in Maps integration
+11. ✅ **Phase 3: You Tab Data Fetching**
+    - Created `useProfileData` hook for profile data fetching
+    - Stats tab displays real user stats (peaks, elevation, challenges, etc.)
+    - Peaks tab displays summited peaks with summit counts
+    - Journal tab displays summit entries with notes
+    - Challenges tab displays accepted challenges with progress
+12. ✅ **Phase 2.9: Challenge Detail + Show on Map**
+   - Challenge detail now renders real Progress + Peaks tabs (Peaks public, Progress auth-gated with login prompt)
+   - Favorite toggle wired to `/challenges/favorite` endpoints with query invalidation
+   - “Show on Map” sets a challenge peaks overlay layer and fits the map to the challenge bounds (collapses to floating card)
 
-### Phase 2: Peak Detail + GPS
+### ✅ Phase 2: Peak Detail + GPS (COMPLETED)
 - Hero card with GPS strip (distance/bearing/vert) using last-known device location (best-effort)
   - Uses `CardFrame` hero styling with **full topo texture** (`topo="full"`) and a subtle accent wash
   - Visual state: **green** for unsummited peaks, **blue** (`colors.summited`) for summited peaks
+  - Vert calculation uses peak elevation (meters) minus device altitude (meters), converted to feet
 - Conditions tab (current weather)
+  - Wind now renders as an arrow indicator (direction wind is blowing toward) instead of raw degrees
+  - Current precip probability shown when available (best-effort via Open-Meteo hourly precipitation_probability)
+  - Forecast cards include wind speed + direction arrow
 - Community tab (cursor-paginated public summits)
 - Your Logs tab (auth-gated; displays your ascents)
-- Compass View (moved to Phase 2.5)
 
-### Phase 2.5: Compass View
+### ✅ Phase 2.5: Compass View (COMPLETED)
 - Dedicated Compass screen: `app/compass/[peakId].tsx`
 - Uses `expo-sensors` (Magnetometer) for device heading + GPS bearing to peak to rotate arrow
 - Linked from Explore floating peak card and Peak Detail
 
-### Phase 3: You Tab Enhancement
-- You tab list mode with all sub-tabs
-- You tab map mode toggle
-- Journal entries
+### ✅ Phase 3: You Tab Enhancement (COMPLETED)
+- ✅ You tab list mode with all sub-tabs (Stats, Peaks, Journal, Challenges)
+- ✅ Profile data fetching via `useProfileData` hook
+- ✅ Journal entries display (summits with notes)
+- ✅ Fixed elevation display (peaks use `elevation` field, not `altitude`)
+- ✅ Fixed total peaks count (uses `stats.totalPeaks` from profile, not pagination-limited array length)
+- ✅ Removed mono font from profile elevations/aggregations (reserved for live nav data only)
+- ⏳ You tab map mode toggle (not yet implemented)
 
 ### Phase 4: Actions + Modals
 - Add Report modal (camera-first)

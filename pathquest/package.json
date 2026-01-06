@@ -17,7 +17,7 @@
     "@gluestack-ui/nativewind-utils": "^1.0.28",
     "@gluestack-ui/themed": "^1.1.73",
     "@gorhom/bottom-sheet": "^5.2.8",
-    "@pathquest/shared": "git+https://github.com/christopherstj/pathquest-shared.git#c44eb5c6ef9cdb7792f2dd2622d0c78ac722f5c7",
+    "@pathquest/shared": "git+https://github.com/christopherstj/pathquest-shared.git#87cb3dd40364918b229284a84a37a9644e4d91a2",
     "@react-native-aria/button": "^0.2.10",
     "@react-native-aria/checkbox": "^0.2.10",
     "@react-native-aria/combobox": "^0.2.7",

@@ -133,6 +133,7 @@ export function useDashboardData() {
     recentSummits: recentSummits.data ?? [],
     favoriteChallenges: favoriteChallenges.data ?? [],
     isLoading: dashboardStats.isLoading || recentSummits.isLoading || favoriteChallenges.isLoading,
+    isFetching: dashboardStats.isFetching || recentSummits.isFetching || favoriteChallenges.isFetching,
     isError: dashboardStats.isError || recentSummits.isError || favoriteChallenges.isError,
     refetch: () => {
       dashboardStats.refetch();
