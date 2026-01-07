@@ -189,7 +189,7 @@ export function PeakDetailConditionsTab({
             <Text className="text-muted-foreground text-sm font-medium">Recent Reports</Text>
           </View>
           {recentReportsWithNotes.map((s) => (
-            <SummitCard key={s.id} summit={s} noteLines={3} showNoNotesText={false} seedPrefix="recent-report" />
+            <SummitCard key={s.id} summit={s} />
           ))}
         </View>
       ) : !publicSummitsLoading && publicSummitsCount === 0 ? (

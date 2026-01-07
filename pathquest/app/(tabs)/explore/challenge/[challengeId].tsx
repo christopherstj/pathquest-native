@@ -124,7 +124,7 @@ export default function ChallengeDetailRoute() {
   // Go straight to discovery
   const handleDismiss = useCallback(() => {
     focusDiscovery();
-    router.navigate('/explore');
+    router.navigate("/explore" as any);
   }, [router, focusDiscovery]);
   
   const handlePeakPress = useCallback((peak: Peak) => {
@@ -136,11 +136,11 @@ export default function ChallengeDetailRoute() {
   
   const handleShare = useCallback(async () => {
     if (!challengeId || !user?.id) return;
-    const challengeName = cachedChallenge?.name ?? fetchedChallenge?.name ?? 'this challenge';
+    const challengeName = cachedChallenge?.name ?? fetchedChallenge?.challenge?.name ?? 'this challenge';
     const url = Linking.createURL(`/explore/users/${user.id}/challenges/${challengeId}`);
     const message = `Check out ${challengeName} on PathQuest!\n\n${url}`;
     await Share.share({ message, url }).catch(() => null);
-  }, [challengeId, user?.id, cachedChallenge?.name, fetchedChallenge?.name]);
+  }, [challengeId, user?.id, cachedChallenge?.name, fetchedChallenge?.challenge?.name]);
   
   if (!challengeId) return null;
   
@@ -150,13 +150,13 @@ export default function ChallengeDetailRoute() {
   }
   
   // Use cached challenge for fallback display
-  const challengeForFallback = cachedChallenge ?? (fetchedChallenge ? {
+  const challengeForFallback = cachedChallenge ?? (fetchedChallenge?.challenge ? {
     id: challengeId,
-    name: fetchedChallenge.name,
-    num_peaks: fetchedChallenge.total_peaks,
+    name: fetchedChallenge.challenge.name,
+    num_peaks: fetchedChallenge.peaks?.length ?? 0,
     completed: 0,
-    total: fetchedChallenge.total_peaks,
-    region: fetchedChallenge.region,
+    total: fetchedChallenge.peaks?.length ?? 0,
+    region: fetchedChallenge.challenge.region,
   } : undefined);
   
   return (

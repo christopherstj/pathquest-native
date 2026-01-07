@@ -17,11 +17,11 @@ import type {
   ProfileStats, 
   UserPeakWithSummitCount,
 } from '@pathquest/shared';
-import type { 
-  UserProfileResponse, 
-  SearchUserPeaksResult, 
-  SearchUserSummitsResult 
-} from '@pathquest/shared/api/endpoints/users';
+
+// Derive types from endpoint return types (not directly exported from package)
+type UserProfileResponse = Awaited<ReturnType<typeof endpoints.getUserProfile>>;
+type SearchUserPeaksResult = Awaited<ReturnType<typeof endpoints.searchUserPeaks>>;
+type SearchUserSummitsResult = Awaited<ReturnType<typeof endpoints.searchUserSummits>>;
 
 export type JournalEntry = {
   id: string;
@@ -30,6 +30,7 @@ export type JournalEntry = {
   peakState?: string; // State where the peak is located
   elevation?: number;
   timestamp: string;
+  activityId?: string;
   notes?: string;
   difficulty?: string;
   experienceRating?: string;
@@ -214,8 +215,9 @@ export function useUserJournal(
           peakId: s.peak.id,
           peakName: s.peak.name,
           peakState: s.peak.state,
-          elevation: s.peak.elevation ?? s.peak.altitude,
+          elevation: s.peak.elevation,
           timestamp: s.timestamp,
+          activityId: s.activity_id,
           notes: s.notes,
           difficulty: s.difficulty,
           experienceRating: s.experience_rating,

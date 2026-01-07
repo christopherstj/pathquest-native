@@ -17,7 +17,7 @@ console.log('[API Client] Using API URL:', API_URL);
 export const createApiClient = () => {
     return createSharedApiClient({
         baseUrl: API_URL,
-        getAuthHeaders: async () => {
+        getAuthHeaders: async (): Promise<Record<string, string>> => {
             const token = await useAuthStore.getState().getValidAccessToken();
             
             if (!token) {

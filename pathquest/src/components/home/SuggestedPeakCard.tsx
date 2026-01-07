@@ -35,7 +35,8 @@ import { useTheme } from '@/src/theme';
 import CardFrame from '@/src/components/ui/CardFrame';
 import PrimaryCTA from '@/src/components/ui/PrimaryCTA';
 import SecondaryCTA from '@/src/components/ui/SecondaryCTA';
-import type { SuggestedPeak } from '@pathquest/shared/api';
+import { endpoints } from '@pathquest/shared/api';
+type SuggestedPeak = Awaited<ReturnType<typeof endpoints.getSuggestedPeak>>;
 
 interface SuggestedPeakCardProps {
   suggestedPeak: SuggestedPeak | null;
@@ -130,8 +131,8 @@ const SuggestedPeakCard: React.FC<SuggestedPeakCardProps> = ({
   // Get weather icon component (shared mapping for conditions_icon string)
   const WeatherIcon = iconMap[getConditionsIconKey(suggestedPeak.weather.conditions_icon)];
   
-  // is_fallback=false means it's from a challenge, is_fallback=true means it's a nearby explore peak
-  const isChallenge = !suggestedPeak.is_fallback;
+  // suggestion_type='challenge' means it's from a challenge, 'explore' means it's a nearby explore peak
+  const isChallenge = suggestedPeak.suggestion_type === 'challenge';
   const headerLabel = isChallenge ? 'Your Next Summit' : 'Nearby Adventure';
   const HeaderIcon = isChallenge ? Mountain : Compass;
 

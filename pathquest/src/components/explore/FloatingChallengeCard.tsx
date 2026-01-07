@@ -51,8 +51,8 @@ const FloatingChallengeCard: React.FC<FloatingChallengeCardProps> = ({
   }, [translateY, opacity]);
 
   // Calculate progress
-  const totalPeaks = challenge.num_peaks ?? 0;
-  const summitedPeaks = challenge.summited ?? 0;
+  const totalPeaks = challenge.num_peaks ?? challenge.total ?? 0;
+  const summitedPeaks = challenge.completed ?? 0;
   const progressPercent = totalPeaks > 0 
     ? Math.round((summitedPeaks / totalPeaks) * 100)
     : 0;

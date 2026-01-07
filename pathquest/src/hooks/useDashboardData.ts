@@ -13,7 +13,7 @@ import { getApiClient } from '@/src/lib/api/client';
 import { endpoints } from '@pathquest/shared/api';
 import { useAuthStore } from '@/src/lib/auth';
 import type { ChallengeProgress, DashboardStats } from '@pathquest/shared';
-import type { SuggestedPeak } from '@pathquest/shared/api';
+type SuggestedPeak = Awaited<ReturnType<typeof endpoints.getSuggestedPeak>>;
 
 /**
  * Fetch dashboard stats (total peaks, elevation, challenge progress)

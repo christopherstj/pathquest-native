@@ -11,6 +11,8 @@ export { useAllChallenges } from "./useAllChallenges";
 export { useChallengeDetails } from "./useChallengeDetails";
 export { useUserChallengeProgress } from "./useUserChallengeProgress";
 export { useNextPeakSuggestion } from "./useNextPeakSuggestion";
+export { useActivityDetails } from "./useActivityDetails";
+export type { ActivityDetailsResponse } from "./useActivityDetails";
 export { 
   useRecentSummits, 
   useFavoriteChallenges, 

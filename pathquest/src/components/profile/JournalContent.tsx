@@ -10,6 +10,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, TouchableOpacity, ScrollView } from 'react-native';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { useRouter } from "expo-router";
 import { 
   BookOpen, 
   PenLine,
@@ -67,6 +68,7 @@ const JournalContent: React.FC<JournalContentProps> = ({
   inBottomSheet = false,
 }) => {
   const { colors, isDark } = useTheme();
+  const router = useRouter();
   const ScrollContainer = inBottomSheet ? BottomSheetScrollView : ScrollView;
   const [showNotesOnly, setShowNotesOnly] = useState(false);
   const [stateFilter, setStateFilter] = useState('');
@@ -144,6 +146,21 @@ const JournalContent: React.FC<JournalContentProps> = ({
   
   const handleClearFilter = () => {
     setStateFilter('');
+  };
+
+  const handleDefaultEntryPress = (entry: JournalEntry) => {
+    if (entry.activityId) {
+      router.push({
+        pathname: "/explore/activity/[activityId]",
+        params: { activityId: entry.activityId },
+      });
+      return;
+    }
+
+    router.push({
+      pathname: "/explore/peak/[peakId]",
+      params: { peakId: entry.peakId },
+    });
   };
 
   // Show loading state when initial load OR when filter changes
@@ -277,7 +294,7 @@ const JournalContent: React.FC<JournalContentProps> = ({
           showPeakInfo={true}
           accentColor={colors.summited}
           isOwned={true}
-          onPress={onEntryPress ? () => onEntryPress(entry) : undefined}
+          onPress={onEntryPress ? () => onEntryPress(entry) : () => handleDefaultEntryPress(entry)}
           onAddNotes={onAddNotes ? () => onAddNotes(entry) : undefined}
           onEdit={onEditEntry ? () => onEditEntry(entry) : undefined}
           delay={Math.min(index * 60, 300)}

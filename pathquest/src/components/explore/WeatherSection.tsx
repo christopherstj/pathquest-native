@@ -87,7 +87,7 @@ export function WeatherSection({
 
                 <View style={{ flex: 1 }}>
                   <Text className="text-foreground text-lg font-semibold">
-                    {currentWeatherInfo?.description || "Current Conditions"}
+                    {currentWeatherInfo?.label || "Current Conditions"}
                   </Text>
                   <Text className="text-muted-foreground text-sm">
                     {weather.temperature === null

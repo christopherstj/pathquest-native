@@ -129,7 +129,16 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
         });
       },
       fitBounds: (bounds: [[number, number], [number, number]], padding: FitBoundsPadding = 50) => {
-        cameraRef.current?.fitBounds(bounds[0], bounds[1], padding, 1000);
+        // Convert FitBoundsPadding to number[] format expected by Mapbox: [top, right, bottom, left]
+        const paddingArray: number[] = typeof padding === 'number'
+          ? [padding, padding, padding, padding]
+          : [
+              padding.paddingTop ?? 0,
+              padding.paddingRight ?? 0,
+              padding.paddingBottom ?? 0,
+              padding.paddingLeft ?? 0,
+            ];
+        cameraRef.current?.fitBounds(bounds[0], bounds[1], paddingArray, 1000);
       },
       getCenter: async () => {
         const center = await mapRef.current?.getCenter();
@@ -245,14 +254,14 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
       }, 600);
     }, [onMapReady, handleRegionChange, setInitialLocationReady]);
 
-    // Handle map load error
-    const handleMapLoadError = useCallback((error: any) => {
-      console.error('[MapView] Map load error:', JSON.stringify(error, null, 2));
+    // Handle map load error (Mapbox callback has no args)
+    const handleMapLoadError = useCallback(() => {
+      console.error('[MapView] Map load error');
     }, []);
 
-    // Handle style load error
-    const handleStyleLoadError = useCallback((error: any) => {
-      console.error('[MapView] Style load error:', JSON.stringify(error, null, 2));
+    // Handle style load error (Mapbox callback has no args)
+    const handleStyleLoadError = useCallback(() => {
+      console.error('[MapView] Style load error');
     }, []);
 
     // Debug: Log when style loads
@@ -261,7 +270,7 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
     }, []);
 
     // Debounce region change - wait for camera to stop moving before fetching
-    const regionChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const regionChangeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastCameraLogRef = useRef(0);
     
     const handleCameraChanged = useCallback((state: any) => {

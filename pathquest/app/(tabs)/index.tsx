@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFetching } from '@tanstack/react-query';
 import { DashboardContent } from '@/src/components/home';
 import { RefreshBar } from '@/src/components/shared';
-import type { Peak, ChallengeProgress } from '@pathquest/shared';
+import type { ChallengeProgress } from '@pathquest/shared';
 
 const BACKGROUND_COLOR = '#25221E';
 
@@ -26,10 +26,10 @@ export default function HomeRoute() {
   const isFetchingSuggested = useIsFetching({ queryKey: ['suggestedPeak'] }) > 0;
   const isRefreshing = isFetchingDashboard || isFetchingChallenges || isFetchingSummits || isFetchingSuggested;
   
-  const handlePeakPress = (peak: Peak) => {
+  const handlePeakPress = (peakId: string) => {
     router.push({
       pathname: '/explore/peak/[peakId]',
-      params: { peakId: peak.id },
+      params: { peakId },
     });
   };
   

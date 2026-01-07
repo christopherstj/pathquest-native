@@ -14,7 +14,7 @@ import { useTheme } from '@/src/theme';
 
 interface DetailSkeletonProps {
   onBack?: () => void;
-  type?: 'peak' | 'challenge';
+  type?: 'peak' | 'challenge' | 'activity';
 }
 
 // Animated shimmer bar

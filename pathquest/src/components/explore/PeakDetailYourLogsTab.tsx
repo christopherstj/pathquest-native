@@ -1,6 +1,7 @@
 import React from "react";
 import { View } from "react-native";
 import { BookOpen, Check, Plus } from "lucide-react-native";
+import { useRouter } from "expo-router";
 import { CardFrame, PrimaryCTA, SecondaryCTA, Text } from "@/src/components/ui";
 import { SummitCard } from "@/src/components/shared";
 import type { SummitCardData } from "@/src/components/shared/SummitCard";
@@ -24,6 +25,7 @@ export function PeakDetailYourLogsTab({
   onConnectStrava: () => void;
 }) {
   const { colors, isDark } = useTheme();
+  const router = useRouter();
 
   // Your Logs tab uses "summited" (sky blue) accents.
   const accent = colors.summited as string;
@@ -157,6 +159,14 @@ export function PeakDetailYourLogsTab({
               showPeakInfo={false}
               accentColor={colors.summited}
               isOwned={true}
+              onPress={() => {
+                if (a.activity_id) {
+                  router.push({
+                    pathname: "/explore/activity/[activityId]",
+                    params: { activityId: a.activity_id },
+                  });
+                }
+              }}
               onAddNotes={() => {
                 // TODO: Open Add Report modal for this ascent
                 console.log("Add report for ascent:", a.id);

@@ -16,7 +16,7 @@ import { Slot, useRouter, usePathname, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFetching } from '@tanstack/react-query';
 import { Crosshair } from 'lucide-react-native';
-import { MapView, PeakMarkers, ChallengePeaksOverlay, UserPeaksOverlay, CenterOnMeButton, CompassButton, LineToTarget } from '@/src/components/map';
+import { MapView, PeakMarkers, ChallengePeaksOverlay, UserPeaksOverlay, ActivityPolylineOverlay, ActivitySummitMarkers, CenterOnMeButton, CompassButton, LineToTarget } from '@/src/components/map';
 import type { MapViewRef } from '@/src/components/map';
 import { ContentSheet } from '@/src/components/navigation';
 import { RefreshBar } from '@/src/components/shared';
@@ -65,7 +65,9 @@ export default function ExploreLayout() {
   const mapRef = useRef<MapViewRef>(null);
   const router = useRouter();
   const pathname = usePathname();
-  const segments = useSegments();
+  // Expo Router typed routes can sometimes infer segments as never[] depending on config.
+  // Cast to string[] for safe runtime checks.
+  const segments = useSegments() as string[];
   
   // Check if any explore-related queries are fetching
   const isFetchingPeaks = useIsFetching({ queryKey: ['mapPeaks'] }) > 0;
@@ -76,7 +78,11 @@ export default function ExploreLayout() {
   const isRefreshing = isFetchingPeaks || isFetchingChallenges || isFetchingAllChallenges || isFetchingPeakDetails || isFetchingChallengeDetails;
   
   // Determine if we're on a detail page
-  const isDetailView = segments.includes('peak') || segments.includes('challenge') || segments.includes('users');
+  const isDetailView =
+    segments.includes("peak") ||
+    segments.includes("challenge") ||
+    segments.includes("users") ||
+    segments.includes("activity");
   
   // Map store state - using new mapFocus system
   const mapFocus = useMapStore((state) => state.mapFocus);
@@ -296,6 +302,14 @@ export default function ExploreLayout() {
           paddingRight: 40,
         });
       }
+    } else if (recenterTarget.type === 'boundsCoords') {
+      const bottomPadding = COLLAPSED_SHEET_HEIGHT + TAB_BAR_HEIGHT + insets.bottom + 20;
+      mapRef.current?.fitBounds(recenterTarget.bounds, {
+        paddingTop: insets.top + 80,
+        paddingBottom: bottomPadding + 300,
+        paddingLeft: 40,
+        paddingRight: 40,
+      });
     }
   }, [recenterTarget, insets]);
 
@@ -329,6 +343,21 @@ export default function ExploreLayout() {
             isDark={true} 
             onPeakPress={handlePeakMarkerPress}
           />
+        )}
+        {mapFocus.type === "activity" && (
+          <>
+            <ActivityPolylineOverlay
+              activityId={mapFocus.activityId}
+              coords={mapFocus.coords}
+              color={colors.primary as any}
+              width={3}
+            />
+            <ActivitySummitMarkers
+              activityId={mapFocus.activityId}
+              summits={mapFocus.summits}
+              color={colors.summited as any}
+            />
+          </>
         )}
         {mapFocus.type === 'peak' && (
           <PeakMarkers

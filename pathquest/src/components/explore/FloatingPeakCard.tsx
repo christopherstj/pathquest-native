@@ -131,7 +131,7 @@ const FloatingPeakCard: React.FC<FloatingPeakCardProps> = ({
                   {peak.publicLand?.name ? `${peak.publicLand.name} · ` : ''}{locationString}
                 </Text>
                 <Text className="text-muted-foreground text-xs mt-0.5">
-                  {getElevationString(peak.elevation, 'imperial')}
+                  {getElevationString(peak.elevation ?? 0, 'imperial')}
                 </Text>
               </View>
 

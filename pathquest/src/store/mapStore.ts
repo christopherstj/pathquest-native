@@ -9,7 +9,7 @@
  */
 
 import { create } from 'zustand';
-import type { Peak, ChallengeProgress } from '@pathquest/shared';
+import type { Peak, ChallengeProgress, SummitWithPeak } from '@pathquest/shared';
 
 // Minimum zoom level for searching peaks/challenges
 const MIN_SEARCH_ZOOM = 7;
@@ -57,7 +57,16 @@ interface PeakFocus {
   parentFocus?: ChallengeFocus | UserFocus;
 }
 
-export type MapFocus = DiscoveryFocus | ChallengeFocus | UserFocus | PeakFocus;
+// Activity focus: showing a specific activity polyline + the summits within it
+interface ActivityFocus {
+  type: "activity";
+  activityId: string;
+  bounds: [[number, number], [number, number]];
+  coords: [number, number][];
+  summits: SummitWithPeak[];
+}
+
+export type MapFocus = DiscoveryFocus | ChallengeFocus | UserFocus | PeakFocus | ActivityFocus;
 
 // Helper to get overlay peaks from focus
 export function getOverlayPeaksFromFocus(focus: MapFocus): Array<Peak & { is_summited?: boolean }> | null {
@@ -69,6 +78,8 @@ export function getOverlayPeaksFromFocus(focus: MapFocus): Array<Peak & { is_sum
     case 'peak':
       // When drilling down, show parent context's peaks
       return focus.parentFocus?.peaks ?? null;
+    case "activity":
+      return null;
     case 'discovery':
     default:
       return null;
@@ -78,6 +89,7 @@ export function getOverlayPeaksFromFocus(focus: MapFocus): Array<Peak & { is_sum
 // Helper to get recenter target from focus
 export function getRecenterTarget(focus: MapFocus): 
   | { type: 'bounds'; peaks: Peak[] }
+  | { type: 'boundsCoords'; bounds: [[number, number], [number, number]] }
   | { type: 'point'; coords: [number, number] }
   | null {
   switch (focus.type) {
@@ -88,6 +100,8 @@ export function getRecenterTarget(focus: MapFocus):
       return { type: 'bounds', peaks: focus.peaks };
     case 'user':
       return { type: 'bounds', peaks: focus.peaks };
+    case "activity":
+      return { type: "boundsCoords", bounds: focus.bounds };
     case 'discovery':
     default:
       return null;
@@ -143,6 +157,14 @@ interface MapState {
   
   // Set focus to a specific peak (preserves parent context if coming from challenge/user)
   focusPeak: (peakId: string, coords: [number, number]) => void;
+
+  // Set focus to an activity polyline + summits
+  focusActivity: (data: {
+    activityId: string;
+    bounds: [[number, number], [number, number]];
+    coords: [number, number][];
+    summits: SummitWithPeak[];
+  }) => void;
   
   // Update focus peaks (e.g., when summit status changes)
   updateFocusPeaks: (peaks: Array<Peak & { is_summited?: boolean }>) => void;
@@ -234,6 +256,13 @@ export const useMapStore = create<MapState>((set, get) => ({
       selectedChallengeId: null,
     });
   },
+
+  focusActivity: ({ activityId, bounds, coords, summits }) =>
+    set({
+      mapFocus: { type: "activity", activityId, bounds, coords, summits },
+      selectedPeakId: null,
+      selectedChallengeId: null,
+    }),
   
   updateFocusPeaks: (peaks) => {
     const currentFocus = get().mapFocus;

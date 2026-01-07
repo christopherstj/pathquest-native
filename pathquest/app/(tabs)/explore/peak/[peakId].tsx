@@ -66,7 +66,7 @@ export default function PeakDetailRoute() {
   // Go straight to discovery
   const handleDismiss = useCallback(() => {
     focusDiscovery();
-    router.navigate('/explore');
+    router.navigate("/explore" as any);
   }, [router, focusDiscovery]);
   
   if (!peakId) return null;

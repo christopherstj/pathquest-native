@@ -52,6 +52,8 @@ pathquest-native/
             [peakId].tsx        # Peak detail route
           challenge/
             [challengeId].tsx   # Challenge detail route
+          activity/
+            [activityId].tsx    # Activity detail route (polyline + weather + elevation profile + summits)
           users/
             [userId].tsx        # User profile route rendered inside Explore bottom sheet (also overlays map with user's peaks)
             [userId]/
@@ -80,6 +82,12 @@ pathquest-native/
           DiscoveryContent.tsx  # Discovery mode content (peaks/challenges lists)
           PeakDetail.tsx        # Peak detail orchestrator (data + tab routing)
           PeakDetailHero.tsx    # Peak detail hero card (GPS strip + CTAs + public lands)
+          ActivityDetail.tsx    # Activity detail view (hero + elevation profile + achievements + peaks summited + weather)
+          ActivityDetailHero.tsx # Activity hero stats card (distance/gain/duration/pace)
+          ActivityWeatherCard.tsx # Historical weather at activity start (Open-Meteo Archive API)
+          ActivityAchievementsCard.tsx # Activity achievements (multi-peak day, big gain, highest peak PR via ProfileStats) (currently disabled in ActivityDetail)
+          ElevationProfile.tsx  # SVG elevation profile with summit markers (best-effort via time_stream)
+          ActivitySummitsList.tsx # List of peaks summited using SummitCard component
           PublicLandBadge.tsx   # Public land badge with agency icon
           WeatherSection.tsx    # Always-visible weather (current + forecast + conditions)
           PeakDetailCommunityTab.tsx  # Community tab content
@@ -100,6 +108,8 @@ pathquest-native/
           PeakMarkers.tsx       # Peak markers layer (GeoJSON + CircleLayer)
           ChallengePeaksOverlay.tsx # Challenge peaks overlay layer (Show on Map)
           UserPeaksOverlay.tsx  # User summited peaks overlay (Explore user profile)
+          ActivityPolylineOverlay.tsx # Activity polyline overlay (ShapeSource + LineLayer)
+          ActivitySummitMarkers.tsx # Activity summit markers overlay (ShapeSource + CircleLayer)
           index.ts
         navigation/             # Navigation components
           ContentSheet.tsx      # Draggable bottom sheet (3 snap points)
@@ -398,6 +408,9 @@ The sheet index is controlled via `sheetStore.snapIndex` to enable programmatic 
 
 Note: Scrollable content inside the sheet should use Gorhom's scrollables (`BottomSheetScrollView`, etc.) so vertical swipes scroll content instead of dragging the sheet.
 
+### Dismiss-to-discovery navigation
+Some X-button “dismiss” actions intentionally route to `/explore` (instead of `/explore/index`) to match Expo Router runtime resolution. In a few places we use `router.navigate("/explore" as any)` as a pragmatic workaround for overly-strict typed-route unions.
+
 To avoid the sheet sliding into reserved overlay space (e.g. the Explore omnibar gap), over-drag is disabled so the expanded snap point behaves as a hard stop.
 
 ### Map (`src/components/map/`)
@@ -464,6 +477,7 @@ To avoid the sheet sliding into reserved overlay space (e.g. the Explore omnibar
 - **useMapPeaks/useMapChallenges**: Fetch peaks/challenges for map bounds
 - **useAllChallenges**: Fetch all challenges (progress-aware via `/challenges/search`) for Explore "All challenges" mode
 - **useChallengeDetails**: Fetch `/challenges/:id/details` (public challenge + peak list)
+- **useActivityDetails**: Fetch `/activities/:activityId` (owner-only activity + summits)
 - **useUserChallengeProgress**: Fetch `/users/:userId/challenges/:challengeId` (auth-gated per-user completion + summit dates)
   - Note: route components that consume this hook must keep React hooks (e.g., `useMemo`, `useEffect`) unconditional across loading/data renders to avoid hook-order warnings in dev.
 - **useNextPeakSuggestion**: Fetch `/challenges/:id/next-peak` (auth-gated next peak suggestion, uses lat/lng when available)

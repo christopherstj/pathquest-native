@@ -10,7 +10,9 @@ import React, { useMemo, useCallback } from "react";
 import { ShapeSource, CircleLayer } from "@rnmapbox/maps";
 import type { Peak } from "@pathquest/shared";
 import { colors } from "@/src/theme";
-import { OnPressEvent } from "@rnmapbox/maps/lib/typescript/src/types/OnPressEvent";
+
+/** Extract OnPressEvent type from ShapeSource's onPress prop (not publicly exported by @rnmapbox/maps) */
+type OnPressEvent = Parameters<NonNullable<React.ComponentProps<typeof ShapeSource>['onPress']>>[0];
 
 type OverlayPeak = Peak & { is_summited?: boolean };
 
