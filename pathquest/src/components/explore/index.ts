@@ -11,3 +11,4 @@ export { default as ChallengeDetail } from './ChallengeDetail';
 export { default as FloatingPeakCard } from './FloatingPeakCard';
 export { default as FloatingChallengeCard } from './FloatingChallengeCard';
 export { default as DetailSkeleton } from './DetailSkeleton';
+export * from './PeakDetailChallenges';

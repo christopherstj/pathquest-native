@@ -2,11 +2,10 @@
  * Map Store
  * 
  * Manages the state of the map including:
+ * - Map focus (what overlay/context is being displayed)
  * - Visible peaks and challenges in the current viewport
- * - Selected peak/challenge for detail view
- * - Selection mode (none, floating card, full detail)
+ * - Selection state for floating cards
  * - Map interaction state (zoomed out too far, satellite mode, etc.)
- * - Hovered peak for highlighting
  */
 
 import { create } from 'zustand';
@@ -26,24 +25,88 @@ export type FitBoundsPadding = number | {
   paddingRight?: number;
 };
 
-// Pending fit bounds request
-export interface PendingFitBounds {
-  bounds: [[number, number], [number, number]];
-  padding: FitBoundsPadding;
+// ============================================================================
+// MAP FOCUS - Single source of truth for what the map is displaying
+// ============================================================================
+
+// Discovery mode: normal map, no overlay
+interface DiscoveryFocus {
+  type: 'discovery';
 }
 
+// Challenge focus: showing challenge peaks with summit status
+interface ChallengeFocus {
+  type: 'challenge';
+  challengeId: string;
+  peaks: Array<Peak & { is_summited?: boolean }>;
+}
+
+// User focus: showing a user's summited peaks
+interface UserFocus {
+  type: 'user';
+  userId: string;
+  peaks: Peak[];
+}
+
+// Peak focus: zoomed to a specific peak, optionally with parent context
+interface PeakFocus {
+  type: 'peak';
+  peakId: string;
+  coords: [number, number];
+  // Parent context is preserved when drilling down from challenge/user
+  parentFocus?: ChallengeFocus | UserFocus;
+}
+
+export type MapFocus = DiscoveryFocus | ChallengeFocus | UserFocus | PeakFocus;
+
+// Helper to get overlay peaks from focus
+export function getOverlayPeaksFromFocus(focus: MapFocus): Array<Peak & { is_summited?: boolean }> | null {
+  switch (focus.type) {
+    case 'challenge':
+      return focus.peaks;
+    case 'user':
+      return focus.peaks;
+    case 'peak':
+      // When drilling down, show parent context's peaks
+      return focus.parentFocus?.peaks ?? null;
+    case 'discovery':
+    default:
+      return null;
+  }
+}
+
+// Helper to get recenter target from focus
+export function getRecenterTarget(focus: MapFocus): 
+  | { type: 'bounds'; peaks: Peak[] }
+  | { type: 'point'; coords: [number, number] }
+  | null {
+  switch (focus.type) {
+    case 'peak':
+      // Always recenter to peak coords when viewing peak
+      return { type: 'point', coords: focus.coords };
+    case 'challenge':
+      return { type: 'bounds', peaks: focus.peaks };
+    case 'user':
+      return { type: 'bounds', peaks: focus.peaks };
+    case 'discovery':
+    default:
+      return null;
+  }
+}
+
+// ============================================================================
+// STORE STATE
+// ============================================================================
+
 interface MapState {
-  // Visible items in current viewport
+  // The current map focus (single source of truth for overlays)
+  mapFocus: MapFocus;
+  
+  // Visible items in current viewport (for discovery mode)
   visiblePeaks: Peak[];
   visibleChallenges: ChallengeProgress[];
-
-  // Challenge overlay state (Show on Map)
-  challengeOverlayPeaks: Array<Peak & { is_summited?: boolean }> | null;
-
-  // User overlay state (Explore user profile: show user's summited peaks)
-  userOverlayPeaks: Peak[] | null;
   
-  // Selection state
+  // Selection state (for floating cards, independent of focus)
   selectedPeakId: string | null;
   selectedChallengeId: string | null;
   selectionMode: SelectionMode;
@@ -61,14 +124,35 @@ interface MapState {
   // Hover state (for highlighting peaks in lists)
   hoveredPeakId: string | null;
   
-  // Pending fit bounds request (for "Show on Map")
-  pendingFitBounds: PendingFitBounds | null;
+  // Pending camera actions (consumed by explore layout)
+  pendingFitBounds: { bounds: [[number, number], [number, number]]; padding: FitBoundsPadding } | null;
+  pendingFlyTo: { center: [number, number]; zoom?: number } | null;
   
-  // Actions
+  // ============================================================================
+  // FOCUS ACTIONS - The main way to change what the map displays
+  // ============================================================================
+  
+  // Set focus to discovery (clears all overlays)
+  focusDiscovery: () => void;
+  
+  // Set focus to a challenge
+  focusChallenge: (challengeId: string, peaks: Array<Peak & { is_summited?: boolean }>) => void;
+  
+  // Set focus to a user's peaks
+  focusUser: (userId: string, peaks: Peak[]) => void;
+  
+  // Set focus to a specific peak (preserves parent context if coming from challenge/user)
+  focusPeak: (peakId: string, coords: [number, number]) => void;
+  
+  // Update focus peaks (e.g., when summit status changes)
+  updateFocusPeaks: (peaks: Array<Peak & { is_summited?: boolean }>) => void;
+  
+  // ============================================================================
+  // LEGACY ACTIONS - For backwards compatibility during migration
+  // ============================================================================
+  
   setVisiblePeaks: (peaks: Peak[]) => void;
   setVisibleChallenges: (challenges: ChallengeProgress[]) => void;
-  setChallengeOverlayPeaks: (peaks: Array<Peak & { is_summited?: boolean }> | null) => void;
-  setUserOverlayPeaks: (peaks: Peak[] | null) => void;
   setSelectedPeakId: (id: string | null) => void;
   setSelectedChallengeId: (id: string | null) => void;
   setSelectionMode: (mode: SelectionMode) => void;
@@ -80,30 +164,31 @@ interface MapState {
   setHoveredPeakId: (id: string | null) => void;
   setInitialLocationReady: (ready: boolean) => void;
   
-  // Compound actions
+  // Compound selection actions (for floating cards)
   selectPeak: (id: string) => void;
   selectChallenge: (id: string) => void;
   openDetail: () => void;
+  clearSelection: () => void;
   
-  // Computed helpers
+  // Map region update
   updateMapRegion: (region: {
     center: [number, number];
     zoom: number;
     bounds: [[number, number], [number, number]];
   }) => void;
-  clearSelection: () => void;
   
-  // Fit bounds actions (for "Show on Map")
+  // Camera actions
   requestFitToBounds: (bounds: [[number, number], [number, number]], padding: FitBoundsPadding) => void;
   clearPendingFitBounds: () => void;
+  requestFlyTo: (center: [number, number], zoom?: number) => void;
+  clearPendingFlyTo: () => void;
 }
 
 export const useMapStore = create<MapState>((set, get) => ({
   // Initial state
+  mapFocus: { type: 'discovery' },
   visiblePeaks: [],
   visibleChallenges: [],
-  challengeOverlayPeaks: null,
-  userOverlayPeaks: null,
   selectedPeakId: null,
   selectedChallengeId: null,
   selectionMode: 'none',
@@ -115,56 +200,102 @@ export const useMapStore = create<MapState>((set, get) => ({
   currentBounds: null,
   hoveredPeakId: null,
   pendingFitBounds: null,
+  pendingFlyTo: null,
   
-  // Basic setters
+  // ============================================================================
+  // FOCUS ACTIONS
+  // ============================================================================
+  
+  focusDiscovery: () => set({
+    mapFocus: { type: 'discovery' },
+    selectedPeakId: null,
+    selectedChallengeId: null,
+    selectionMode: 'none',
+  }),
+  
+  focusChallenge: (challengeId, peaks) => set({
+    mapFocus: { type: 'challenge', challengeId, peaks },
+    selectedChallengeId: challengeId,
+    selectedPeakId: null,
+  }),
+  
+  focusUser: (userId, peaks) => set({
+    mapFocus: { type: 'user', userId, peaks },
+    selectedPeakId: null,
+    selectedChallengeId: null,
+  }),
+  
+  focusPeak: (peakId, coords) => {
+    // Simple behavior: just focus on the peak, don't preserve parent context
+    // This makes navigation cleaner - when you click a peak, you see the peak
+    set({
+      mapFocus: { type: 'peak', peakId, coords },
+      selectedPeakId: peakId,
+      selectedChallengeId: null,
+    });
+  },
+  
+  updateFocusPeaks: (peaks) => {
+    const currentFocus = get().mapFocus;
+    if (currentFocus.type === 'challenge') {
+      set({ mapFocus: { ...currentFocus, peaks } });
+    } else if (currentFocus.type === 'user') {
+      set({ mapFocus: { ...currentFocus, peaks } });
+    }
+  },
+  
+  // ============================================================================
+  // LEGACY ACTIONS
+  // ============================================================================
+  
   setVisiblePeaks: (peaks) => set({ visiblePeaks: peaks }),
   setVisibleChallenges: (challenges) => set({ visibleChallenges: challenges }),
-  setChallengeOverlayPeaks: (peaks) => set({ challengeOverlayPeaks: peaks }),
-  setUserOverlayPeaks: (peaks) => set({ userOverlayPeaks: peaks }),
-  setSelectedPeakId: (id) =>
-    set({
-      selectedPeakId: id,
-      selectedChallengeId: null,
-      // Do NOT clear overlays - they should persist until explicitly cleared
-    }),
-  setSelectedChallengeId: (id) =>
-    set({
-      selectedChallengeId: id,
-      selectedPeakId: null,
-      // Do NOT clear overlays - they should persist until explicitly cleared
-    }),
+  
+  setSelectedPeakId: (id) => set({
+    selectedPeakId: id,
+    selectedChallengeId: null,
+  }),
+  
+  setSelectedChallengeId: (id) => set({
+    selectedChallengeId: id,
+    selectedPeakId: null,
+  }),
+  
   setSelectionMode: (mode) => set({ selectionMode: mode }),
   setIsZoomedOutTooFar: (value) => set({ isZoomedOutTooFar: value }),
   setIsSatellite: (value) => set({ isSatellite: value }),
+  
   setCurrentZoom: (zoom) => set({ 
     currentZoom: zoom,
     isZoomedOutTooFar: zoom < MIN_SEARCH_ZOOM,
   }),
+  
   setCurrentCenter: (center) => set({ currentCenter: center }),
   setCurrentBounds: (bounds) => set({ currentBounds: bounds }),
   setHoveredPeakId: (id) => set({ hoveredPeakId: id }),
   setInitialLocationReady: (ready) => set({ isInitialLocationReady: ready }),
   
-  // Compound actions - select and show floating card
-  // NOTE: These preserve overlays so clicking a peak in an overlay doesn't clear it
+  // Compound selection actions
   selectPeak: (id) => set({
     selectedPeakId: id,
     selectedChallengeId: null,
     selectionMode: 'floating',
-    // Do NOT clear challengeOverlayPeaks or userOverlayPeaks here!
-    // Overlays should persist until explicitly cleared (e.g., navigating to discovery)
   }),
+  
   selectChallenge: (id) => set({
     selectedChallengeId: id,
     selectedPeakId: null,
     selectionMode: 'floating',
-    // Do NOT clear overlays here either
   }),
   
-  // Open full detail view from floating card
   openDetail: () => set({ selectionMode: 'detail' }),
   
-  // Update all map region state at once
+  clearSelection: () => set({
+    selectedPeakId: null,
+    selectedChallengeId: null,
+    selectionMode: 'none',
+  }),
+  
   updateMapRegion: (region) => {
     const isZoomedOutTooFar = region.zoom < MIN_SEARCH_ZOOM;
     set({
@@ -175,25 +306,23 @@ export const useMapStore = create<MapState>((set, get) => ({
     });
   },
   
-  // Clear selection and reset mode
-  // NOTE: This does NOT clear overlays - overlays are cleared separately when navigating to discovery
-  clearSelection: () => set({
-    selectedPeakId: null,
-    selectedChallengeId: null,
-    selectionMode: 'none',
-  }),
-  
-  // Request a fit-to-bounds (will be handled by explore layout)
+  // Camera actions
   requestFitToBounds: (bounds, padding) => set({
     pendingFitBounds: { bounds, padding },
   }),
   
-  // Clear the pending fit bounds (after it's been handled)
   clearPendingFitBounds: () => set({
     pendingFitBounds: null,
+  }),
+  
+  requestFlyTo: (center, zoom) => set({
+    pendingFlyTo: { center, zoom },
+  }),
+  
+  clearPendingFlyTo: () => set({
+    pendingFlyTo: null,
   }),
 }));
 
 // Export MIN_SEARCH_ZOOM for use in other components
 export { MIN_SEARCH_ZOOM };
-

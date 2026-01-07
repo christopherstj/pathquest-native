@@ -2235,6 +2235,32 @@ Photos captured offline are stored locally:
 **In Progress:**
 - None (Phase 2.9 completed)
 
+**Recent UI Improvements (Latest Session):**
+- ✅ **Visual Consistency Improvements:**
+  - Removed slow, bouncy animation from FloatingPeakCard - replaced with quick micro-animation (150ms timing)
+  - Moved challenge hero card below back/X buttons (buttons now render above hero card)
+  - Removed "Profile" text header from public profile page, adjusted hero card spacing
+  - Removed "summit to extend" text from climbing streak in profile tab (now shows just "X month(s) in a row")
+- ✅ **Date Formatting Fixes:**
+  - Created `parseDate()` and `formatDateString()` helper functions in `formatting.ts` for safe date parsing
+  - Fixed "Invalid date" errors in challenge detail recent summits timeline
+  - Updated database query (`getChallengePeaksForUser`) to return date-only strings (YYYY-MM-DD) instead of full timestamps
+  - Removed strict date validation filters that were hiding valid dates
+- ✅ **Map Controls Repositioning:**
+  - Moved map controls (compass, location, snapping/recenter) to top right, below search bar
+  - Controls now stack vertically (top-down order: compass → location → snapping)
+  - Added custom CompassButton component (replaces built-in Mapbox compass)
+  - Added `resetBearing()` method to MapView ref for compass functionality
+  - Increased padding above controls (24px gap below search bar)
+  - All buttons standardized to 44x44px for consistency
+- ✅ **Profile Tab Improvements:**
+  - Moved "View on Map" button underneath name and location (instead of next to it)
+  - Styled button with inverted green theme (light green background with green text/border)
+  - Button uses `alignSelf: 'flex-start'` to prevent full-width layout
+- ✅ **Bug Fixes:**
+  - Fixed PeakDetailChallenges skeleton showing text inside gray background during loading
+  - Fixed profile hero card margin issue (moved padding to parent View instead of CardFrame)
+
 **Pending:**
 - ⏳ Phase 3: You tab map mode toggle
 - ⏳ Phase 3.5: User Profile & Challenge Progress Pages (User Detail, User Challenge Progress) + Improve Search Bar Functionality
@@ -2249,10 +2275,14 @@ Photos captured offline are stored locally:
 ### ✅ Phase 1: Core Navigation + Explore (COMPLETED)
 - ✅ 3-tab navigation shell (Home, Explore, You)
 - ✅ Explore tab with map + discovery sheet
-- ✅ Peak floating card (`FloatingPeakCard` with animations)
+- ✅ Peak floating card (`FloatingPeakCard` with quick micro-animations)
 - ✅ Challenge floating card (`FloatingChallengeCard` with progress)
 - ✅ Location puck on map (always visible)
-- ✅ CenterOnMeButton FAB
+- ✅ Map controls positioned top-right, below search bar:
+  - CompassButton (resets map bearing to north)
+  - CenterOnMeButton (centers map on user location)
+  - Recenter button (fits bounds for challenge/user/peak focus)
+  - Controls stack vertically with consistent 44x44px sizing
 - ✅ LineToTarget component (dashed line to selected peak)
 - ✅ Selection mode state management (none/floating/detail)
 - ✅ Real data fetching from API (peaks/challenges for map bounds)
@@ -2313,7 +2343,9 @@ Photos captured offline are stored locally:
   - CompassRose decorative element
   - Milestone badges (circular, stamp-like, animated)
   - "Accept Challenge" primary CTA (or "Challenge Accepted" badge with un-accept functionality)
-  - "Show on Map" secondary CTA (collapses drawer, zooms to challenge peaks)
+  - "Share" button for sharing challenge progress (generates deep link to user's challenge progress page)
+  - Hero card positioned below navigation buttons (back/X buttons render above hero card)
+  - Auto-show on map: Challenge peaks automatically displayed when viewing challenge detail
 - ✅ **Progress Tab** - "Your Expedition Log":
   - Next Objective card with CompassRose, cardinal direction, distance, elevation
   - Fallback logic for peaks when location unavailable or far from challenge
@@ -2331,12 +2363,13 @@ Photos captured offline are stored locally:
   - `useChallengeDetails` - Fetches challenge data
   - `useUserChallengeProgress` - Fetches user-specific progress and peak status
   - `useNextPeakSuggestion` - Fetches closest unsummited peak
-- ✅ "Show on Map" functionality:
+- ✅ **Map Integration:**
+  - Auto-show challenge peaks on map when viewing challenge detail
   - Calculates bounding box of challenge peaks
   - Fits map with asymmetric padding (accounts for omnibar, drawer, tab bar)
   - Shows ONLY challenge peaks (hides other map markers)
-  - Collapses drawer while staying on challenge detail page
-  - Clears overlay when navigating away
+  - Clears overlay when navigating away or returning to discovery view
+  - Recenter button available to refit bounds when needed
 - ✅ Navigation:
   - Back button (←) for navigation history
   - Dismiss button (X) to return directly to discovery view
@@ -3143,6 +3176,27 @@ Full-featured route planning system that generates routes from trailheads to pea
 - Instant results for popular challenge peaks
 - Weekly updates as OSM data changes
 
+**6. Route from Current Location**
+- Route from user's GPS location to peak (requires network)
+- Two modes:
+  - **"Navigate to Peak"**: Full route from current location to nearest trail point
+  - **"Find Trail"**: Quick route to nearest point on any trail (useful when off-trail)
+- Uses Valhalla routing engine (same as trailhead routes)
+
+**7. Offline Route Navigation**
+- Download routes for offline use
+- **Route data**: ~20KB per route (polyline, elevation profile, metadata)
+- **Map tiles**: ~50-100MB per route area (shared if routes overlap)
+- **Fully offline capabilities**:
+  - Display downloaded route on map (using cached tiles)
+  - Show current GPS location (device capability, no network needed)
+  - Snap current location to route (pure math, works offline)
+  - Calculate remaining distance to peak(s) (pure math, works offline)
+  - Calculate remaining elevation to peak(s) (pure math, works offline)
+  - Display bearing/direction to route if off-route
+- **No activity tracking**: Just location display + distance/elevation calculations
+- Storage management: View downloaded routes, delete individual routes, see total storage used
+
 **Technical Architecture:**
 
 **Routing Service:**
@@ -3189,6 +3243,26 @@ Return complete route with segments
 - Filter by peak/challenge
 - Link to map view
 - Share/delete options
+- "Download for Offline" button per route
+
+**Offline Route Navigation Screen:**
+- Map view with downloaded route overlay
+- Current GPS location indicator
+- Route stats card showing:
+  - Current position on route (or distance from route if off-route)
+  - Remaining distance to peak(s)
+  - Remaining elevation to peak(s)
+  - Bearing to route (if off-route)
+- Elevation profile with current position marker
+- "Recalculate Route" button (requires network)
+- Works fully offline once route is downloaded
+
+**Offline Routes Management:**
+- List of downloaded routes
+- Storage usage per route
+- Total offline storage used
+- Delete route option (removes route data + map tiles)
+- Download progress indicator
 
 **Implementation Files:**
 
@@ -3216,18 +3290,50 @@ Return complete route with segments
 - `src/components/routes/ElevationProfile.tsx`
 - `src/components/routes/SavedRoutesList.tsx`
 - `src/components/routes/RouteSegmentBreakdown.tsx`
+- `src/components/routes/OfflineRouteNavigation.tsx` - Offline navigation screen
+- `src/components/routes/OfflineRoutesManager.tsx` - Download/delete offline routes
 - `src/hooks/useRoute.ts`
 - `src/hooks/useSavedRoutes.ts`
+- `src/hooks/useOfflineRoutes.ts` - Offline route management
+- `src/utils/routeSnapping.ts` - Snap GPS to route (offline math)
+- `src/utils/routeCalculations.ts` - Remaining distance/elevation (offline math)
+- `src/services/offlineStorage.ts` - SQLite/AsyncStorage for offline routes
 
 **Frontend (`pathquest-frontend/`):**
 - Similar components for web interface
 - Map integration with route overlays
+
+**Offline Route Data Structure:**
+Routes downloaded for offline use include:
+- Decoded polyline coordinates (for snapping calculations)
+- Pre-calculated elevation profile at each point
+- Pre-calculated cumulative distances at each point
+- Segment metadata (start/end indices, peak associations)
+- Off-trail segment data (coordinates, distance, bearing)
+- Map tile region bounds (for Mapbox offline download)
+
+**Offline Calculations:**
+All calculations run on-device using pre-downloaded route data (no network required):
+- **Snap GPS to route**: Find closest point on polyline using haversine distance
+- **Remaining distance**: Sum cumulative distances from snap point to segment end + off-trail
+- **Remaining elevation**: Sum positive elevation changes from snap point to peak
+- **Distance from route**: If user is off-route, calculate distance and bearing to nearest point
+
+**Storage Management:**
+- Route data: ~20KB per route (stored in SQLite/AsyncStorage)
+- Map tiles: ~50-100MB per route area (Mapbox offline regions)
+- 10 routes (same region): ~100-150MB (tiles shared)
+- 10 routes (different regions): ~500MB-1GB
+- UI shows storage usage, allows per-route deletion
 
 **Considerations:**
 - **Valhalla Setup**: Requires weekly tile builds, ~8GB container image
 - **Off-Trail Accuracy**: ±30% time estimate (acceptable for short segments)
 - **Multi-Peak Performance**: Cache segments, only recompute affected parts
 - **Pre-computation**: Run weekly, process challenge peaks in batches
+- **Offline Storage**: Monitor device storage, provide cleanup tools
+- **GPS Accuracy**: Offline navigation depends on GPS accuracy (typically 3-10m)
+- **No Activity Tracking**: This is navigation display only, not recording activity
 - **Cost**: ~$90-110/month for Valhalla service (Cloud Run)
 
 **Effort Estimate:**
@@ -3235,7 +3341,10 @@ Return complete route with segments
 - Single-peak routes: 1 week
 - Multi-peak extension: 1 week
 - Route saving + API: 1 week
+- Route from current location: 0.5 weeks
+- Offline download + storage: 1 week
+- Offline navigation UI: 1.5 weeks
 - UI (native + web): 2 weeks
 - Pre-computation job: 0.5 weeks
-- **Total: 6-7 weeks**
+- **Total: 8-9 weeks**
 

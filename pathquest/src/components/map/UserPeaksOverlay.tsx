@@ -69,16 +69,6 @@ export default function UserPeaksOverlay({ peaks, isDark = false, onPeakPress }:
           circleStrokeColor: "rgba(255, 255, 255, 0.75)",
         }}
       />
-      <CircleLayer
-        id="user-peaks-overlay-ring"
-        style={{
-          circleRadius: 14,
-          circleColor: "transparent",
-          circleStrokeWidth: 2,
-          circleStrokeColor: themeColors.primary,
-          circleStrokeOpacity: 0.35,
-        }}
-      />
     </ShapeSource>
   );
 }

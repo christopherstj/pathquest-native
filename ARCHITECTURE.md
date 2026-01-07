@@ -54,6 +54,9 @@ pathquest-native/
             [challengeId].tsx   # Challenge detail route
           users/
             [userId].tsx        # User profile route rendered inside Explore bottom sheet (also overlays map with user's peaks)
+            [userId]/
+              challenges/
+                [challengeId].tsx # User challenge progress route rendered inside Explore bottom sheet
       users/
         [userId].tsx            # Full-screen user profile route (deep links / non-Explore entry)
         [userId]/
@@ -174,6 +177,8 @@ Peak Detail uses a redesigned layout that surfaces critical planning information
 
 ```
 Hero (with public lands badge)
+  ↓
+Challenges strip (horizontally scrollable “Included in X challenges”, links to Challenge Detail)
   ↓
 Weather Section (always visible)
   ↓
@@ -435,7 +440,18 @@ To avoid the sheet sliding into reserved overlay space (e.g. the Explore omnibar
   - `selectPeak(id)` / `selectChallenge(id)`: Select and show floating card (collapsed-only)
   - `openDetail()`: Transition from floating card to full detail (also expands the sheet)
   - `clearSelection()`: Reset selection state
-  - `challengeOverlayPeaks`: Optional peak overlay used by Challenge Detail "Show on Map" (cleared on selection changes)
+  - `challengeOverlayPeaks`: Peak overlay for challenge detail views (shows challenge peaks with user's summits highlighted in blue via `is_summited`).
+  - `userOverlayPeaks`: Peak overlay for user profile views (shows user's summited peaks).
+  - Overlay priority: when `challengeOverlayPeaks` is set, it takes precedence over `userOverlayPeaks`.
+  - **Auto-show behavior**: Overlays are automatically set when entering challenge detail, user profile, or user challenge progress pages. The map fits to bounds ONCE on initial load (not on sheet snap changes).
+  - **Auto-zoom for peaks**: When entering peak detail from discovery (no overlay), the map auto-zooms to the peak (zoom level 13) ONCE on initial load.
+  - **Overlay persistence**: Overlays persist when navigating to nested detail views (e.g., peak detail from challenge). They are cleared when:
+    1. Pressing the X button (dismiss to discovery)
+    2. Pressing the back button from the overlay source (challenge/profile)
+    3. Navigating directly to discovery view (which auto-clears all overlays)
+  - **Recenter button**: A crosshair FAB appears when an overlay is active OR when viewing a single peak from discovery. It fits the map to overlay bounds or flies to the selected peak.
+  - Share UX: only the current user's own progress shows a share CTA; viewing another user's progress instead offers "View my progress".
+  - User challenge progress UI: the Progress tab mirrors personal Challenge Detail with milestone-style badges and a full "All peaks" list using `PeakRow` (summited peaks show the blue summit medal/accent).
 - **sheetStore**: Bottom sheet snap index
 - **exploreNavStore**: Discovery state persistence (navigation handled by Expo Router)
   - `discoveryState`: Persisted discovery state (active tab, challenge filter)
@@ -449,6 +465,7 @@ To avoid the sheet sliding into reserved overlay space (e.g. the Explore omnibar
 - **useAllChallenges**: Fetch all challenges (progress-aware via `/challenges/search`) for Explore "All challenges" mode
 - **useChallengeDetails**: Fetch `/challenges/:id/details` (public challenge + peak list)
 - **useUserChallengeProgress**: Fetch `/users/:userId/challenges/:challengeId` (auth-gated per-user completion + summit dates)
+  - Note: route components that consume this hook must keep React hooks (e.g., `useMemo`, `useEffect`) unconditional across loading/data renders to avoid hook-order warnings in dev.
 - **useNextPeakSuggestion**: Fetch `/challenges/:id/next-peak` (auth-gated next peak suggestion, uses lat/lng when available)
 - **useDashboardData**: Combined dashboard data hook
 - **useSuggestedPeak**: Fetch suggested next peak with weather

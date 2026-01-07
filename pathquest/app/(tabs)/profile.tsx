@@ -5,12 +5,12 @@
  * Shows login prompt if not authenticated.
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFetching } from '@tanstack/react-query';
-import { LogOut, LogIn, UserCircle } from 'lucide-react-native';
+import { LogOut, LogIn, UserCircle, MapPin, Map } from 'lucide-react-native';
 import { ProfileContent } from '@/src/components/profile';
 import { RefreshBar } from '@/src/components/shared';
 import { Text } from '@/src/components/ui';
@@ -35,6 +35,11 @@ export default function ProfileRoute() {
   const isFetchingJournal = useIsFetching({ queryKey: ['userJournal'] }) > 0;
   const isRefreshing = isFetchingProfile || isFetchingPeaks || isFetchingJournal;
   
+  const locationText = useMemo(() => {
+    const parts = [user?.city, user?.state, user?.country].filter(Boolean);
+    return parts.join(", ");
+  }, [user?.city, user?.state, user?.country]);
+  
   const handleLogin = async () => {
     await startStravaAuth();
   };
@@ -54,6 +59,14 @@ export default function ProfileRoute() {
     router.push({
       pathname: '/explore/challenge/[challengeId]',
       params: { challengeId },
+    });
+  };
+  
+  const handleViewOnMap = () => {
+    if (!user?.id) return;
+    router.push({
+      pathname: '/explore/users/[userId]',
+      params: { userId: user.id },
     });
   };
   
@@ -149,18 +162,39 @@ export default function ProfileRoute() {
       <RefreshBar isRefreshing={isRefreshing} />
       {/* Header with user info */}
       <View 
-        className="flex-row items-center justify-between px-4 py-3 border-b"
+        className="flex-row items-start justify-between px-4 py-3 border-b"
         style={{ borderColor: 'rgba(69, 65, 60, 0.5)' }}
       >
-        <View className="flex-row items-center gap-3">
+        <View className="flex-row items-start gap-3 flex-1">
           <UserAvatar size="md" name={user?.name} uri={user?.pic} />
-          <View>
+          <View className="flex-1">
             <Text className="font-semibold" style={{ color: '#F5F0E8' }}>
               {user?.name}
             </Text>
-            <Text className="text-xs" style={{ color: '#A9A196' }}>
-              View your summit journal
-            </Text>
+            {locationText ? (
+              <View className="flex-row items-center gap-1.5 mt-0.5">
+                <MapPin size={12} color="#A9A196" />
+                <Text className="text-xs" style={{ color: '#A9A196' }} numberOfLines={1}>
+                  {locationText}
+                </Text>
+              </View>
+            ) : null}
+            <TouchableOpacity 
+              className="flex-row items-center gap-1.5 px-3 py-2 rounded-lg mt-2"
+              style={{ 
+                backgroundColor: 'rgba(91, 145, 103, 0.15)',
+                borderWidth: 1,
+                borderColor: 'rgba(91, 145, 103, 0.3)',
+                alignSelf: 'flex-start',
+              }}
+              onPress={handleViewOnMap}
+              activeOpacity={0.7}
+            >
+              <Map size={14} color="#5B9167" />
+              <Text className="text-xs font-medium" style={{ color: '#5B9167' }}>
+                View on Map
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
         

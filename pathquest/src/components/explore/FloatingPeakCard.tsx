@@ -39,10 +39,10 @@ const FloatingPeakCard: React.FC<FloatingPeakCardProps> = ({
   const translateY = useSharedValue(200); // Start below screen
   const opacity = useSharedValue(0);
 
-  // Entry animation
+  // Entry animation - quick micro-animation
   React.useEffect(() => {
-    translateY.value = withSpring(0, { damping: 20, stiffness: 200 });
-    opacity.value = withTiming(1, { duration: 200 });
+    translateY.value = withTiming(0, { duration: 150 });
+    opacity.value = withTiming(1, { duration: 150 });
   }, [translateY, opacity]);
 
   // Format location string
@@ -88,8 +88,8 @@ const FloatingPeakCard: React.FC<FloatingPeakCardProps> = ({
         });
       } else {
         // Snap back
-        translateY.value = withSpring(0);
-        opacity.value = withSpring(1);
+        translateY.value = withTiming(0, { duration: 150 });
+        opacity.value = withTiming(1, { duration: 150 });
       }
     });
 

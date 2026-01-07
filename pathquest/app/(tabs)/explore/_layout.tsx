@@ -11,15 +11,16 @@
  */
 
 import React, { useRef, useCallback, useEffect, useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { Slot, useRouter, usePathname, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFetching } from '@tanstack/react-query';
-import { MapView, PeakMarkers, ChallengePeaksOverlay, UserPeaksOverlay, CenterOnMeButton, LineToTarget } from '@/src/components/map';
+import { Crosshair } from 'lucide-react-native';
+import { MapView, PeakMarkers, ChallengePeaksOverlay, UserPeaksOverlay, CenterOnMeButton, CompassButton, LineToTarget } from '@/src/components/map';
 import type { MapViewRef } from '@/src/components/map';
 import { ContentSheet } from '@/src/components/navigation';
 import { RefreshBar } from '@/src/components/shared';
-import { useMapStore } from '@/src/store/mapStore';
+import { useMapStore, getOverlayPeaksFromFocus, getRecenterTarget } from '@/src/store/mapStore';
 import { useSheetStore } from '@/src/store/sheetStore';
 import { useMapPeaks, useMapChallenges } from '@/src/hooks';
 import { 
@@ -27,7 +28,34 @@ import {
   FloatingPeakCard,
   FloatingChallengeCard,
 } from '@/src/components/explore';
+import { useTheme } from '@/src/theme';
 import type { Peak, ChallengeProgress } from '@pathquest/shared';
+
+// Tab bar height (matches tabs layout)
+const TAB_BAR_HEIGHT = 60;
+// Collapsed sheet height  
+const COLLAPSED_SHEET_HEIGHT = 80;
+
+function getBoundsFromPeaks(peaks: Array<{ location_coords?: [number, number] | null }>) {
+  const coords = peaks
+    .map((p) => p.location_coords)
+    .filter((c): c is [number, number] => Array.isArray(c) && c.length === 2);
+  if (coords.length === 0) return null;
+  let minLng = coords[0][0];
+  let maxLng = coords[0][0];
+  let minLat = coords[0][1];
+  let maxLat = coords[0][1];
+  for (const [lng, lat] of coords) {
+    minLng = Math.min(minLng, lng);
+    maxLng = Math.max(maxLng, lng);
+    minLat = Math.min(minLat, lat);
+    maxLat = Math.max(maxLat, lat);
+  }
+  return [
+    [minLng, minLat],
+    [maxLng, maxLat],
+  ] as [[number, number], [number, number]];
+}
 
 // Debounce delay for map bounds updates (ms)
 const MAP_BOUNDS_DEBOUNCE_MS = 500;
@@ -50,11 +78,10 @@ export default function ExploreLayout() {
   // Determine if we're on a detail page
   const isDetailView = segments.includes('peak') || segments.includes('challenge') || segments.includes('users');
   
-  // Map store state
+  // Map store state - using new mapFocus system
+  const mapFocus = useMapStore((state) => state.mapFocus);
   const visiblePeaks = useMapStore((state) => state.visiblePeaks);
   const visibleChallenges = useMapStore((state) => state.visibleChallenges);
-  const challengeOverlayPeaks = useMapStore((state) => state.challengeOverlayPeaks);
-  const userOverlayPeaks = useMapStore((state) => state.userOverlayPeaks);
   const selectedPeakId = useMapStore((state) => state.selectedPeakId);
   const selectedChallengeId = useMapStore((state) => state.selectedChallengeId);
   const selectionMode = useMapStore((state) => state.selectionMode);
@@ -65,12 +92,17 @@ export default function ExploreLayout() {
   const updateMapRegion = useMapStore((state) => state.updateMapRegion);
   const setVisiblePeaks = useMapStore((state) => state.setVisiblePeaks);
   const setVisibleChallenges = useMapStore((state) => state.setVisibleChallenges);
-  const setChallengeOverlayPeaks = useMapStore((state) => state.setChallengeOverlayPeaks);
   const currentBounds = useMapStore((state) => state.currentBounds);
   const isZoomedOutTooFar = useMapStore((state) => state.isZoomedOutTooFar);
   const isInitialLocationReady = useMapStore((state) => state.isInitialLocationReady);
   const pendingFitBounds = useMapStore((state) => state.pendingFitBounds);
   const clearPendingFitBounds = useMapStore((state) => state.clearPendingFitBounds);
+  const pendingFlyTo = useMapStore((state) => state.pendingFlyTo);
+  const clearPendingFlyTo = useMapStore((state) => state.clearPendingFlyTo);
+  
+  // Derive overlay peaks from mapFocus
+  const overlayPeaks = useMemo(() => getOverlayPeaksFromFocus(mapFocus), [mapFocus]);
+  const recenterTarget = useMemo(() => getRecenterTarget(mapFocus), [mapFocus]);
 
   // Sheet state
   const sheetSnapIndex = useSheetStore((s) => s.snapIndex);
@@ -129,8 +161,7 @@ export default function ExploreLayout() {
   // Resolve selected items (check both regular peaks and overlay peaks)
   const selectedPeak = selectedPeakId 
     ? (visiblePeaks.find(p => p.id === selectedPeakId) 
-       ?? userOverlayPeaks?.find(p => p.id === selectedPeakId)
-       ?? challengeOverlayPeaks?.find(p => p.id === selectedPeakId))
+       ?? overlayPeaks?.find(p => p.id === selectedPeakId))
     : null;
   const selectedChallenge = selectedChallengeId
     ? visibleChallenges.find(c => c.id === selectedChallengeId)
@@ -161,6 +192,14 @@ export default function ExploreLayout() {
       clearPendingFitBounds();
     }
   }, [pendingFitBounds, clearPendingFitBounds]);
+  
+  // Handle pending flyTo request (for single peak auto-zoom)
+  useEffect(() => {
+    if (pendingFlyTo) {
+      mapRef.current?.flyTo(pendingFlyTo.center, pendingFlyTo.zoom);
+      clearPendingFlyTo();
+    }
+  }, [pendingFlyTo, clearPendingFlyTo]);
 
   // Clear floating selection when sheet is dragged up
   useEffect(() => {
@@ -233,6 +272,33 @@ export default function ExploreLayout() {
     mapRef.current?.centerOnUser();
   }, []);
 
+  // Get the theme for the recenter button
+  const { colors } = useTheme();
+  
+  // Show recenter button when we have a recenter target
+  const showRecenterButton = !!recenterTarget;
+  
+  const handleRecenter = useCallback(() => {
+    if (!recenterTarget) return;
+    
+    if (recenterTarget.type === 'point') {
+      // Fly to specific point (peak focus)
+      mapRef.current?.flyTo(recenterTarget.coords, 13);
+    } else if (recenterTarget.type === 'bounds') {
+      // Fit to bounds (challenge/user focus)
+      const bounds = getBoundsFromPeaks(recenterTarget.peaks);
+      if (bounds) {
+        const bottomPadding = COLLAPSED_SHEET_HEIGHT + TAB_BAR_HEIGHT + insets.bottom + 20;
+        mapRef.current?.fitBounds(bounds, {
+          paddingTop: insets.top + 80,
+          paddingBottom: bottomPadding + 300,
+          paddingLeft: 40,
+          paddingRight: 40,
+        });
+      }
+    }
+  }, [recenterTarget, insets]);
+
   return (
     <View style={{ flex: 1 }}>
       {/* Map Layer */}
@@ -241,8 +307,8 @@ export default function ExploreLayout() {
         onRegionChange={handleRegionChange}
         onMapReady={handleMapReady}
       >
-        {/* Only show regular peaks when NOT in overlay mode */}
-        {!challengeOverlayPeaks && !userOverlayPeaks && (
+        {/* Render based on mapFocus type */}
+        {mapFocus.type === 'discovery' && (
           <PeakMarkers
             peaks={visiblePeaks}
             selectedPeakId={selectedPeakId}
@@ -250,16 +316,26 @@ export default function ExploreLayout() {
             isDark={true}
           />
         )}
-        {/* Challenge overlay peaks (Show on Map) */}
-        {challengeOverlayPeaks && (
-          <ChallengePeaksOverlay peaks={challengeOverlayPeaks} isDark={true} />
-        )}
-        {/* User overlay peaks (Explore user profile) */}
-        {userOverlayPeaks && (
-          <UserPeaksOverlay 
-            peaks={userOverlayPeaks} 
+        {mapFocus.type === 'challenge' && (
+          <ChallengePeaksOverlay 
+            peaks={mapFocus.peaks} 
             isDark={true} 
             onPeakPress={handlePeakMarkerPress}
+          />
+        )}
+        {mapFocus.type === 'user' && (
+          <UserPeaksOverlay 
+            peaks={mapFocus.peaks} 
+            isDark={true} 
+            onPeakPress={handlePeakMarkerPress}
+          />
+        )}
+        {mapFocus.type === 'peak' && (
+          <PeakMarkers
+            peaks={visiblePeaks}
+            selectedPeakId={selectedPeakId}
+            onPeakPress={handlePeakMarkerPress}
+            isDark={true}
           />
         )}
         {selectionMode === 'floating' && selectedPeak?.location_coords && (
@@ -283,7 +359,7 @@ export default function ExploreLayout() {
         pointerEvents="box-none"
       >
         <ExploreOmnibar
-          visible={!isDetailView}
+          visible={true}
           onPeakPress={openPeakDetail}
           onChallengePress={openChallengeDetail}
           onPlacePress={({ coords, zoom }) => {
@@ -293,16 +369,58 @@ export default function ExploreLayout() {
         />
       </View>
 
-      {/* Center on Me FAB */}
-      <CenterOnMeButton
-        onPress={handleCenterOnUser}
-        visible={selectionMode !== 'floating' || sheetSnapIndex !== 0}
+      {/* Map Controls - top right, below search bar */}
+      <View
         style={{
           position: 'absolute',
+          top: insets.top + 12 + 56 + 24, // Below search bar (56px height + 24px padding)
           right: 16,
-          bottom: 100,
+          flexDirection: 'column',
+          gap: 8,
+          zIndex: 10,
         }}
-      />
+        pointerEvents="box-none"
+      >
+        {/* Compass Button */}
+        <CompassButton
+          onPress={() => mapRef.current?.resetBearing()}
+          visible={true}
+        />
+        
+        {/* Center on Me Button */}
+        <View style={{ width: 44, height: 44 }}>
+          <CenterOnMeButton
+            onPress={handleCenterOnUser}
+            visible={selectionMode !== 'floating' || sheetSnapIndex !== 0}
+            style={{ position: 'relative' }}
+          />
+        </View>
+        
+        {/* Recenter/Snapping Button - shows when viewing a user profile, challenge, or single peak */}
+        {showRecenterButton && (
+          <TouchableOpacity
+            onPress={handleRecenter}
+            activeOpacity={0.8}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: colors.card as any,
+              alignItems: 'center',
+              justifyContent: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.25,
+              shadowRadius: 4,
+              elevation: 4,
+              borderWidth: 1,
+              borderColor: colors.border as any,
+            }}
+          >
+            <Crosshair size={20} color={colors.primary as any} />
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Floating Peak Card */}
       {selectionMode === 'floating' && sheetSnapIndex === 0 && selectedPeak && (

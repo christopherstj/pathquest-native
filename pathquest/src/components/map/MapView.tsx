@@ -91,6 +91,7 @@ export interface MapViewRef {
   getCenter: () => Promise<[number, number] | null>;
   getZoom: () => Promise<number | null>;
   centerOnUser: () => void;
+  resetBearing: () => void;
 }
 
 const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
@@ -155,6 +156,12 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
         } catch (error) {
           console.warn('[MapView] Error centering on user:', error);
         }
+      },
+      resetBearing: () => {
+        cameraRef.current?.setCamera({
+          heading: 0,
+          animationDuration: 500,
+        });
       },
     }));
 
@@ -345,8 +352,7 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
           logoEnabled={false}
           attributionEnabled={true}
           attributionPosition={{ bottom: 8, right: 8 }}
-          compassEnabled={true}
-          compassPosition={{ top: 100, right: 16 }}
+          compassEnabled={false}
           scaleBarEnabled={false}
           onDidFinishLoadingMap={handleMapReady}
           onDidFinishLoadingStyle={handleStyleLoaded}

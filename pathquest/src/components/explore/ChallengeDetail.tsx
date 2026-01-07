@@ -19,7 +19,6 @@ import {
   Flag, 
   TrendingUp, 
   List, 
-  Map as MapIcon,
   MapPin,
   Target,
   Award,
@@ -33,6 +32,7 @@ import {
   Mountain,
   Plus,
   CheckCircle,
+  Share2,
 } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import Svg, { Circle, Path, Line } from 'react-native-svg';
@@ -48,6 +48,7 @@ import { useAuthStore } from '@/src/lib/auth';
 import { getApiClient } from '@/src/lib/api/client';
 import { startStravaAuth } from '@/src/lib/auth/strava';
 import { haversineMeters, metersToMiles, bearingDegrees } from '@/src/utils/geo';
+import { parseDate, formatDateString } from '@/src/utils/formatting';
 import { useTheme } from '@/src/theme';
 import { endpoints } from '@pathquest/shared/api';
 
@@ -332,7 +333,7 @@ interface ChallengeDetailProps {
   onClose?: () => void;
   onDismiss?: () => void; // Go straight to discovery (X button)
   onPeakPress?: (peak: Peak) => void;
-  onShowOnMap?: (payload: { peaks: Array<Peak & { is_summited?: boolean }>; challengeId: string }) => void;
+  onShare?: () => void;
 }
 
 const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
@@ -341,7 +342,7 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
   onClose,
   onDismiss,
   onPeakPress,
-  onShowOnMap,
+  onShare,
 }) => {
   const [activeTab, setActiveTab] = useState<ChallengeDetailTab>('progress');
   const [peaksSort, setPeaksSort] = useState<PeaksSort>('elevation');
@@ -517,9 +518,10 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
     return peaks
       .filter((p) => (p as any).is_summited && (p as any).summit_date)
       .sort((a, b) => {
-        const da = new Date((a as any).summit_date).getTime();
-        const db = new Date((b as any).summit_date).getTime();
-        return db - da;
+        const da = parseDate((a as any).summit_date);
+        const db = parseDate((b as any).summit_date);
+        if (!da || !db) return 0;
+        return db.getTime() - da.getTime();
       })
       .slice(0, 5);
   }, [userProgress.data?.peaks]);
@@ -564,16 +566,6 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
     await startStravaAuth();
   };
 
-  const handleShowOnMap = () => {
-    if (!onShowOnMap) return;
-    onShowOnMap({
-      challengeId,
-      peaks: peaksForList.map((p) => ({
-        ...(p as Peak),
-        is_summited: (p as any).is_summited,
-      })),
-    });
-  };
 
   // Milestone thresholds - filter to only show meaningful ones
   const milestones = useMemo(() => {
@@ -590,6 +582,49 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
 
   return (
     <View style={{ flex: 1 }}>
+      {/* Navigation buttons row - above hero card */}
+      {(onClose || onDismiss) ? (
+        <View style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 16, paddingTop: 8 }}>
+          {/* Back button */}
+          {onClose ? (
+            <TouchableOpacity
+              onPress={onClose}
+              activeOpacity={0.7}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.border as any,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <ChevronLeft size={20} color={colors.mutedForeground as any} />
+            </TouchableOpacity>
+          ) : <View style={{ width: 38 }} />}
+          
+          {/* Dismiss button (X) - go straight to discovery */}
+          {onDismiss ? (
+            <TouchableOpacity
+              onPress={onDismiss}
+              activeOpacity={0.7}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.border as any,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <X size={18} color={colors.mutedForeground as any} />
+            </TouchableOpacity>
+          ) : <View style={{ width: 38 }} />}
+        </View>
+      ) : null}
+
       {/* ═══════════════════════════════════════════════════════════════════
           HERO HEADER CARD
           ═══════════════════════════════════════════════════════════════════ */}
@@ -617,20 +652,8 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
           </View>
 
           <View className="p-5 pb-12">
-            {/* Top row: back + badge + dismiss */}
-            <View className="flex-row items-center justify-between mb-3">
-              {/* Back button */}
-              {onClose ? (
-                <TouchableOpacity 
-                  className="w-9 h-9 rounded-lg items-center justify-center"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}
-                  onPress={onClose}
-                  activeOpacity={0.7}
-                >
-                  <ChevronLeft size={20} color={colors.mutedForeground} />
-                </TouchableOpacity>
-              ) : <View className="w-9" />}
-              
+            {/* Challenge badge */}
+            <View className="flex-row items-center justify-center mb-3">
               <View className="flex-row items-center gap-1.5 bg-black/10 dark:bg-white/10 px-2.5 py-1 rounded-lg">
                 <Trophy size={12} color={colors.mutedForeground} />
                 <Text 
@@ -640,18 +663,6 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
                   Challenge
                 </Text>
               </View>
-              
-              {/* Dismiss button (X) - go straight to discovery */}
-              {onDismiss ? (
-                <TouchableOpacity 
-                  className="w-9 h-9 rounded-lg items-center justify-center"
-                  style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}
-                  onPress={onDismiss}
-                  activeOpacity={0.7}
-                >
-                  <X size={18} color={colors.mutedForeground} />
-                </TouchableOpacity>
-              ) : <View className="w-9" />}
             </View>
 
             {/* Title + region */}
@@ -721,29 +732,35 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
                   </View>
                 )}
                 
-                {progress?.lastProgressDate && (
-                  <View className="flex-row items-center gap-1.5 mt-1">
-                    <TrendingUp size={12} color={colors.mutedForeground} />
-                    <Text 
-                      className="text-xs"
-                      style={{ color: colors.mutedForeground }}
-                    >
-                      Last: {new Date(progress.lastProgressDate).toLocaleDateString()}
-                    </Text>
-                  </View>
-                )}
+                {progress?.lastProgressDate && (() => {
+                  const formatted = formatDateString(progress.lastProgressDate);
+                  if (!formatted) return null;
+                  return (
+                    <View className="flex-row items-center gap-1.5 mt-1">
+                      <TrendingUp size={12} color={colors.mutedForeground} />
+                      <Text 
+                        className="text-xs"
+                        style={{ color: colors.mutedForeground }}
+                      >
+                        Last: {formatted}
+                      </Text>
+                    </View>
+                  );
+                })()}
               </View>
             </View>
 
-            {/* Primary CTA - Accept Challenge or Show on Map (hidden when completed) */}
+            {/* Primary CTA - Accept Challenge or Share */}
             <View className="mt-5">
               {isCompleted ? (
-                // Completed challenges only show "Show on Map"
-                <SecondaryCTA label="Show on Map" onPress={handleShowOnMap} Icon={MapIcon} />
+                // Completed challenges show Share button
+                onShare ? (
+                  <SecondaryCTA label="Share" onPress={onShare} Icon={Share2} />
+                ) : null
               ) : isAuthenticated ? (
                 isFavorited ? (
                   <View style={{ gap: 10 }}>
-                    {/* Already accepted - tappable badge to un-accept + Show on Map */}
+                    {/* Already accepted - tappable badge to un-accept */}
                     <TouchableOpacity 
                       className="flex-row items-center justify-center gap-2 py-2.5 rounded-lg"
                       style={{ backgroundColor: `${heroAccentColor}15` }}
@@ -760,14 +777,10 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
                       >
                         Challenge Accepted
                       </Text>
-                      <Text 
-                        className="text-xs ml-1"
-                        style={{ color: `${heroAccentColor}80` }}
-                      >
-                        (tap to remove)
-                      </Text>
                     </TouchableOpacity>
-                    <SecondaryCTA label="Show on Map" onPress={handleShowOnMap} Icon={MapIcon} />
+                    {onShare && (
+                      <SecondaryCTA label="Share" onPress={onShare} Icon={Share2} />
+                    )}
                   </View>
                 ) : (
                   <PrimaryCTA 
@@ -780,7 +793,9 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
                   />
                 )
               ) : (
-                <SecondaryCTA label="Show on Map" onPress={handleShowOnMap} Icon={MapIcon} />
+                onShare ? (
+                  <SecondaryCTA label="Share" onPress={onShare} Icon={Share2} />
+                ) : null
               )}
             </View>
           </View>
@@ -1097,18 +1112,18 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
                                       >
                                         {p.name ?? "Unknown Peak"}
                                       </Text>
-                                      {(p as any).summit_date && (
-                                        <Text 
-                                          className="text-xs mt-0.5"
-                                          style={{ color: colors.mutedForeground }}
-                                        >
-                                          {new Date((p as any).summit_date).toLocaleDateString(undefined, {
-                                            month: 'short',
-                                            day: 'numeric',
-                                            year: 'numeric',
-                                          })}
-                                        </Text>
-                                      )}
+                                      {(() => {
+                                        const formatted = formatDateString((p as any).summit_date);
+                                        if (!formatted) return null;
+                                        return (
+                                          <Text 
+                                            className="text-xs mt-0.5"
+                                            style={{ color: colors.mutedForeground }}
+                                          >
+                                            {formatted}
+                                          </Text>
+                                        );
+                                      })()}
                                     </View>
 
                                     <ChevronRight size={16} color={colors.mutedForeground} />

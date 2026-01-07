@@ -1,16 +1,15 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { TouchableOpacity, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Map as MapIcon, X, ChevronLeft } from "lucide-react-native";
+import { X, ChevronLeft } from "lucide-react-native";
 import { useTheme } from "@/src/theme";
 import DetailSkeleton from "@/src/components/explore/DetailSkeleton";
-import { SecondaryCTA, Text } from "@/src/components/ui";
+import { Text } from "@/src/components/ui";
 import { UserDetail } from "@/src/components/profile/UserDetail";
 import { useUserProfile, useUserAllSummitedPeaks } from "@/src/hooks/useProfileData";
 import { useAuthStore } from "@/src/lib/auth";
 import { useMapStore } from "@/src/store/mapStore";
-import { useSheetStore } from "@/src/store/sheetStore";
 
 function getBoundsFromPeaks(peaks: Array<{ location_coords?: [number, number] | null }>) {
   const coords = peaks
@@ -48,51 +47,35 @@ export default function ExploreUserProfileRoute() {
   // Fetch ALL summited peaks for the map overlay (not paginated)
   const allUserPeaks = useUserAllSummitedPeaks(userId);
 
-  const setUserOverlayPeaks = useMapStore((s) => s.setUserOverlayPeaks);
+  // Map store - using new focus system
+  const focusUser = useMapStore((s) => s.focusUser);
+  const focusDiscovery = useMapStore((s) => s.focusDiscovery);
   const requestFitToBounds = useMapStore((s) => s.requestFitToBounds);
-  const clearPendingFitBounds = useMapStore((s) => s.clearPendingFitBounds);
-  const sheetCollapse = useSheetStore((s) => s.collapse);
-  const sheetSnapIndex = useSheetStore((s) => s.snapIndex);
 
   const overlayPeaks = allUserPeaks.data ?? [];
   const bounds = useMemo(() => getBoundsFromPeaks(overlayPeaks), [overlayPeaks]);
+  
+  // Track if we've already fitted bounds (only fit once on initial load)
+  const hasFittedBounds = useRef(false);
 
+  // Set user focus when peaks are ready
   useEffect(() => {
-    // While this route is active, only show this user's peaks on the map.
-    // NOTE: We do NOT clear on unmount - this allows navigating to peak details
-    // while keeping the user's peaks visible. The overlay is cleared when
-    // returning to discovery view (explore/index.tsx) or pressing X.
-    if (overlayPeaks.length > 0) {
-      setUserOverlayPeaks(overlayPeaks);
+    if (userId && overlayPeaks.length > 0) {
+      focusUser(userId, overlayPeaks);
     }
-  }, [overlayPeaks, setUserOverlayPeaks]);
+  }, [userId, overlayPeaks, focusUser]);
 
-  // Auto-fit peaks into the visible map area while the profile is open.
-  // Padding is conservative (assumes sheet covers part of the map).
+  // Auto-fit peaks into the visible map area ONCE when peaks first load
   useEffect(() => {
-    if (!bounds) return;
-    const bottomPadBySnap = sheetSnapIndex === 2 ? 560 : sheetSnapIndex === 1 ? 360 : 180;
+    if (!bounds || hasFittedBounds.current) return;
+    hasFittedBounds.current = true;
     requestFitToBounds(bounds, {
       paddingTop: insets.top + 12 + 56 + 16,
-      paddingBottom: bottomPadBySnap + 60 + insets.bottom,
+      paddingBottom: 360 + 60 + insets.bottom, // assume halfway sheet
       paddingLeft: 40,
       paddingRight: 40,
     });
-  }, [bounds, insets.bottom, insets.top, requestFitToBounds, sheetSnapIndex]);
-
-  const handleShowOnMap = () => {
-    if (!bounds) return;
-
-    // Collapse sheet so peaks are visible; then fit bounds with padding similar to challenge "Show on Map".
-    sheetCollapse();
-
-    requestFitToBounds(bounds, {
-      paddingTop: insets.top + 12 + 56 + 16, // omnibar area
-      paddingBottom: 80 + 60 + insets.bottom + 20, // collapsed sheet + tab bar
-      paddingLeft: 40,
-      paddingRight: 40,
-    });
-  };
+  }, [bounds, insets.bottom, insets.top, requestFitToBounds]);
 
   const handlePeakPress = (peakId: string) => {
     router.push({
@@ -102,10 +85,19 @@ export default function ExploreUserProfileRoute() {
   };
 
   const handleChallengePress = (challengeId: string) => {
-    router.push({
-      pathname: "/explore/challenge/[challengeId]" as any,
-      params: { challengeId },
-    });
+    if (isOwner) {
+      // If viewing your own profile, go to the public challenge page
+      router.push({
+        pathname: "/explore/challenge/[challengeId]" as any,
+        params: { challengeId },
+      });
+    } else {
+      // If viewing someone else's profile, show their progress on that challenge
+      router.push({
+        pathname: "/explore/users/[userId]/challenges/[challengeId]" as any,
+        params: { userId, challengeId },
+      });
+    }
   };
 
   if (profile.isLoading && !profile.data) {
@@ -114,24 +106,6 @@ export default function ExploreUserProfileRoute() {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Top bar inside sheet */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingHorizontal: 12,
-          paddingVertical: 10,
-          borderBottomWidth: 1,
-          borderBottomColor: `${colors.border}66` as any,
-        }}
-      >
-        <Text className="text-foreground font-semibold">Profile</Text>
-        <View style={{ flexDirection: "row", gap: 10 }}>
-          <SecondaryCTA label="Show on Map" onPress={handleShowOnMap} Icon={MapIcon as any} />
-        </View>
-      </View>
-
       <UserDetail
         userId={userId}
         isOwner={isOwner}
@@ -169,7 +143,10 @@ export default function ExploreUserProfileRoute() {
           <ChevronLeft size={18} color={colors.foreground as any} />
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => router.navigate("/explore" as any)}
+          onPress={() => {
+            focusDiscovery();
+            router.navigate("/explore" as any);
+          }}
           activeOpacity={0.75}
           style={{
             width: 34,
@@ -188,5 +165,3 @@ export default function ExploreUserProfileRoute() {
     </View>
   );
 }
-
-

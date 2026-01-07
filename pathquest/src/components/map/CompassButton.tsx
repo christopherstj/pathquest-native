@@ -1,13 +1,12 @@
 /**
- * CenterOnMeButton
+ * CompassButton
  * 
- * Floating action button that centers the map on the user's current location.
- * Positioned in the bottom-right corner above the content sheet.
+ * Button that resets the map bearing to north (0 degrees).
  */
 
 import React from 'react';
 import { TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
-import { Navigation } from 'lucide-react-native';
+import { Compass } from 'lucide-react-native';
 import Animated, { 
   useAnimatedStyle, 
   withSpring,
@@ -15,8 +14,9 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { useTheme } from '@/src/theme';
 
-interface CenterOnMeButtonProps {
+interface CompassButtonProps {
   /** Callback when button is pressed */
   onPress: () => void;
   /** Whether the button is visible */
@@ -27,11 +27,12 @@ interface CenterOnMeButtonProps {
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
-const CenterOnMeButton: React.FC<CenterOnMeButtonProps> = ({
+const CompassButton: React.FC<CompassButtonProps> = ({
   onPress,
   visible = true,
   style,
 }) => {
+  const { colors } = useTheme();
   const scale = useSharedValue(1);
   const opacity = useSharedValue(visible ? 1 : 0);
 
@@ -62,10 +63,10 @@ const CenterOnMeButton: React.FC<CenterOnMeButtonProps> = ({
       style={[styles.button, animatedStyle, style]}
       onPress={handlePress}
       activeOpacity={0.8}
-      accessibilityLabel="Center on my location"
+      accessibilityLabel="Reset map bearing to north"
       accessibilityRole="button"
     >
-      <Navigation size={20} color="#EDE5D8" />
+      <Compass size={20} color={colors.foreground as any} />
     </AnimatedTouchable>
   );
 };
@@ -88,5 +89,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CenterOnMeButton;
+export default CompassButton;
 

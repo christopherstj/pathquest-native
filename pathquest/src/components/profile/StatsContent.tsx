@@ -641,8 +641,8 @@ const StatsContent: React.FC<StatsContentProps> = ({ stats, isLoading = false, i
                 label="Climbing Streak"
                 value={`${stats.climbingStreak.currentStreak}`}
                 subvalue={stats.climbingStreak.currentStreak === 1 
-                  ? `month${stats.climbingStreak.isActive ? '' : ' · summit to extend!'}`
-                  : `months in a row${stats.climbingStreak.isActive ? '' : ' · summit to extend!'}`
+                  ? 'month'
+                  : 'months in a row'
                 }
                 color="#E07B39"
                 delay={800}

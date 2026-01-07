@@ -23,6 +23,7 @@ import { startStravaAuth } from "@/src/lib/auth/strava";
 import { useGPSNavigation, usePeakActivity, usePeakDetails, usePeakForecast, usePeakPublicSummitsCursor, usePeakWeather } from "@/src/hooks";
 
 import { PeakDetailHero } from "./PeakDetailHero";
+import { PeakDetailChallenges } from "./PeakDetailChallenges";
 import { WeatherSection } from "./WeatherSection";
 import { PeakDetailCommunityTab } from "./PeakDetailCommunityTab";
 import { PeakDetailYourLogsTab } from "./PeakDetailYourLogsTab";
@@ -182,6 +183,12 @@ export default function PeakDetail({ peak, onClose, onDismiss }: PeakDetailProps
           onNavigate={handleNavigate}
           onOpenYourLogs={() => setActiveTab("yourLogs")}
           gps={gps}
+        />
+
+        {/* Challenges Section */}
+        <PeakDetailChallenges 
+          challenges={peakDetails?.challenges}
+          isLoading={peakLoading}
         />
 
         {/* Weather Section - Always Visible */}

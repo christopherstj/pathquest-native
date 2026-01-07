@@ -28,8 +28,9 @@ export default function UserDetailRoute() {
 
   const handleChallengePress = (challengeId: string) => {
     router.push({
-      pathname: "/explore/challenge/[challengeId]" as any,
-      params: { challengeId },
+      // Full-screen profile: deep link to user-specific progress detail
+      pathname: "/users/[userId]/challenges/[challengeId]" as any,
+      params: { userId, challengeId },
     });
   };
 

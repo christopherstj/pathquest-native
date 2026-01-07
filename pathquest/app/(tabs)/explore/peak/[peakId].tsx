@@ -9,7 +9,7 @@
  */
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { PeakDetail, DetailSkeleton } from '@/src/components/explore';
 import { useMapStore } from '@/src/store/mapStore';
 import { usePeakDetails } from '@/src/hooks';
@@ -19,32 +19,55 @@ export default function PeakDetailRoute() {
   const { peakId } = useLocalSearchParams<{ peakId: string }>();
   const router = useRouter();
   
-  // Get peak from visible peaks (for immediate display)
+  // Map store - using new focus system
   const visiblePeaks = useMapStore((state) => state.visiblePeaks);
-  const setSelectedPeakId = useMapStore((state) => state.setSelectedPeakId);
-  const clearSelection = useMapStore((state) => state.clearSelection);
-  const cachedPeak = visiblePeaks.find((p) => p.id === peakId);
+  const mapFocus = useMapStore((state) => state.mapFocus);
+  const focusPeak = useMapStore((state) => state.focusPeak);
+  const focusDiscovery = useMapStore((state) => state.focusDiscovery);
+  const requestFlyTo = useMapStore((state) => state.requestFlyTo);
+  
+  // Try to get peak from visible peaks or current overlay
+  const overlayPeaks =
+    mapFocus.type === 'challenge'
+      ? mapFocus.peaks
+      : mapFocus.type === 'user'
+        ? mapFocus.peaks
+        : null;
+  const cachedPeak = visiblePeaks.find((p) => p.id === peakId) ?? 
+                     overlayPeaks?.find((p) => p.id === peakId);
   
   // Fetch full peak details
   const { data: peakDetails, isLoading, isError } = usePeakDetails(peakId ?? '');
   
-  // Sync map selection with route
-  useEffect(() => {
-    if (peakId) {
-      setSelectedPeakId(peakId);
-    }
-  }, [peakId, setSelectedPeakId]);
+  // Track if we've already zoomed (only zoom once on initial load)
+  const hasZoomed = useRef(false);
   
-  // Go back one step
+  // Set peak focus when we have coords
+  useEffect(() => {
+    if (!peakId) return;
+    
+    const coords = cachedPeak?.location_coords ?? peakDetails?.peak?.location_coords;
+    if (coords) {
+      focusPeak(peakId, coords);
+      
+      // Auto-zoom to peak (only once)
+      if (!hasZoomed.current) {
+        hasZoomed.current = true;
+        requestFlyTo(coords, 13);
+      }
+    }
+  }, [peakId, cachedPeak?.location_coords, peakDetails?.peak?.location_coords, focusPeak, requestFlyTo]);
+  
+  // Go back one step (parent focus is automatically restored by the focus system)
   const handleClose = useCallback(() => {
     router.back();
   }, [router]);
   
-  // Go straight to discovery (dismiss all detail views)
+  // Go straight to discovery
   const handleDismiss = useCallback(() => {
-    clearSelection();
+    focusDiscovery();
     router.navigate('/explore');
-  }, [router, clearSelection]);
+  }, [router, focusDiscovery]);
   
   if (!peakId) return null;
   
