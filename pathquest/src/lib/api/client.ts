@@ -8,8 +8,6 @@ const rawUrl = process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
 // Ensure the URL ends with /api (required for PathQuest API routes)
 const API_URL = rawUrl.endsWith('/api') ? rawUrl : `${rawUrl.replace(/\/$/, '')}/api`;
 
-console.log('[API Client] Using API URL:', API_URL);
-
 /**
  * Creates an API client for the mobile app.
  * Automatically injects the access token from the auth store.

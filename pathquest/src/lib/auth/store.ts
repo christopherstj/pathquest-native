@@ -4,6 +4,7 @@ import {
     getAccessToken,
     getUserData,
     saveAuthData,
+    saveUserData,
     clearAuthData,
     isTokenExpired,
     getRefreshToken,
@@ -30,6 +31,7 @@ interface AuthState {
     logout: () => Promise<void>;
     refreshAccessToken: () => Promise<boolean>;
     getValidAccessToken: () => Promise<string | null>;
+    updateUser: (updates: Partial<StoredUser>) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -155,6 +157,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         }
 
         return get().accessToken;
+    },
+
+    /**
+     * Update user data in both state and secure storage.
+     * Used when settings are changed.
+     */
+    updateUser: async (updates) => {
+        const currentUser = get().user;
+        if (!currentUser) return;
+
+        const updatedUser = { ...currentUser, ...updates };
+        await saveUserData(updatedUser);
+        set({ user: updatedUser });
     },
 }));
 

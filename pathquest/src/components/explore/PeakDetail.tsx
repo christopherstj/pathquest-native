@@ -21,6 +21,7 @@ import { useTheme } from "@/src/theme";
 import { useAuthStore } from "@/src/lib/auth";
 import { startStravaAuth } from "@/src/lib/auth/strava";
 import { useGPSNavigation, usePeakActivity, usePeakDetails, usePeakForecast, usePeakPublicSummitsCursor, usePeakWeather } from "@/src/hooks";
+import { formatLocationString } from "@/src/utils";
 
 import { PeakDetailHero } from "./PeakDetailHero";
 import { PeakDetailChallenges } from "./PeakDetailChallenges";
@@ -94,9 +95,8 @@ export default function PeakDetail({ peak, onClose, onDismiss }: PeakDetailProps
   }, [publicSummits]);
 
   const locationString = useMemo(() => {
-    const parts = [resolvedPeak.county, resolvedPeak.state, resolvedPeak.country].filter(Boolean);
-    return parts.join(", ");
-  }, [resolvedPeak.county, resolvedPeak.country, resolvedPeak.state]);
+    return formatLocationString(resolvedPeak, { includeCounty: true });
+  }, [resolvedPeak]);
 
   const { nav: gps } = useGPSNavigation({
     targetCoords: peakCoords ?? null,
@@ -229,6 +229,10 @@ export default function PeakDetail({ peak, onClose, onDismiss }: PeakDetailProps
         {activeTab === "yourLogs" ? (
           <PeakDetailYourLogsTab
             peakId={peakId}
+            peakName={resolvedPeak.name}
+            peakCoords={peakCoords}
+            peakElevation={resolvedPeak.elevation}
+            peakState={resolvedPeak.state}
             isAuthenticated={isAuthenticated}
             ascentCount={ascentCount}
             yourAscents={yourAscents}

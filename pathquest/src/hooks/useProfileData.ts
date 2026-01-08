@@ -53,18 +53,7 @@ export function useUserProfile(userId: string | undefined) {
     queryFn: async (): Promise<UserProfileResponse> => {
       if (!userId) throw new Error('No userId provided');
       const client = getApiClient();
-      console.log('[useUserProfile] Fetching profile for:', userId);
-      try {
-        const profile = await endpoints.getUserProfile(client, userId);
-        console.log('[useUserProfile] Fetched profile:', {
-          totalPeaks: profile.stats.totalPeaks,
-          challengesCount: profile.acceptedChallenges.length,
-        });
-        return profile;
-      } catch (error) {
-        console.error('[useUserProfile] Error:', error);
-        throw error;
-      }
+      return await endpoints.getUserProfile(client, userId);
     },
     // Optional auth endpoint; allow fetching for public profiles too.
     enabled: !!userId,
@@ -92,13 +81,8 @@ export function useUserSummitStates(userId: string | undefined) {
     queryFn: async (): Promise<string[]> => {
       if (!userId) throw new Error('No userId provided');
       const client = getApiClient();
-      try {
-        const result = await endpoints.getUserSummitStates(client, userId);
-        return result.states;
-      } catch (error) {
-        console.error('[useUserSummitStates] Error:', error);
-        throw error;
-      }
+      const result = await endpoints.getUserSummitStates(client, userId);
+      return result.states;
     },
     // Optional auth endpoint; allow fetching for public profiles too.
     enabled: !!userId,
@@ -115,23 +99,15 @@ export function useUserAllSummitedPeaks(userId: string | undefined, enabled = tr
     queryFn: async (): Promise<UserPeakWithSummitCount[]> => {
       if (!userId) throw new Error('No userId provided');
       const client = getApiClient();
-      console.log('[useUserAllSummitedPeaks] Fetching ALL peaks for:', userId);
-      try {
-        // Fetch up to 2000 peaks - should cover almost all users
-        const result = await endpoints.searchUserPeaks(client, userId, {
-          page: 1,
-          pageSize: 2000,
-          filters: { 
-            sortBy: 'elevation'
-          },
-        });
-        
-        console.log('[useUserAllSummitedPeaks] Fetched', result.peaks.length, 'peaks');
-        return result.peaks;
-      } catch (error) {
-        console.error('[useUserAllSummitedPeaks] Error:', error);
-        throw error;
-      }
+      // Fetch up to 2000 peaks - should cover almost all users
+      const result = await endpoints.searchUserPeaks(client, userId, {
+        page: 1,
+        pageSize: 2000,
+        filters: { 
+          sortBy: 'elevation'
+        },
+      });
+      return result.peaks;
     },
     enabled: !!userId && enabled,
     staleTime: 1000 * 60 * 10, // 10 minutes
@@ -152,23 +128,16 @@ export function useUserPeaks(
     queryFn: async (): Promise<PeaksResult> => {
       if (!userId) throw new Error('No userId provided');
       const client = getApiClient();
-      console.log('[useUserPeaks] Fetching peaks for:', userId, 'page:', page, 'filters:', filters);
-      try {
-        const result = await endpoints.searchUserPeaks(client, userId, {
-          page,
-          pageSize,
-          filters: { 
-            sortBy: filters?.sortBy ?? 'elevation',
-            state: filters?.state,
-          },
-        });
-        const hasMore = page * pageSize < result.totalCount;
-        console.log('[useUserPeaks] Fetched', result.peaks.length, 'of', result.totalCount, 'peaks');
-        return { peaks: result.peaks, totalCount: result.totalCount, hasMore };
-      } catch (error) {
-        console.error('[useUserPeaks] Error:', error);
-        throw error;
-      }
+      const result = await endpoints.searchUserPeaks(client, userId, {
+        page,
+        pageSize,
+        filters: { 
+          sortBy: filters?.sortBy ?? 'elevation',
+          state: filters?.state,
+        },
+      });
+      const hasMore = page * pageSize < result.totalCount;
+      return { peaks: result.peaks, totalCount: result.totalCount, hasMore };
     },
     // Optional auth endpoint; allow fetching for public profiles too.
     enabled: !!userId,
@@ -201,51 +170,43 @@ export function useUserJournal(
     queryFn: async (): Promise<JournalResult> => {
       if (!userId) throw new Error('No userId provided');
       const client = getApiClient();
-      console.log('[useUserJournal] Fetching journal for:', userId, 'page:', page, 'filters:', filters);
-      try {
-        const result = await endpoints.searchUserSummits(client, userId, {
-          page,
-          pageSize,
-          state: filters?.state,
-        });
-        
-        // Transform to JournalEntry format - include ALL summits
-        const entries: JournalEntry[] = result.summits.map(s => ({
-          id: s.id,
-          peakId: s.peak.id,
-          peakName: s.peak.name,
-          peakState: s.peak.state,
-          elevation: s.peak.elevation,
-          timestamp: s.timestamp,
-          activityId: s.activity_id,
-          notes: s.notes,
-          difficulty: s.difficulty,
-          experienceRating: s.experience_rating,
-          conditionTags: s.condition_tags,
-          customTags: s.custom_condition_tags,
-          temperature: s.temperature,
-          cloudCover: s.cloud_cover,
-          precipitation: s.precipitation,
-          weatherCode: s.weather_code,
-          windSpeed: s.wind_speed,
-          // hasNotes means "has any report data" - notes, difficulty, rating, or tags
-          hasNotes: !!(
-            s.notes?.trim() ||
-            s.difficulty ||
-            s.experience_rating ||
-            (s.condition_tags && s.condition_tags.length > 0) ||
-            (s.custom_condition_tags && s.custom_condition_tags.length > 0)
-          ),
-        }));
-        
-        const hasMore = page * pageSize < result.totalCount;
-        
-        console.log('[useUserJournal] Fetched', entries.length, 'of', result.totalCount, 'total');
-        return { entries, totalCount: result.totalCount, hasMore };
-      } catch (error) {
-        console.error('[useUserJournal] Error:', error);
-        throw error;
-      }
+      const result = await endpoints.searchUserSummits(client, userId, {
+        page,
+        pageSize,
+        state: filters?.state,
+      });
+      
+      // Transform to JournalEntry format - include ALL summits
+      const entries: JournalEntry[] = result.summits.map(s => ({
+        id: s.id,
+        peakId: s.peak.id,
+        peakName: s.peak.name,
+        peakState: s.peak.state,
+        elevation: s.peak.elevation,
+        timestamp: s.timestamp,
+        activityId: s.activity_id,
+        notes: s.notes,
+        difficulty: s.difficulty,
+        experienceRating: s.experience_rating,
+        conditionTags: s.condition_tags,
+        customTags: s.custom_condition_tags,
+        temperature: s.temperature,
+        cloudCover: s.cloud_cover,
+        precipitation: s.precipitation,
+        weatherCode: s.weather_code,
+        windSpeed: s.wind_speed,
+        // hasNotes means "has any report data" - notes, difficulty, rating, or tags
+        hasNotes: !!(
+          s.notes?.trim() ||
+          s.difficulty ||
+          s.experience_rating ||
+          (s.condition_tags && s.condition_tags.length > 0) ||
+          (s.custom_condition_tags && s.custom_condition_tags.length > 0)
+        ),
+      }));
+      
+      const hasMore = page * pageSize < result.totalCount;
+      return { entries, totalCount: result.totalCount, hasMore };
     },
     // Optional auth endpoint; allow fetching for public profiles too.
     enabled: !!userId,

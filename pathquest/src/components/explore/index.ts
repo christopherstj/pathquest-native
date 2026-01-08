@@ -14,4 +14,5 @@ export { default as ActivityAchievementsCard } from "./ActivityAchievementsCard"
 export { default as FloatingPeakCard } from './FloatingPeakCard';
 export { default as FloatingChallengeCard } from './FloatingChallengeCard';
 export { default as DetailSkeleton } from './DetailSkeleton';
+export { default as PeakPhotosGallery } from './PeakPhotosGallery';
 export * from './PeakDetailChallenges';

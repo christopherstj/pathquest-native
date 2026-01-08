@@ -13,7 +13,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, Dimensions, ScrollView } from 'react-native';
+import { View, Animated, Dimensions, ScrollView, TouchableOpacity } from 'react-native';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { 
   Flag, 
@@ -43,6 +43,7 @@ interface ProfileStats {
   totalPeaks?: number;
   totalSummits?: number;
   highestPeak?: {
+    id: string;
     name: string;
     elevation: number;
   };
@@ -76,6 +77,8 @@ interface StatsContentProps {
   isLoading?: boolean;
   /** When true, use BottomSheetScrollView; otherwise use regular ScrollView */
   inBottomSheet?: boolean;
+  /** Callback when a peak is pressed (e.g., crown jewel) */
+  onPeakPress?: (peakId: string) => void;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -325,7 +328,7 @@ const JourneyStat: React.FC<{
 // MAIN COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════
 
-const StatsContent: React.FC<StatsContentProps> = ({ stats, isLoading = false, inBottomSheet = false }) => {
+const StatsContent: React.FC<StatsContentProps> = ({ stats, isLoading = false, inBottomSheet = false, onPeakPress }) => {
   const ScrollContainer = inBottomSheet ? BottomSheetScrollView : ScrollView;
   const { colors, isDark } = useTheme();
   
@@ -503,67 +506,73 @@ const StatsContent: React.FC<StatsContentProps> = ({ stats, isLoading = false, i
             transform: [{ translateY: crownSlide }],
           }}
         >
-          <CardFrame 
-            variant="cta" 
-            topo="corner" 
-            seed="crown-jewel"
-            accentColor={colors.summited}
+          <TouchableOpacity
+            activeOpacity={onPeakPress ? 0.7 : 1}
+            onPress={() => onPeakPress?.(stats.highestPeak!.id)}
+            disabled={!onPeakPress}
           >
-            <View className="p-5">
-              {/* Crown jewel header */}
-              <View className="flex-row items-center justify-between mb-4">
-                <View className="flex-row items-center gap-2">
-                  <View 
-                    className="w-8 h-8 rounded-full items-center justify-center"
-                    style={{ backgroundColor: `${colors.summited}20` }}
-                  >
-                    <Award size={16} color={colors.summited} />
+            <CardFrame 
+              variant="cta" 
+              topo="corner" 
+              seed="crown-jewel"
+              accentColor={colors.summited}
+            >
+              <View className="p-5">
+                {/* Crown jewel header */}
+                <View className="flex-row items-center justify-between mb-4">
+                  <View className="flex-row items-center gap-2">
+                    <View 
+                      className="w-8 h-8 rounded-full items-center justify-center"
+                      style={{ backgroundColor: `${colors.summited}20` }}
+                    >
+                      <Award size={16} color={colors.summited} />
+                    </View>
+                    <Text 
+                      className="text-xs uppercase tracking-widest"
+                      style={{ color: colors.mutedForeground }}
+                    >
+                      Crown Jewel
+                    </Text>
                   </View>
-                  <Text 
-                    className="text-xs uppercase tracking-widest"
-                    style={{ color: colors.mutedForeground }}
+                  <View 
+                    className="px-2 py-1 rounded"
+                    style={{ backgroundColor: `${colors.summited}15` }}
                   >
-                    Crown Jewel
-                  </Text>
+                    <Text 
+                      className="text-[10px] uppercase tracking-wide"
+                      style={{ color: colors.summited }}
+                    >
+                      Highest
+                    </Text>
+                  </View>
                 </View>
-                <View 
-                  className="px-2 py-1 rounded"
-                  style={{ backgroundColor: `${colors.summited}15` }}
+                
+                {/* Peak info */}
+                <Text 
+                  className="text-2xl font-semibold"
+                  style={{ color: colors.foreground }}
+                  numberOfLines={1}
                 >
+                  {stats.highestPeak.name}
+                </Text>
+                
+                <View className="flex-row items-baseline gap-1 mt-1">
                   <Text 
-                    className="text-[10px] uppercase tracking-wide"
+                    className="text-3xl font-bold"
                     style={{ color: colors.summited }}
                   >
-                    Highest
+                    {getElevationString(stats.highestPeak.elevation, 'imperial').replace(' ft', '')}
+                  </Text>
+                  <Text 
+                    className="text-sm"
+                    style={{ color: colors.mutedForeground }}
+                  >
+                    ft
                   </Text>
                 </View>
               </View>
-              
-              {/* Peak info */}
-              <Text 
-                className="text-2xl font-semibold"
-                style={{ color: colors.foreground }}
-                numberOfLines={1}
-              >
-                {stats.highestPeak.name}
-              </Text>
-              
-              <View className="flex-row items-baseline gap-1 mt-1">
-                <Text 
-                  className="text-3xl font-bold"
-                  style={{ color: colors.summited }}
-                >
-                  {getElevationString(stats.highestPeak.elevation, 'imperial').replace(' ft', '')}
-                </Text>
-                <Text 
-                  className="text-sm"
-                  style={{ color: colors.mutedForeground }}
-                >
-                  ft
-                </Text>
-              </View>
-            </View>
-          </CardFrame>
+            </CardFrame>
+          </TouchableOpacity>
         </Animated.View>
       )}
 

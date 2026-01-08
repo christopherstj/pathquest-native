@@ -496,13 +496,13 @@ When building a new card/component, ensure:
 | 4 | Peak Detail | Preview | Partial | Tap floating card "Details" |
 | 5 | Challenge Detail | Preview | Partial | Tap floating card "Details" |
 | 6 | Compass View | No | No | Tap bearing in Peak Detail |
-| 7 | Add Report Modal | No | Yes | Hero card CTA, Peak Detail |
+| 7 | Add Report Modal | No | ✅ Yes | Hero card CTA, Peak Detail (✅ **IMPLEMENTED**) |
 | 8 | Manual Summit Entry | No | Yes | You tab action |
 | 9 | Home - Dashboard | No | Yes | Home tab |
 | 10 | You - List Mode | No | Yes | You tab (default) |
 | 11 | You - Map Mode | Yes | Yes | Toggle from list mode |
 | 12 | Login Prompt | No | N/A | Any auth-gated action |
-| 13 | Settings | No | Yes | You tab header |
+| 13 | Settings | No | ✅ Yes | You tab header (✅ **IMPLEMENTED**) |
 | 14 | Onboarding | No | No | First launch only |
 | 15 | Email Signup | No | No | Auth flow (Phase 6) |
 | 16 | Email Verification | No | No | Email signup flow (Phase 6) |
@@ -809,13 +809,35 @@ COLLAPSED HEADER (scrolled up)
 └─────────────────────────────────────────────┘
 ```
 
-#### Community Tab
+#### Community Tab ✅ **PHOTOS GALLERY IMPLEMENTED**
+
+**Implementation Status:** ✅ Photo Gallery Complete
+- **Component:** `src/components/explore/PeakPhotosGallery.tsx`
+- **Integration:** Used in `PeakDetailCommunityTab.tsx`
+- **Features Implemented:**
+  - ✅ 3-column photo grid layout
+  - ✅ Fullscreen photo viewer modal
+  - ✅ Swipe navigation between photos
+  - ✅ Photo metadata display (photographer, date)
+  - ✅ Empty state with call-to-action
+  - ✅ Loading states
+  - ✅ Uses `GET /api/peaks/:id/photos` endpoint
+
 ```
 ┌─────────────────────────────────────────────┐
 │  42 people have summited this peak          │
 ├─────────────────────────────────────────────┤
 │  [Recent]  [Top Rated]  [Photos]            │
 ├─────────────────────────────────────────────┤
+│ ┌─────────────────────────────────────────┐ │
+│ │ 📷 Photos (12)                           │ │
+│ │ ┌─────┐┌─────┐┌─────┐                   │ │
+│ │ │ 📷  ││ 📷  ││ 📷  │                   │ │
+│ │ └─────┘└─────┘└─────┘                   │ │
+│ │ ┌─────┐┌─────┐┌─────┐                   │ │
+│ │ │ 📷  ││ 📷  ││ 📷  │                   │ │
+│ │ └─────┘└─────┘└─────┘                   │ │
+│ └─────────────────────────────────────────┘ │
 │ ┌─────────────────────────────────────────┐ │
 │ │ @hiker42 · Dec 27, 2024                 │ │
 │ │ ★★★★☆ · Hard · 🧊 Icy                   │ │
@@ -984,9 +1006,26 @@ Full-screen compass pointing toward the selected peak.
 
 ---
 
-### 7. Add Report Modal
+### 7. Add Report Modal ✅ **IMPLEMENTED**
 
 Camera-first, minimal-friction trip report entry.
+
+**Implementation Status:** ✅ Complete
+- **Component:** `src/components/modals/AddReportModal.tsx`
+- **Store:** `src/store/addReportStore.ts` (Zustand state management)
+- **Integration:** Global modal rendered in `app/_layout.tsx`
+- **Features Implemented:**
+  - ✅ Camera-first photo capture with `expo-image-picker`
+  - ✅ Photo upload with progress tracking (GCS signed URLs)
+  - ✅ Condition tags (multi-select with emoji chips)
+  - ✅ Difficulty picker (single-select: Easy/Moderate/Hard/Expert)
+  - ✅ Experience rating (single-select: Amazing/Good/Tough/Epic)
+  - ✅ Notes field (collapsible, expandable textarea)
+  - ✅ Custom tags (user-defined text tags)
+  - ✅ Photo grid with upload progress indicators
+  - ✅ Photo removal and caption editing
+  - ✅ Form submission to `PUT /api/ascents/:id` endpoint
+  - ✅ Query invalidation on successful submission
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -1037,12 +1076,12 @@ Camera-first, minimal-friction trip report entry.
 ```
 
 **Behavior:**
-- Photo area: tap opens camera directly (not file picker)
-- Condition tags: multi-select
-- Difficulty: single-select
-- Experience: single-select
-- Notes: collapsed by default, tap to expand
-- Offline: queues submission, syncs when online
+- ✅ Photo area: tap opens camera directly (not file picker) - **Implemented**
+- ✅ Condition tags: multi-select - **Implemented**
+- ✅ Difficulty: single-select - **Implemented**
+- ✅ Experience: single-select - **Implemented**
+- ✅ Notes: collapsed by default, tap to expand - **Implemented**
+- ⏳ Offline: queues submission, syncs when online - **Pending (Phase 5)**
 
 ---
 
@@ -1587,12 +1626,16 @@ pathquest/
         PeaksContent.tsx          ✅ List of summited peaks
         JournalContent.tsx        ✅ Trip reports list
         ChallengesContent.tsx     ✅ Challenge progress list
+        ReviewContent.tsx         ⬜ Summit review tab (unconfirmed summits with confirm/deny actions)
         ProfileMapView.tsx        ⬜ Map of user's peaks (map mode toggle pending)
       
+      dashboard/ (Home tab)
+        UnconfirmedSummitsCard.tsx ⬜ Dashboard card showing up to 3 unconfirmed summits (amber warning style)
+      
       modals/
-        AddReportModal.tsx        ⬜ Trip report entry
-        ManualSummitModal.tsx     ⬜ Manual summit logging
-        LoginPrompt.tsx           ⬜ Auth prompt modal
+        AddReportModal.tsx        ✅ Trip report entry (camera-first, condition tags, difficulty/experience, notes, custom tags)
+        ManualSummitModal.tsx     ✅ Manual summit logging (peak search, activity linking, date/time picker, difficulty/experience, notes)
+        LoginPrompt.tsx           ⬜ Auth prompt modal (pending - needed for auth-gated actions)
       
       auth/ (Phase 6)
         EmailSignupScreen.tsx     ⬜ Email signup form
@@ -2221,6 +2264,10 @@ Photos captured offline are stored locally:
 - ✅ Phase 2.5: Compass View (full-screen compass with magnetometer integration)
 - ✅ Phase 2.9: Challenge Detail (complete redesign with hero card, Progress/Peaks tabs, animations, "Show on Map")
 - ✅ Phase 3: Home Dashboard + You Tab data fetching
+- ✅ Phase 4: Actions + Modals + User Settings
+  - ✅ Add Report Modal (camera-first photo capture, condition tags, difficulty/experience ratings, notes, custom tags)
+  - ✅ Settings Screen (account info, units preference, privacy toggles, sign out, delete account)
+  - ✅ Manual Summit Entry (peak search, activity linking with elevation profile, date/time picker with timezone, difficulty/experience ratings, trip notes)
 - ✅ Visual Design System (all primitives and theme)
 - ✅ Icon migration (FontAwesome → Lucide icons)
 - ✅ Typography system (Text/Value components)
@@ -2264,9 +2311,17 @@ Photos captured offline are stored locally:
 **Pending:**
 - ⏳ Phase 3: You tab map mode toggle
 - ⏳ Phase 3.5: User Profile & Challenge Progress Pages (User Detail, User Challenge Progress) + Improve Search Bar Functionality
-- ⏳ Phase 3.9: Photo Infrastructure (Backend)
-- ⏳ Phase 4: Actions + Modals + User Settings (Add Report, Manual Summit, Login Prompt, Settings Page)
+- ⏳ Phase 3.9: Photo Infrastructure (Backend) - **Photo upload/gallery frontend ✅ IMPLEMENTED**
+- ✅ Phase 4: Actions + Modals + User Settings
+  - ✅ Add Report Modal - **IMPLEMENTED**
+  - ✅ Settings Page - **IMPLEMENTED**
+  - ✅ Manual Summit Entry - **IMPLEMENTED** (peak search, activity linking, date/time picker, difficulty/experience ratings, trip notes)
+  - ⏳ Login Prompt - **Pending** (auth-gated actions need login prompts)
 - ⏳ Phase 5: Polish + Offline
+  - ⏳ Offline queue for reports
+  - ⏳ TanStack Query persistence
+  - ⏳ Onboarding flow
+  - ⏳ Push notification setup
 - ⏳ Phase 6: Auth & Data Integrations (Multiple OAuth providers, Email signup, Fitness device integrations)
 - ⏳ Phase 7: Premium Features (Subscription system, Proactive alerts, Map overlays)
 
@@ -2625,22 +2680,61 @@ Build out user profile and challenge progress detail pages, following the same d
 - Add `sharp` for server-side image processing
 - Test signed URL upload flow
 
-### Phase 4: Actions + Modals + User Settings
+### ✅ Phase 4: Actions + Modals + User Settings (COMPLETED)
 
-**Add Report Modal:**
-- Trip report entry form with camera integration
-- Photo capture + upload flow
-- Condition tags selection
+**Add Report Modal:** ✅ **IMPLEMENTED**
+- ✅ Trip report entry form with camera integration (`AddReportModal.tsx`)
+- ✅ Photo capture + upload flow (GCS signed URLs with progress tracking)
+- ✅ Condition tags selection (multi-select with emoji chips)
+- ✅ Difficulty picker (single-select: Easy/Moderate/Hard/Expert)
+- ✅ Experience rating (single-select: Amazing/Good/Tough/Epic)
+- ✅ Notes field (collapsible, expandable textarea)
+- ✅ Custom tags (user-defined text tags)
+- ✅ Form submission to `PUT /api/ascents/:id` endpoint
+
+**Settings Screen:** ✅ **IMPLEMENTED**
+- ✅ Account info display
+- ✅ Units preference (metric/imperial)
+- ✅ Privacy toggles (public/private profile)
+- ✅ Sign out functionality
+- ✅ Delete account functionality
+
+**Manual Summit Entry:** ✅ **IMPLEMENTED**
+- ✅ Component: `ManualSummitModal.tsx` (fully implemented)
+- ✅ Store: `manualSummitStore.ts` (Zustand state management)
+- ✅ Peak search functionality (when opened from Profile tab)
+- ✅ Pre-selected peak display (when opened from Peak Detail)
+- ✅ Optional activity linking with nearby activity search
+- ✅ Elevation profile selector (tap to set summit time)
+- ✅ Date/time picker with auto-detected timezone (via API)
+- ✅ Difficulty + experience rating grids
+- ✅ Trip notes field
+- ✅ Integration: Wired into Profile tab and Peak Detail "Your Logs" tab
+- ✅ Difficulty picker (single-select: Easy/Moderate/Hard/Expert)
+- ✅ Experience rating (single-select: Amazing/Good/Tough/Epic)
+- ✅ Notes field (collapsible textarea)
+- ✅ Custom tags (user-defined text tags)
+- ✅ Photo grid with upload progress and removal
+- ✅ Form submission to `PUT /api/ascents/:id` endpoint
+- ✅ State management via `addReportStore` (Zustand)
 - Optional notes field
 - Weather data pre-population
 - Submit with offline queue support
 
-**Manual Summit Entry:**
-- Manual summit logging form
-- Date picker for summit date
-- Peak selection/search
-- Optional notes and conditions
-- Photo upload support
+**Manual Summit Entry:** ✅ **IMPLEMENTED**
+- ✅ Component: `ManualSummitModal.tsx` (fully implemented, ~1200 lines)
+- ✅ Store: `manualSummitStore.ts` (Zustand state management)
+- ✅ Peak search functionality (when opened from Profile tab without pre-selection)
+- ✅ Pre-selected peak display (when opened from Peak Detail "Your Logs" tab)
+- ✅ Optional activity linking with nearby activity search
+- ✅ Elevation profile selector (tap to set summit time from activity)
+- ✅ Date/time picker with auto-detected timezone (via `/api/utils/timezone` endpoint)
+- ✅ Difficulty rating grid (Easy/Moderate/Hard/Expert)
+- ✅ Experience rating grid (Amazing/Good/Tough/Epic)
+- ✅ Trip notes field (expandable textarea)
+- ✅ Integration: Wired into Profile tab header and Peak Detail "Your Logs" tab
+- ✅ Form submission to `POST /api/peaks/summits/manual` endpoint
+- ✅ Query invalidation on successful submission
 
 **Login Prompt:**
 - Modal for auth-gated actions
@@ -2648,39 +2742,289 @@ Build out user profile and challenge progress detail pages, following the same d
 - Quick login flow (Strava OAuth)
 - Dismissible with graceful degradation
 
-**User Settings Page:**
-- **Profile Settings:**
-  - Edit profile picture/avatar
-  - Update display name
-  - Edit location (city, state, country)
-  - Privacy settings (public/private profile)
-- **Account Settings:**
-  - Email preferences
-  - Notification settings
-  - Connected accounts (Strava)
-  - Account deletion
-- **App Settings:**
-  - Theme preference (light/dark/auto)
-  - Units (imperial/metric)
-  - Map preferences (default zoom, map style)
-  - Location permissions management
-- **Data & Privacy:**
-  - Export user data
-  - Privacy policy link
-  - Terms of service link
-  - Data deletion options
-- **About:**
-  - App version
-  - Credits/attributions
-  - Support/contact information
-- Navigation: Accessible from You tab header (gear icon)
-- Consistent with app design system (CardFrame, topo patterns)
+**User Settings Page:** ✅ **IMPLEMENTED**
+- **Component:** `src/components/settings/SettingsScreen.tsx`
+- **Route:** `app/settings.tsx` (modal presentation)
+- **Profile Settings:** ✅ **IMPLEMENTED**
+  - ✅ User avatar display (via `UserAvatar` component)
+  - ✅ Display name display (read-only, from Strava)
+  - ✅ Location display (city, state, country - read-only, from Strava)
+  - ✅ Privacy settings (public/private profile toggle)
+- **Account Settings:** ✅ **PARTIALLY IMPLEMENTED**
+  - ⏳ Email preferences - **Pending**
+  - ⏳ Notification settings - **Pending**
+  - ⏳ Connected accounts (Strava) - **Pending**
+  - ✅ Account deletion (with confirmation dialog)
+- **App Settings:** ✅ **PARTIALLY IMPLEMENTED**
+  - ⏳ Theme preference (light/dark/auto) - **Pending** (currently follows system)
+  - ✅ Units (imperial/metric) - **IMPLEMENTED**
+  - ⏳ Map preferences (default zoom, map style) - **Pending**
+  - ⏳ Location permissions management - **Pending**
+- **Data & Privacy:** ✅ **PARTIALLY IMPLEMENTED**
+  - ⏳ Export user data - **Pending**
+  - ✅ Privacy policy link - **IMPLEMENTED**
+  - ✅ Terms of service link - **IMPLEMENTED**
+  - ✅ Data deletion options (delete account) - **IMPLEMENTED**
+- **About:** ✅ **IMPLEMENTED**
+  - ✅ App version display
+  - ⏳ Credits/attributions - **Pending**
+  - ⏳ Support/contact information - **Pending**
+- ✅ Navigation: Accessible from You tab header (gear icon) - **IMPLEMENTED**
+- ✅ Consistent with app design system (CardFrame, topo patterns) - **IMPLEMENTED**
+- ✅ Sign Out button with confirmation - **IMPLEMENTED**
 
-### Phase 5: Polish + Offline
-- Offline queue for reports + photos
-- TanStack Query persistence
-- Onboarding flow
-- Push notification setup
+### ⏳ Phase 4.5: Summit Review (Low-Confidence Summit Confirmation)
+
+**Status:** ⏳ **PENDING** - Feature exists in web app, needs native implementation
+
+**Overview:**
+The backend automatically detects peak summits from Strava activities using a confidence scoring system. Summits with low confidence scores (`confidence_score < 0.45`) are marked as `unconfirmed` and require user review before being counted in stats and challenge progress.
+
+**Confirmation Status Values:**
+- `auto_confirmed` - High confidence (confidence_score >= 0.55), automatically accepted
+- `unconfirmed` - Low confidence (confidence_score < 0.45), needs user review
+- `user_confirmed` - User manually confirmed a low-confidence summit
+- `denied` - User rejected a summit (kept for audit, excluded from all counts)
+
+**Backend API Endpoints (Already Implemented):**
+- `GET /api/peaks/summits/unconfirmed` - Fetch unconfirmed summits (optional `limit` query param)
+- `POST /api/peaks/summits/:id/confirm` - Confirm a single summit
+- `POST /api/peaks/summits/:id/deny` - Deny a single summit
+- `POST /api/peaks/summits/confirm-all` - Bulk confirm all unconfirmed summits
+
+**Data Structure (`UnconfirmedSummit` from `@pathquest/shared/types`):**
+```typescript
+interface UnconfirmedSummit {
+  id: string;                    // Summit ID (activities_peaks.id)
+  peakId: string;                // Peak OSM ID
+  peakName: string;              // Peak name
+  peakElevation: number;         // Peak elevation in meters
+  activityId: string;             // Strava activity ID (for viewing activity)
+  timestamp: string;             // Summit timestamp (ISO string)
+  distanceFromPeak: number;      // Distance from peak in meters (currently 0 in backend)
+  confidenceScore: number;       // Detection confidence score (0.0-1.0)
+}
+```
+
+**Implementation Requirements:**
+
+#### 1. Dashboard Card (`UnconfirmedSummitsCard`)
+
+**Component:** `src/components/home/UnconfirmedSummitsCard.tsx`
+
+**Purpose:** Show up to 3 unconfirmed summits on Home dashboard with quick confirm/deny actions.
+
+**Features:**
+- Amber-themed card (warning/attention styling)
+- Shows count: "X summit(s) need review"
+- List of up to 3 summits with:
+  - Peak name + elevation
+  - Time ago (e.g., "2 days ago")
+  - Inline confirm (✓) and deny (✗) buttons
+  - "View Activity" link (navigates to Activity Detail)
+- "View all X in Profile" footer link (if more than 3)
+- Optimistic updates (remove from list immediately on action)
+- Loading states per summit during processing
+- Auto-dismisses when all summits reviewed
+
+**Styling:**
+- Amber/rust accent color (`colors.secondary` or custom amber)
+- Border: `border-amber-500/30`
+- Background: `bg-amber-500/10`
+- Confirm button: Green (`bg-green-500/20`, `text-green-400`)
+- Deny button: Red (`bg-red-500/20`, `text-red-400`)
+
+**Integration:**
+- Add to `DashboardContent.tsx` below `TripReportCTA`
+- Fetch via `useUnconfirmedSummits` hook (limit: 3)
+- Query key: `["unconfirmedSummits", "dashboard"]`
+
+#### 2. Profile Review Tab (`ReviewContent`)
+
+**Component:** `src/components/profile/ReviewContent.tsx`
+
+**Purpose:** Full-screen review interface showing all unconfirmed summits.
+
+**Features:**
+- Header with count: "X summit(s) to review"
+- "Confirm All" button (bulk action)
+- List of all unconfirmed summits with:
+  - Peak name + elevation
+  - Date formatted (e.g., "Dec 15, 2024")
+  - Confidence score display (optional, for transparency)
+  - Confirm (✓) and deny (✗) buttons
+  - "View Activity" link
+- Empty state: "All caught up! No summits need review right now."
+- Refresh button at bottom
+- Optimistic updates (remove from list immediately)
+- Loading skeleton during initial fetch
+
+**Styling:**
+- Uses `CardFrame` for each summit card
+- Consistent with other Profile tabs
+- Amber accent for warning/attention theme
+
+**Integration:**
+- Add "Review" tab to Profile tab switcher (`ProfileContent.tsx`)
+- Fetch via `useUnconfirmedSummits` hook (no limit)
+- Query key: `["unconfirmedSummits", "all"]`
+- Tab shows badge with count when unconfirmed summits exist
+
+#### 3. Data Fetching Hook (`useUnconfirmedSummits`)
+
+**Hook:** `src/hooks/useUnconfirmedSummits.ts`
+
+**Purpose:** Fetch unconfirmed summits with TanStack Query.
+
+**Implementation:**
+```typescript
+export function useUnconfirmedSummits(limit?: number) {
+  const client = useApiClient();
+  
+  return useQuery({
+    queryKey: ["unconfirmedSummits", limit ? "dashboard" : "all"],
+    queryFn: async () => {
+      // Need to add endpoint to shared package first
+      return await endpoints.getUnconfirmedSummits(client, { limit });
+    },
+    enabled: !!client, // Only fetch when authenticated
+    staleTime: 30000, // 30 seconds
+  });
+}
+```
+
+**Note:** Need to add `getUnconfirmedSummits` endpoint wrapper to `@pathquest/shared/api/endpoints/peaks.ts`
+
+#### 4. Action Hooks (`useConfirmSummit`, `useDenySummit`, `useConfirmAllSummits`)
+
+**Hooks:** `src/hooks/useSummitReview.ts`
+
+**Purpose:** Mutations for confirming/denying summits with optimistic updates.
+
+**Implementation:**
+- Use TanStack Query `useMutation`
+- Optimistic updates (remove from cache immediately)
+- Invalidate related queries:
+  - `["unconfirmedSummits"]`
+  - `["dashboardStats"]`
+  - `["recentSummits"]`
+  - `["profileStats"]`
+- Error handling with toast notifications
+
+**Note:** Need to add endpoint wrappers to `@pathquest/shared/api/endpoints/peaks.ts`:
+- `confirmSummit(client, { summitId })`
+- `denySummit(client, { summitId })`
+- `confirmAllSummits(client)`
+
+#### 5. UI Components Needed
+
+**New Components:**
+- `UnconfirmedSummitsCard.tsx` - Dashboard card (similar to web app)
+- `ReviewContent.tsx` - Profile Review tab content
+- `UnconfirmedSummitRow.tsx` - Reusable row component for summit list items
+
+**Shared Components (Reuse):**
+- `CardFrame` - For summit cards
+- `PrimaryCTA` / `SecondaryCTA` - For action buttons
+- `EmptyState` - For empty state
+- `Skeleton` - For loading states
+
+#### 6. Navigation Updates
+
+**Profile Tab:**
+- Add "Review" tab to `ProfileContent` tab switcher
+- Show badge with unconfirmed count on Review tab label
+- Tab order: Stats, Peaks, Journal, Challenges, **Review**
+
+**Activity Detail:**
+- If viewing an activity with unconfirmed summits, show indicator
+- Link from Review tab "View Activity" navigates to Activity Detail
+
+#### 7. User Experience Flow
+
+**Discovery:**
+1. User sees amber card on Home dashboard: "3 summits need review"
+2. Quick actions: Confirm/Deny inline, or "View all in Profile"
+
+**Review:**
+1. User taps "View all" or navigates to Profile → Review tab
+2. Sees full list of unconfirmed summits
+3. Can:
+   - Confirm individual summits (✓)
+   - Deny individual summits (✗)
+   - "Confirm All" bulk action
+   - View activity to verify GPS track
+4. Summits disappear from list immediately (optimistic update)
+5. Stats update automatically after confirmation
+
+**Empty State:**
+- When no unconfirmed summits: "All caught up! No summits need review right now."
+- Dashboard card doesn't render when empty
+
+#### 8. Implementation Checklist
+
+**Backend (Shared Package):**
+- [ ] Add `getUnconfirmedSummits` endpoint wrapper to `@pathquest/shared/api/endpoints/peaks.ts`
+- [ ] Add `confirmSummit` endpoint wrapper
+- [ ] Add `denySummit` endpoint wrapper
+- [ ] Add `confirmAllSummits` endpoint wrapper
+- [ ] Export `UnconfirmedSummit` type from shared types (already exists)
+
+**Frontend (Native App):**
+- [ ] Create `useUnconfirmedSummits` hook
+- [ ] Create `useSummitReview` hooks (confirm, deny, confirmAll)
+- [ ] Create `UnconfirmedSummitsCard` component
+- [ ] Create `ReviewContent` component
+- [ ] Create `UnconfirmedSummitRow` component (optional, for reusability)
+- [ ] Add Review tab to Profile tab switcher
+- [ ] Integrate dashboard card into `DashboardContent`
+- [ ] Add badge count to Review tab label
+- [ ] Add navigation from Review tab to Activity Detail
+- [ ] Test optimistic updates and error handling
+- [ ] Test empty states
+- [ ] Test bulk "Confirm All" action
+
+**Design Considerations:**
+- Amber/rust color theme for warning/attention (matches web app)
+- Clear, simple actions (confirm/deny buttons)
+- "View Activity" link for verification context
+- Optimistic updates for snappy UX
+- Empty state messaging is encouraging ("All caught up!")
+
+**Priority:** High - This is a core feature for data quality and user trust. Users need to review low-confidence detections to ensure accurate stats and challenge progress.
+
+### ⏳ Phase 5: Polish + Offline (NEXT)
+
+**Priority Order:**
+1. **Login Prompt Modal** (quick win, improves UX for auth-gated actions)
+   - Create `LoginPrompt.tsx` component
+   - Show when user tries to favorite, add report, or log manual summit without auth
+   - Clear messaging about why auth is needed
+   - Quick login flow (Strava OAuth)
+   - Dismissible with graceful degradation
+
+2. **Onboarding Flow** (first-time user experience)
+   - Welcome screens explaining key features
+   - Location permission request with context
+   - Strava connection prompt
+   - Quick tutorial on core features (map, explore, logging)
+
+3. **Offline Queue for Reports** (core functionality)
+   - Queue trip reports and manual summits when offline
+   - Store form data + photos locally (AsyncStorage/FileSystem)
+   - Sync queue when connectivity restored
+   - Show "pending upload" indicators
+
+4. **TanStack Query Persistence** (performance)
+   - Persist query cache to AsyncStorage
+   - Restore cache on app launch
+   - Reduce loading times for frequently accessed data
+
+5. **Push Notification Setup** (engagement)
+   - Expo Push Notifications integration
+   - Register device tokens with backend
+   - Notification preferences in Settings
+   - Basic notifications (challenge progress, new reports on favorited peaks)
 
 ### Phase 6: Auth & Data Integrations
 

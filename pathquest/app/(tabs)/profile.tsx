@@ -10,13 +10,14 @@ import { View, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useIsFetching } from '@tanstack/react-query';
-import { LogOut, LogIn, UserCircle, MapPin, Map } from 'lucide-react-native';
+import { Settings, LogIn, UserCircle, MapPin, Map, Plus } from 'lucide-react-native';
 import { ProfileContent } from '@/src/components/profile';
 import { RefreshBar } from '@/src/components/shared';
 import { Text } from '@/src/components/ui';
 import { UserAvatar } from "@/src/components/shared";
 import { useAuthStore } from '@/src/lib/auth';
 import { startStravaAuth } from '@/src/lib/auth/strava';
+import { useManualSummitStore } from '@/src/store';
 import type { Peak, ChallengeProgress } from '@pathquest/shared';
 
 const BACKGROUND_COLOR = '#25221E';
@@ -27,7 +28,6 @@ export default function ProfileRoute() {
   
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.logout);
   
   // Hooks must be called unconditionally (before any early returns)
   const isFetchingProfile = useIsFetching({ queryKey: ['userProfile'] }) > 0;
@@ -44,8 +44,8 @@ export default function ProfileRoute() {
     await startStravaAuth();
   };
   
-  const handleLogout = async () => {
-    await logout();
+  const handleOpenSettings = () => {
+    router.push('/settings');
   };
   
   const handlePeakPress = (peakId: string) => {
@@ -68,6 +68,13 @@ export default function ProfileRoute() {
       pathname: '/explore/users/[userId]',
       params: { userId: user.id },
     });
+  };
+  
+  const openManualSummit = useManualSummitStore((s) => s.openManualSummit);
+  
+  const handleLogManualSummit = () => {
+    // Open modal without pre-selected peak - user will search
+    openManualSummit();
   };
   
   // Not authenticated - show login prompt
@@ -198,18 +205,32 @@ export default function ProfileRoute() {
           </View>
         </View>
         
-        <TouchableOpacity 
-          className="p-2.5 rounded-lg"
-          style={{ 
-            backgroundColor: 'rgba(169, 161, 150, 0.1)',
-            borderWidth: 1,
-            borderColor: 'rgba(69, 65, 60, 0.5)',
-          }}
-          onPress={handleLogout}
-          activeOpacity={0.7}
-        >
-          <LogOut size={16} color="#A9A196" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <TouchableOpacity 
+            className="p-2.5 rounded-lg"
+            style={{ 
+              backgroundColor: 'rgba(91, 145, 103, 0.15)',
+              borderWidth: 1,
+              borderColor: 'rgba(91, 145, 103, 0.3)',
+            }}
+            onPress={handleLogManualSummit}
+            activeOpacity={0.7}
+          >
+            <Plus size={16} color="#5B9167" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            className="p-2.5 rounded-lg"
+            style={{ 
+              backgroundColor: 'rgba(169, 161, 150, 0.1)',
+              borderWidth: 1,
+              borderColor: 'rgba(69, 65, 60, 0.5)',
+            }}
+            onPress={handleOpenSettings}
+            activeOpacity={0.7}
+          >
+            <Settings size={16} color="#A9A196" />
+          </TouchableOpacity>
+        </View>
       </View>
       
       <ProfileContent 

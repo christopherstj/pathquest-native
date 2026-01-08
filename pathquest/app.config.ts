@@ -16,6 +16,10 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     (p) => (Array.isArray(p) ? p[0] : p) === "@rnmapbox/maps"
   );
 
+  const hasDateTimePickerPlugin = pluginsArr.some(
+    (p) => (Array.isArray(p) ? p[0] : p) === "@react-native-community/datetimepicker"
+  );
+
   if (!process.env.RNMAPBOX_MAPS_DOWNLOAD_TOKEN) {
     // Helpful when running locally. EAS builds should provide this via `eas secret`.
     // We intentionally do NOT throw here so local non-map flows can still run.
@@ -26,9 +30,18 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     );
   }
 
+  // Build final plugins array
+  let finalPlugins = pluginsArr;
+  if (!hasRnMapboxPlugin) {
+    finalPlugins = [...finalPlugins, "@rnmapbox/maps"];
+  }
+  if (!hasDateTimePickerPlugin) {
+    finalPlugins = [...finalPlugins, "@react-native-community/datetimepicker"];
+  }
+
   return {
     ...base,
-    plugins: hasRnMapboxPlugin ? pluginsArr : [...pluginsArr, "@rnmapbox/maps"],
+    plugins: finalPlugins,
   } as ExpoConfig;
 };
 

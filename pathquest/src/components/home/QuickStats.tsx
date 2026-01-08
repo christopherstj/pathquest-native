@@ -10,10 +10,10 @@
  */
 
 import React from 'react';
-import { View } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { Flag, TrendingUp, Trophy } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
-import { Text } from '@/src/components/ui';
+import { Text, SkeletonStats, AnimatedPressable } from '@/src/components/ui';
 import { useTheme } from '@/src/theme';
 import CardFrame from '@/src/components/ui/CardFrame';
 
@@ -29,6 +29,8 @@ interface QuickStatsProps {
   totalElevation?: number; // in meters
   primaryChallenge?: ChallengeProgress | null;
   isLoading?: boolean;
+  /** Called when the challenge stat card is pressed */
+  onChallengePress?: (challengeId: number) => void;
 }
 
 interface StatCardProps {
@@ -37,6 +39,7 @@ interface StatCardProps {
   label: string;
   accentColor: string;
   flex?: number;
+  onPress?: () => void;
 }
 
 const StatCard: React.FC<StatCardProps> = ({ 
@@ -45,17 +48,18 @@ const StatCard: React.FC<StatCardProps> = ({
   label, 
   accentColor,
   flex = 1,
+  onPress,
 }) => {
   const { colors, isDark } = useTheme();
 
-  return (
+  const content = (
     <CardFrame
       variant="default"
       topo="corner"
       ridge="none"
       accentColor={accentColor}
       seed={`quickstats:${label}`}
-      style={{ flex }}
+      style={{ flex: onPress ? undefined : 1 }}
     >
       <View className="p-3">
         {/* Icon with muted accent background */}
@@ -95,6 +99,16 @@ const StatCard: React.FC<StatCardProps> = ({
       />
     </CardFrame>
   );
+
+  if (onPress) {
+    return (
+      <AnimatedPressable onPress={onPress} style={{ flex }} haptic="selection">
+        {content}
+      </AnimatedPressable>
+    );
+  }
+
+  return <View style={{ flex }}>{content}</View>;
 };
 
 const QuickStats: React.FC<QuickStatsProps> = ({
@@ -102,6 +116,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({
   totalElevation = 0, // elevation comes in as METERS
   primaryChallenge,
   isLoading = false,
+  onChallengePress,
 }) => {
   // Convert meters to feet (1 meter = 3.28084 feet)
   const elevationInFeet = Math.round(totalElevation * 3.28084);
@@ -124,22 +139,11 @@ const QuickStats: React.FC<QuickStatsProps> = ({
     : 'Challenge';
 
   if (isLoading) {
-    return (
-      <View className="flex-row gap-3">
-        {[1, 2, 3].map((i) => (
-          <CardFrame
-            key={i}
-            variant="default"
-            topo="corner"
-            ridge="none"
-            seed={`quickstats:skeleton:${i}`}
-            style={{ flex: 1, height: 96, opacity: 0.6 }}
-          />
-        ))}
-      </View>
-    );
+    return <SkeletonStats count={3} />;
   }
 
+  const { colors } = useTheme();
+  
   return (
     <View className="flex-row gap-3">
       {/* Total Peaks - Forest Green */}
@@ -147,7 +151,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({
         Icon={Flag}
         value={totalPeaks} 
         label="Peaks"
-        accentColor="#5B9167"
+        accentColor={colors.statForest}
       />
       
       {/* Total Elevation - Trail Brown */}
@@ -155,7 +159,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({
         Icon={TrendingUp}
         value={elevationStr} 
         label="Gained"
-        accentColor="#8B7355"
+        accentColor={colors.statTrail}
       />
       
       {/* Closest Challenge - Rust */}
@@ -163,7 +167,11 @@ const QuickStats: React.FC<QuickStatsProps> = ({
         Icon={Trophy}
         value={challengeValue}
         label={challengeName}
-        accentColor="#C9A66B"
+        accentColor={colors.statGold}
+        onPress={primaryChallenge && onChallengePress 
+          ? () => onChallengePress(primaryChallenge.challengeId) 
+          : undefined
+        }
       />
     </View>
   );

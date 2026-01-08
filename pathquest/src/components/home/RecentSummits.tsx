@@ -9,6 +9,7 @@ import { View, TouchableOpacity } from 'react-native';
 import { Flag, Pencil, ChevronRight } from 'lucide-react-native';
 import { getElevationString } from '@pathquest/shared';
 import { Text } from '@/src/components/ui';
+import { useTheme } from '@/src/theme';
 
 interface Summit {
   id: string;
@@ -33,6 +34,8 @@ interface SummitItemProps {
 }
 
 const SummitItem: React.FC<SummitItemProps> = ({ summit, onPress }) => {
+  const { colors } = useTheme();
+  
   // Format date
   const date = new Date(summit.timestamp);
   const dateStr = date.toLocaleDateString('en-US', { 
@@ -80,11 +83,11 @@ const SummitItem: React.FC<SummitItemProps> = ({ summit, onPress }) => {
 
       {!summit.hasReport && (
         <View className="bg-primary/15 px-2 py-1 rounded-xl mr-2">
-          <Pencil size={10} color="#5B9167" />
+          <Pencil size={10} color={colors.statForest} />
         </View>
       )}
       
-      <ChevronRight size={12} color="#A9A196" />
+      <ChevronRight size={12} color={colors.statMuted} />
     </TouchableOpacity>
   );
 };

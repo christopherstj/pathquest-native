@@ -43,4 +43,25 @@ export function metersToFeet(m: number) {
   return m * 3.28084;
 }
 
+/**
+ * Format location parts into a display string.
+ * @param parts Object containing optional city, state, county, country
+ * @param options.includeCounty Whether to include county in the output (default: false)
+ * @returns Formatted location string, e.g. "Boulder, Colorado, United States"
+ */
+export function formatLocationString(
+  parts: { 
+    city?: string | null; 
+    state?: string | null; 
+    county?: string | null; 
+    country?: string | null;
+  },
+  options?: { includeCounty?: boolean }
+): string {
+  const { city, state, county, country } = parts;
+  const arr = options?.includeCounty 
+    ? [city, county, state, country] 
+    : [city, state, country];
+  return arr.filter(Boolean).join(', ') || 'Unknown location';
+}
 

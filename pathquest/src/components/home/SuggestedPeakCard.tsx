@@ -171,7 +171,7 @@ const SuggestedPeakCard: React.FC<SuggestedPeakCardProps> = ({
       {/* Peak Info */}
       <TouchableOpacity 
         className="px-4 pt-3 pb-2"
-        onPress={() => onPeakPress?.(suggestedPeak.peak_id)}
+        onPress={() => onPeakPress?.(String(suggestedPeak.peak_id))}
         activeOpacity={0.7}
       >
         <Text style={{ color: colors.foreground }} className="text-2xl font-bold" numberOfLines={1}>
@@ -274,7 +274,7 @@ const SuggestedPeakCard: React.FC<SuggestedPeakCardProps> = ({
       <View className="flex-row px-4 pb-4 gap-3">
         <PrimaryCTA
           label="View Details"
-          onPress={() => onPeakPress?.(suggestedPeak.peak_id)}
+          onPress={() => onPeakPress?.(String(suggestedPeak.peak_id))}
           style={{ flex: 1 }}
         />
 

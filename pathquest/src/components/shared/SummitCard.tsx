@@ -16,7 +16,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { View, TouchableOpacity, Animated } from 'react-native';
+import { View, TouchableOpacity, Animated, Image } from 'react-native';
 import { 
   // Weather icons
   Sun,
@@ -43,12 +43,18 @@ import {
   ChevronUp,
   Tag,
   BookOpen,
+  Camera,
 } from 'lucide-react-native';
 import { getElevationString } from '@pathquest/shared';
 import { Text, CardFrame } from '@/src/components/ui';
 import { useTheme } from '@/src/theme';
 import type { LucideIcon } from 'lucide-react-native';
 import { UserAvatar } from "@/src/components/shared/UserAvatar";
+import { useQuery } from '@tanstack/react-query';
+import type { SummitType } from '@pathquest/shared/types';
+import { endpoints } from '@pathquest/shared/api';
+import { getApiClient } from '@/src/lib/api';
+import { PhotoLightbox } from './PhotoLightbox';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -100,6 +106,10 @@ export interface SummitCardProps {
   delay?: number;
   /** Whether to animate the card entrance */
   animated?: boolean;
+  /** Summit type for fetching photos (required for photo display) */
+  summitType?: SummitType;
+  /** Activity ID (if activity summit, used to determine summitType) */
+  activityId?: string;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -340,6 +350,75 @@ const ConditionTag: React.FC<{ tag: string; color: string; isCustom?: boolean }>
 };
 
 /**
+ * PhotoThumbnailStrip - Horizontal strip of photo thumbnails
+ * Shows as many photos as fit in the available width, then shows "+N" for remaining
+ */
+const THUMBNAIL_SIZE = 40;
+const THUMBNAIL_GAP = 6;
+const MORE_BADGE_WIDTH = 44; // Width of the "+N" badge
+
+const PhotoThumbnailStrip: React.FC<{
+  photos: { id: string; thumbnailUrl: string }[];
+  onPress: () => void;
+  accentColor: string;
+}> = ({ photos, onPress, accentColor }) => {
+  const { colors, isDark } = useTheme();
+  const [containerWidth, setContainerWidth] = useState(0);
+  
+  // Calculate how many thumbnails can fit
+  const maxThumbnails = containerWidth > 0 
+    ? Math.floor((containerWidth - MORE_BADGE_WIDTH) / (THUMBNAIL_SIZE + THUMBNAIL_GAP))
+    : 4; // Default to 4 while measuring
+  
+  const visiblePhotos = photos.slice(0, Math.max(1, maxThumbnails));
+  const remainingCount = photos.length - visiblePhotos.length;
+  
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      style={{ marginTop: 8 }}
+      onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: THUMBNAIL_GAP }}>
+        {visiblePhotos.map((photo, index) => (
+          <Image
+            key={photo.id}
+            source={{ uri: photo.thumbnailUrl }}
+            style={{
+              width: THUMBNAIL_SIZE,
+              height: THUMBNAIL_SIZE,
+              borderRadius: 6,
+              backgroundColor: colors.muted,
+            }}
+            resizeMode="cover"
+          />
+        ))}
+        {remainingCount > 0 && (
+          <View 
+            style={{ 
+              width: THUMBNAIL_SIZE,
+              height: THUMBNAIL_SIZE,
+              borderRadius: 6,
+              backgroundColor: isDark ? `${accentColor}25` : `${accentColor}15`,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text 
+              className="text-[11px] font-semibold" 
+              style={{ color: accentColor }}
+            >
+              +{remainingCount}
+            </Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+/**
  * EmptyStateCTA - Compact call-to-action for empty summit logs
  */
 const EmptyStateCTA: React.FC<{ onPress: () => void; accentColor: string }> = ({ onPress, accentColor }) => {
@@ -382,14 +461,38 @@ const SummitCard: React.FC<SummitCardProps> = ({
   onEdit,
   delay = 0,
   animated = true,
+  summitType,
+  activityId,
 }) => {
   const { colors, isDark } = useTheme();
   const fadeAnim = useRef(new Animated.Value(animated ? 0 : 1)).current;
   const slideAnim = useRef(new Animated.Value(animated ? 12 : 0)).current;
   const [tagsExpanded, setTagsExpanded] = useState(false);
+  const [lightboxVisible, setLightboxVisible] = useState(false);
   
   const date = new Date(summit.timestamp);
   const color = accentColor ?? colors.summited;
+  
+  // Determine summit type for photo fetching
+  const effectiveSummitType: SummitType | undefined = summitType ?? (activityId ? 'activity' : 'manual');
+  
+  // Fetch photos for this summit (only if summitType is provided and user owns it)
+  const { data: photosData } = useQuery({
+    queryKey: ['summitPhotos', summit.id, effectiveSummitType],
+    queryFn: async () => {
+      if (!effectiveSummitType || !isOwned) return null;
+      const client = getApiClient();
+      return await endpoints.getSummitPhotos(client, {
+        summitType: effectiveSummitType,
+        summitId: summit.id,
+      });
+    },
+    enabled: !!effectiveSummitType && isOwned,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+  
+  const photos = photosData?.photos ?? [];
+  const firstPhoto = photos.length > 0 ? photos[0] : null;
   
   // Check if entry has user-generated content
   const hasUserContent = !!(
@@ -585,7 +688,16 @@ const SummitCard: React.FC<SummitCardProps> = ({
             </Text>
           )}
           
-          {/* Row 6: Empty state CTA (alternative to user content) */}
+          {/* Row 6: Photo thumbnails (if photos exist) */}
+          {photos.length > 0 && (
+            <PhotoThumbnailStrip 
+              photos={photos}
+              onPress={() => setLightboxVisible(true)}
+              accentColor={color}
+            />
+          )}
+          
+          {/* Row 7: Empty state CTA (alternative to user content) */}
           {!hasUserContent && isOwned && onAddNotes && (
             <EmptyStateCTA onPress={onAddNotes} accentColor={color} />
           )}
@@ -593,6 +705,15 @@ const SummitCard: React.FC<SummitCardProps> = ({
       </View>
     </CardFrame>
   );
+  
+  // Photo lightbox modal
+  const lightbox = photos.length > 0 ? (
+    <PhotoLightbox
+      photos={photos}
+      visible={lightboxVisible}
+      onClose={() => setLightboxVisible(false)}
+    />
+  ) : null;
 
   const animatedStyle = {
     opacity: fadeAnim,
@@ -601,15 +722,24 @@ const SummitCard: React.FC<SummitCardProps> = ({
 
   if (onPress) {
     return (
-      <Animated.View style={animatedStyle}>
-        <TouchableOpacity activeOpacity={0.8} onPress={onPress}>
-          {content}
-        </TouchableOpacity>
-      </Animated.View>
+      <>
+        <Animated.View style={animatedStyle}>
+          <TouchableOpacity activeOpacity={0.8} onPress={onPress}>
+            {content}
+          </TouchableOpacity>
+        </Animated.View>
+        {lightbox}
+      </>
     );
   }
 
-  return <Animated.View style={animatedStyle}>{content}</Animated.View>;
+  return (
+    <>
+      <Animated.View style={animatedStyle}>{content}</Animated.View>
+      {lightbox}
+    </>
+  );
 };
 
-export { SummitCard };
+const MemoizedSummitCard = React.memo(SummitCard);
+export { MemoizedSummitCard as SummitCard };

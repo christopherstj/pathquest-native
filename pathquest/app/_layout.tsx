@@ -27,6 +27,8 @@ import '../global.css';
 import { useAuthStore } from '@/src/lib/auth';
 import { ThemeProvider, colors } from '@/src/theme';
 import { GluestackProvider } from '@/src/components/ui/gluestack-provider';
+import { ToastProvider } from '@/src/components/ui';
+import { AddReportModal, ManualSummitModal } from '@/src/components/modals';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -131,10 +133,29 @@ function RootLayoutNav() {
                   }} 
                 />
                 <Stack.Screen name="compass/[peakId]" options={{ headerShown: false }} />
+                <Stack.Screen 
+                  name="settings" 
+                  options={{ 
+                    headerShown: false,
+                    presentation: 'modal',
+                  }} 
+                />
+                <Stack.Screen 
+                  name="settings/location" 
+                  options={{ 
+                    headerShown: false,
+                    presentation: 'modal',
+                  }} 
+                />
                 {/* User profile routes render their own headers */}
                 <Stack.Screen name="users/[userId]" options={{ headerShown: false }} />
                 <Stack.Screen name="users/[userId]/challenges/[challengeId]" options={{ headerShown: false }} />
               </Stack>
+              {/* Global Modals */}
+              <AddReportModal />
+              <ManualSummitModal />
+              {/* Global Toast Notifications */}
+              <ToastProvider />
             </NavigationThemeProvider>
           </ThemeProvider>
         </QueryClientProvider>

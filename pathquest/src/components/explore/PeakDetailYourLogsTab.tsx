@@ -2,13 +2,19 @@ import React from "react";
 import { View } from "react-native";
 import { BookOpen, Check, Plus } from "lucide-react-native";
 import { useRouter } from "expo-router";
+import type { SummitType } from "@pathquest/shared/types";
 import { CardFrame, PrimaryCTA, SecondaryCTA, Text } from "@/src/components/ui";
 import { SummitCard } from "@/src/components/shared";
 import type { SummitCardData } from "@/src/components/shared/SummitCard";
 import { useTheme } from "@/src/theme";
+import { useAddReportStore, useManualSummitStore } from "@/src/store";
 
 export function PeakDetailYourLogsTab({
   peakId,
+  peakName,
+  peakCoords,
+  peakElevation,
+  peakState,
   isAuthenticated,
   ascentCount,
   yourAscents,
@@ -17,6 +23,10 @@ export function PeakDetailYourLogsTab({
   onConnectStrava,
 }: {
   peakId: string;
+  peakName: string;
+  peakCoords: [number, number] | null; // [lng, lat]
+  peakElevation?: number;
+  peakState?: string;
   isAuthenticated: boolean;
   ascentCount: number;
   yourAscents: any[];
@@ -26,6 +36,34 @@ export function PeakDetailYourLogsTab({
 }) {
   const { colors, isDark } = useTheme();
   const router = useRouter();
+  const openAddReportModal = useAddReportStore((s) => s.openModal);
+  const openManualSummit = useManualSummitStore((s) => s.openManualSummit);
+
+  // Helper to determine summit type
+  const getSummitType = (activityId?: string | number | null): SummitType => {
+    // activityId can be string or number from the API
+    if (activityId === null || activityId === undefined) return 'manual';
+    if (typeof activityId === 'number') return 'activity';
+    if (typeof activityId === 'string' && activityId.trim() !== '') return 'activity';
+    return 'manual';
+  };
+
+  // Open Add Report modal for an ascent
+  const handleOpenAddReport = (ascent: any) => {
+    openAddReportModal({
+      ascentId: ascent.id,
+      peakId,
+      peakName,
+      timestamp: ascent.timestamp,
+      activityId: ascent.activity_id,
+      summitType: getSummitType(ascent.activity_id),
+      notes: ascent.notes,
+      difficulty: ascent.difficulty,
+      experienceRating: ascent.experience_rating,
+      conditionTags: ascent.condition_tags,
+      customTags: ascent.custom_condition_tags,
+    });
+  };
 
   // Your Logs tab uses "summited" (sky blue) accents.
   const accent = colors.summited as string;
@@ -85,6 +123,25 @@ export function PeakDetailYourLogsTab({
             <Text className="text-foreground text-base font-semibold">Your Summit Journal</Text>
           </View>
           <Text className="text-muted-foreground text-sm mt-3">No logged summits for this peak yet.</Text>
+          <Text className="text-muted-foreground text-sm mt-2">Sync activities from Strava or log a manual summit below.</Text>
+          <View style={{ marginTop: 12 }}>
+            <SecondaryCTA
+              label="Log Manual Summit"
+              onPress={() => {
+                if (peakCoords) {
+                  openManualSummit({
+                    peakId,
+                    peakName,
+                    peakCoords,
+                    peakElevation,
+                    peakState,
+                  });
+                }
+              }}
+              Icon={Plus}
+              disabled={!peakCoords}
+            />
+          </View>
         </CardFrame>
       </View>
     );
@@ -159,6 +216,8 @@ export function PeakDetailYourLogsTab({
               showPeakInfo={false}
               accentColor={colors.summited}
               isOwned={true}
+              summitType={getSummitType(a.activity_id)}
+              activityId={a.activity_id}
               onPress={() => {
                 if (a.activity_id) {
                   router.push({
@@ -167,14 +226,8 @@ export function PeakDetailYourLogsTab({
                   });
                 }
               }}
-              onAddNotes={() => {
-                // TODO: Open Add Report modal for this ascent
-                console.log("Add report for ascent:", a.id);
-              }}
-              onEdit={() => {
-                // TODO: Open Edit Report modal for this ascent (delete option inside)
-                console.log("Edit report for ascent:", a.id);
-              }}
+              onAddNotes={() => handleOpenAddReport(a)}
+              onEdit={() => handleOpenAddReport(a)}
               delay={index * 80}
               animated={true}
             />
@@ -189,10 +242,18 @@ export function PeakDetailYourLogsTab({
           <SecondaryCTA
             label="Log Manual Summit"
             onPress={() => {
-              // TODO: Open Manual Summit modal
-              console.log("Log manual summit for peak:", peakId);
+              if (peakCoords) {
+                openManualSummit({
+                  peakId,
+                  peakName,
+                  peakCoords,
+                  peakElevation,
+                  peakState,
+                });
+              }
             }}
             Icon={Plus}
+            disabled={!peakCoords}
           />
         </View>
       </CardFrame>

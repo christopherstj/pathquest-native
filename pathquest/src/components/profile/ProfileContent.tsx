@@ -9,10 +9,12 @@
  */
 
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, Alert } from 'react-native';
+import { View } from 'react-native';
 import { TabSwitcher } from '@/src/components/shared';
 import { useProfileData, useUserJournal, useUserPeaks, useUserProfile } from '@/src/hooks/useProfileData';
 import type { JournalEntry } from '@/src/hooks';
+import type { SummitType } from '@pathquest/shared/types';
+import { useAddReportStore } from '@/src/store';
 import StatsContent from './StatsContent';
 import PeaksContent from './PeaksContent';
 import JournalContent from './JournalContent';
@@ -90,30 +92,56 @@ const ProfileContent: React.FC<ProfileContentProps> = ({
       }
     : undefined;
   
-  // Journal entry handlers (placeholder - will wire to modals later)
+  // Add Report modal store
+  const openAddReportModal = useAddReportStore((s) => s.openModal);
+  
+  // Helper to determine summit type
+  const getSummitType = (activityId?: string | number | null): SummitType => {
+    // activityId can be string or number from the API
+    if (activityId === null || activityId === undefined) return 'manual';
+    if (typeof activityId === 'number') return 'activity';
+    if (typeof activityId === 'string' && activityId.trim() !== '') return 'activity';
+    return 'manual';
+  };
+  
+  // Journal entry handlers - open AddReportModal for both add and edit
   const handleAddNotes = useCallback((entry: JournalEntry) => {
-    // TODO: Open add report modal
-    Alert.alert(
-      'Add Report',
-      `Add trip report for ${entry.peakName}`,
-      [{ text: 'OK' }]
-    );
-  }, []);
+    openAddReportModal({
+      ascentId: entry.id,
+      peakId: entry.peakId,
+      peakName: entry.peakName,
+      timestamp: entry.timestamp,
+      activityId: entry.activityId,
+      summitType: getSummitType(entry.activityId),
+      notes: entry.notes,
+      difficulty: entry.difficulty as any,
+      experienceRating: entry.experienceRating as any,
+      conditionTags: entry.conditionTags,
+      customTags: entry.customTags,
+    });
+  }, [openAddReportModal]);
   
   const handleEditEntry = useCallback((entry: JournalEntry) => {
-    // TODO: Open edit report modal
-    Alert.alert(
-      'Edit Report',
-      `Edit trip report for ${entry.peakName}`,
-      [{ text: 'OK' }]
-    );
-  }, []);
+    openAddReportModal({
+      ascentId: entry.id,
+      peakId: entry.peakId,
+      peakName: entry.peakName,
+      timestamp: entry.timestamp,
+      activityId: entry.activityId,
+      summitType: getSummitType(entry.activityId),
+      notes: entry.notes,
+      difficulty: entry.difficulty as any,
+      experienceRating: entry.experienceRating as any,
+      conditionTags: entry.conditionTags,
+      customTags: entry.customTags,
+    });
+  }, [openAddReportModal]);
 
   const renderContent = () => {
     if (!isOwner) {
       switch (publicTab) {
         case 'stats':
-          return <StatsContent stats={publicStats} isLoading={publicProfile.isLoading} inBottomSheet={inBottomSheet} />;
+          return <StatsContent stats={publicStats} isLoading={publicProfile.isLoading} inBottomSheet={inBottomSheet} onPeakPress={onPeakPress} />;
         case 'peaks':
           return (
             <PeaksContent
@@ -158,6 +186,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({
             stats={ownerData.stats}
             isLoading={ownerData.isStatsLoading}
             inBottomSheet={inBottomSheet}
+            onPeakPress={onPeakPress}
           />
         );
       case 'peaks':

@@ -14,6 +14,7 @@ import type { Peak } from '@pathquest/shared';
 import { getElevationString } from '@pathquest/shared';
 import { CardFrame, Text } from '@/src/components/ui';
 import { useTheme } from '@/src/theme';
+import { formatLocationString } from '@/src/utils';
 
 interface PeakRowProps {
   peak: Peak;
@@ -135,8 +136,7 @@ const PeakRow: React.FC<PeakRowProps> = ({ peak, onPress, isSummited }) => {
   };
 
   // Format location string
-  const locationParts = [peak.county, peak.state, peak.country].filter(Boolean);
-  const locationString = locationParts.join(', ');
+  const locationString = formatLocationString(peak, { includeCounty: true });
 
   // Determine summit count display
   const userSummits = peak.summits ?? 0;
@@ -207,4 +207,4 @@ const PeakRow: React.FC<PeakRowProps> = ({ peak, onPress, isSummited }) => {
   );
 };
 
-export default PeakRow;
+export default React.memo(PeakRow);

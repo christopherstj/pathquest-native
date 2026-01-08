@@ -6,6 +6,7 @@ import type { PeakActivity } from "@pathquest/shared";
 import { CardFrame, SecondaryCTA, Text, Value } from "@/src/components/ui";
 import { useTheme } from "@/src/theme";
 import { SummitCard } from "@/src/components/shared";
+import { PeakPhotosGallery } from "./PeakPhotosGallery";
 
 export function PeakDetailCommunityTab({
   peakId,
@@ -37,6 +38,9 @@ export function PeakDetailCommunityTab({
 
   return (
     <View style={{ gap: 12 }}>
+      {/* Photos Gallery */}
+      <PeakPhotosGallery peakId={peakId} limit={12} />
+
       {/* Activity summary header */}
       {activity ? (
         <CardFrame topo="corner" seed={`community-activity:${peakId}`}>

@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { View, TouchableOpacity, Linking, Platform } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { X, Compass, Map, Users, Flag } from 'lucide-react-native';
 import Animated, {
   useAnimatedStyle,
@@ -21,6 +21,8 @@ import type { Peak } from '@pathquest/shared';
 import { getElevationString } from '@pathquest/shared';
 import { CardFrame, PrimaryCTA, SecondaryCTA, Text } from '@/src/components/ui';
 import { useTheme } from '@/src/theme';
+import { formatLocationString } from '@/src/utils';
+import { useMapNavigation } from '@/src/hooks';
 
 interface FloatingPeakCardProps {
   peak: Peak;
@@ -36,39 +38,23 @@ const FloatingPeakCard: React.FC<FloatingPeakCardProps> = ({
   onCompassPress,
 }) => {
   const { colors, isDark } = useTheme();
+  const { openInMaps } = useMapNavigation();
   const translateY = useSharedValue(200); // Start below screen
   const opacity = useSharedValue(0);
 
-  // Entry animation - quick micro-animation
+  // Entry animation - consistent spring config
   React.useEffect(() => {
-    translateY.value = withTiming(0, { duration: 150 });
-    opacity.value = withTiming(1, { duration: 150 });
+    translateY.value = withSpring(0, { damping: 20, stiffness: 200 });
+    opacity.value = withTiming(1, { duration: 200 });
   }, [translateY, opacity]);
 
   // Format location string
-  const locationParts = [peak.state, peak.country].filter(Boolean);
-  const locationString = locationParts.length > 0 
-    ? locationParts.join(', ')
-    : 'Unknown location';
+  const locationString = formatLocationString(peak);
 
   // Open in maps app
   const handleNavigate = () => {
     if (!peak.location_coords) return;
-    
-    const [lng, lat] = peak.location_coords;
-    const label = encodeURIComponent(peak.name || 'Peak');
-    
-    // Use Apple Maps on iOS, Google Maps on Android
-    const url = Platform.select({
-      ios: `maps:0,0?q=${label}@${lat},${lng}`,
-      android: `geo:${lat},${lng}?q=${lat},${lng}(${label})`,
-    });
-    
-    if (url) {
-      Linking.openURL(url).catch(err => 
-        console.warn('[FloatingPeakCard] Error opening maps:', err)
-      );
-    }
+    openInMaps(peak.location_coords, peak.name || 'Peak');
   };
 
   // Swipe down to dismiss gesture
@@ -87,9 +73,9 @@ const FloatingPeakCard: React.FC<FloatingPeakCardProps> = ({
           runOnJS(onClose)();
         });
       } else {
-        // Snap back
-        translateY.value = withTiming(0, { duration: 150 });
-        opacity.value = withTiming(1, { duration: 150 });
+        // Snap back - consistent spring config
+        translateY.value = withSpring(0, { damping: 20, stiffness: 200 });
+        opacity.value = withSpring(1);
       }
     });
 

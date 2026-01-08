@@ -14,6 +14,8 @@ export interface StoredUser {
     state?: string | null;
     country?: string | null;
     isPublic?: boolean;
+    units?: 'imperial' | 'metric';
+    updateDescription?: boolean;
 }
 
 /**

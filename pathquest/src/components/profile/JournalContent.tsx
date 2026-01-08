@@ -294,6 +294,8 @@ const JournalContent: React.FC<JournalContentProps> = ({
           showPeakInfo={true}
           accentColor={colors.summited}
           isOwned={true}
+          summitType={entry.activityId ? 'activity' : 'manual'}
+          activityId={entry.activityId}
           onPress={onEntryPress ? () => onEntryPress(entry) : () => handleDefaultEntryPress(entry)}
           onAddNotes={onAddNotes ? () => onAddNotes(entry) : undefined}
           onEdit={onEditEntry ? () => onEditEntry(entry) : undefined}

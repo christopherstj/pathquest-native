@@ -10,11 +10,13 @@
 
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { SummitType } from "@pathquest/shared/types";
 
 import { ActivityDetail, DetailSkeleton } from "@/src/components/explore";
 import { useActivityDetails, useUserProfile } from "@/src/hooks";
 import { useAuthStore } from "@/src/lib/auth";
 import { useMapStore } from "@/src/store/mapStore";
+import { useAddReportStore } from "@/src/store";
 
 function getBoundsFromCoords(coords: [number, number][]) {
   if (!coords || coords.length === 0) return null;
@@ -126,15 +128,35 @@ export default function ActivityDetailRoute() {
     router.navigate("/explore" as any);
   }, [focusDiscovery, router]);
 
+  const openAddReportModal = useAddReportStore((s) => s.openModal);
+
   const handleAddReport = useCallback((summitId: string, peakId: string) => {
-    // TODO: Open Add Report modal for this summit
-    console.log("[ActivityDetail] Add report for summit:", summitId, "peak:", peakId);
-  }, []);
+    // Find the summit data from the loaded summits
+    const summit = data?.summits?.find((s) => s.id === summitId);
+    if (!summit) return;
+
+    // Find the peak name from the summit (if available in the data)
+    const peakName = summit.peak_name ?? "Unknown Peak";
+
+    openAddReportModal({
+      ascentId: summitId,
+      peakId,
+      peakName,
+      timestamp: summit.timestamp,
+      activityId: activityId,
+      summitType: "activity" as SummitType,
+      notes: summit.notes,
+      difficulty: summit.difficulty,
+      experienceRating: summit.experience_rating,
+      conditionTags: summit.condition_tags,
+      customTags: summit.custom_condition_tags,
+    });
+  }, [data?.summits, activityId, openAddReportModal]);
 
   const handleEditReport = useCallback((summitId: string, peakId: string) => {
-    // TODO: Open Edit Report modal for this summit
-    console.log("[ActivityDetail] Edit report for summit:", summitId, "peak:", peakId);
-  }, []);
+    // Same as add report - the modal handles both cases
+    handleAddReport(summitId, peakId);
+  }, [handleAddReport]);
 
   if (!activityId) return null;
 

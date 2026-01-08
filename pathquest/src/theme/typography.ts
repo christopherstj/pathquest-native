@@ -5,31 +5,26 @@
  * - Fraunces: Display font (headings, titles)
  * - IBM Plex Mono: Data font (stats, numbers, body)
  * 
- * Note: These fonts need to be loaded via expo-font in the root layout.
- * For now, we use system fonts as fallbacks until custom fonts are configured.
+ * Fonts are loaded via expo-google-fonts in the root layout.
+ * NativeWind classes (font-display, font-mono) are the primary way to apply fonts.
+ * These constants are exported for use in style objects when needed.
  */
 
-import { Platform } from 'react-native';
-
+/**
+ * Font family names as loaded by expo-font.
+ * Use these when applying fonts via style objects instead of className.
+ */
 export const fontFamilies = {
-  // Display font - Fraunces on web (serif with character)
-  // Using Georgia on iOS, serif on Android (closest match)
-  display: Platform.select({
-    ios: 'Georgia',
-    android: 'serif',
-    default: 'Georgia',
-  }),
+  // Display font - Fraunces (serif with character)
+  display: 'Fraunces_400Regular',
+  displayMedium: 'Fraunces_500Medium',
+  displaySemibold: 'Fraunces_600SemiBold',
+  displayBold: 'Fraunces_700Bold',
   
-  // Mono font - IBM Plex Mono on web
-  // Using SpaceMono on native (already bundled)
-  mono: 'SpaceMono',
-  
-  // System sans-serif as fallback
-  system: Platform.select({
-    ios: 'System',
-    android: 'Roboto',
-    default: undefined,
-  }),
+  // Mono font - IBM Plex Mono (data, stats, numbers)
+  mono: 'IBMPlexMono_400Regular',
+  monoMedium: 'IBMPlexMono_500Medium',
+  monoSemibold: 'IBMPlexMono_600SemiBold',
 } as const;
 
 export const fontSizes = {
@@ -68,74 +63,68 @@ export const letterSpacing = {
 } as const;
 
 // Pre-defined text styles matching web patterns
+// Note: Prefer using className with font-display/font-mono classes instead
 export const textStyles = {
   // Headings (use display font)
   h1: {
     fontSize: fontSizes['3xl'],
-    fontWeight: fontWeights.bold,
     lineHeight: lineHeights.tight,
-    fontFamily: fontFamilies.display,
+    fontFamily: fontFamilies.displayBold,
   },
   h2: {
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
     lineHeight: lineHeights.tight,
-    fontFamily: fontFamilies.display,
+    fontFamily: fontFamilies.displayBold,
   },
   h3: {
     fontSize: fontSizes.xl,
-    fontWeight: fontWeights.semibold,
     lineHeight: lineHeights.snug,
-    fontFamily: fontFamilies.display,
+    fontFamily: fontFamilies.displaySemibold,
   },
   h4: {
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
     lineHeight: lineHeights.snug,
-    fontFamily: fontFamilies.display,
+    fontFamily: fontFamilies.displaySemibold,
   },
   
-  // Body text (use mono font for data-heavy app)
+  // Body text (use display font for readability)
   body: {
     fontSize: fontSizes.base,
-    fontWeight: fontWeights.normal,
     lineHeight: lineHeights.normal,
+    fontFamily: fontFamilies.display,
   },
   bodySmall: {
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.normal,
     lineHeight: lineHeights.normal,
+    fontFamily: fontFamilies.display,
   },
   
   // Labels and captions
   label: {
     fontSize: fontSizes.sm,
-    fontWeight: fontWeights.medium,
     lineHeight: lineHeights.tight,
+    fontFamily: fontFamilies.displayMedium,
   },
   caption: {
     fontSize: fontSizes.xs,
-    fontWeight: fontWeights.normal,
     lineHeight: lineHeights.normal,
+    fontFamily: fontFamilies.display,
   },
   
   // Data/stats (mono font)
   stat: {
     fontSize: fontSizes.lg,
-    fontWeight: fontWeights.semibold,
-    fontFamily: fontFamilies.mono,
+    fontFamily: fontFamilies.monoSemibold,
   },
   statLarge: {
     fontSize: fontSizes['2xl'],
-    fontWeight: fontWeights.bold,
-    fontFamily: fontFamilies.mono,
+    fontFamily: fontFamilies.monoSemibold,
   },
   
   // Elevation/numbers
   elevation: {
     fontSize: fontSizes.base,
-    fontWeight: fontWeights.medium,
-    fontFamily: fontFamilies.mono,
+    fontFamily: fontFamilies.monoMedium,
   },
 } as const;
 

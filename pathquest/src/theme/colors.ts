@@ -53,6 +53,12 @@ export const colors = {
     border: 'rgba(201, 194, 181, 0.7)', // oklch(0.8 0.03 90 / 0.7)
     input: '#E5DFD4',
     ring: 'rgba(77, 122, 87, 0.5)',
+    
+    // Semantic stat colors (dashboard, quick stats)
+    statForest: '#5B9167',      // Forest green for peaks stat
+    statTrail: '#8B7355',       // Trail brown for elevation stat
+    statGold: '#C9A66B',        // Gold/rust for challenge stat
+    statMuted: '#A9A196',       // Muted for inactive elements
   },
   
   dark: {
@@ -96,6 +102,12 @@ export const colors = {
     border: 'rgba(69, 65, 60, 0.7)',    // oklch(0.3 0.03 80 / 0.7)
     input: '#3A3632',           // oklch(0.25 0.02 80)
     ring: 'rgba(91, 145, 103, 0.5)',
+    
+    // Semantic stat colors (dashboard, quick stats)
+    statForest: '#5B9167',      // Forest green for peaks stat
+    statTrail: '#8B7355',       // Trail brown for elevation stat
+    statGold: '#C9A66B',        // Gold/rust for challenge stat
+    statMuted: '#A9A196',       // Muted for inactive elements
   },
 } as const;
 

@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { View, TouchableOpacity, Linking, Platform } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { X, Trophy, MapPin, Map } from 'lucide-react-native';
 import Animated, {
   useAnimatedStyle,
@@ -21,6 +21,7 @@ import type { ChallengeProgress } from '@pathquest/shared';
 import { CardFrame, PrimaryCTA, SecondaryCTA, Text } from '@/src/components/ui';
 import { useAuthStore } from '@/src/lib/auth';
 import { useTheme } from '@/src/theme';
+import { useMapNavigation } from '@/src/hooks';
 
 interface FloatingChallengeCardProps {
   challenge: ChallengeProgress;
@@ -43,6 +44,7 @@ const FloatingChallengeCard: React.FC<FloatingChallengeCardProps> = ({
   const opacity = useSharedValue(0);
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const { colors } = useTheme();
+  const { openInMaps } = useMapNavigation();
 
   // Entry animation
   React.useEffect(() => {
@@ -60,20 +62,7 @@ const FloatingChallengeCard: React.FC<FloatingChallengeCardProps> = ({
   // Navigate to nearest unsummited peak
   const handleNavigate = () => {
     if (!nearestPeak?.coords) return;
-    
-    const [lng, lat] = nearestPeak.coords;
-    const label = encodeURIComponent(nearestPeak.name);
-    
-    const url = Platform.select({
-      ios: `maps:0,0?q=${label}@${lat},${lng}`,
-      android: `geo:${lat},${lng}?q=${lat},${lng}(${label})`,
-    });
-    
-    if (url) {
-      Linking.openURL(url).catch(err => 
-        console.warn('[FloatingChallengeCard] Error opening maps:', err)
-      );
-    }
+    openInMaps(nearestPeak.coords, nearestPeak.name);
   };
 
   // Swipe down to dismiss gesture
@@ -92,8 +81,8 @@ const FloatingChallengeCard: React.FC<FloatingChallengeCardProps> = ({
           runOnJS(onClose)();
         });
       } else {
-        // Snap back
-        translateY.value = withSpring(0);
+        // Snap back - consistent spring config
+        translateY.value = withSpring(0, { damping: 20, stiffness: 200 });
         opacity.value = withSpring(1);
       }
     });

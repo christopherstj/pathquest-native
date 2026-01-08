@@ -29,3 +29,13 @@ export {
 } from './useProfileData';
 export type { JournalEntry, JournalResult, PeaksResult, PeaksFilters, JournalFilters } from './useProfileData';
 
+// Haptic feedback
+export { useHaptics } from './useHaptics';
+export type { HapticFeedbackType, UseHapticsReturn } from './useHaptics';
+
+// Map navigation
+export { useMapNavigation } from './useMapNavigation';
+
+// Device photos
+export { useSummitDayPhotos, useRecentPhotos, usePhotoPicker } from './useDevicePhotos';
+export type { DevicePhoto, UsePhotoPickerResult } from './useDevicePhotos';

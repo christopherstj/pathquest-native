@@ -147,4 +147,4 @@ const ChallengeRow: React.FC<ChallengeRowProps> = ({ challenge, onPress }) => {
   );
 };
 
-export default ChallengeRow;
+export default React.memo(ChallengeRow);

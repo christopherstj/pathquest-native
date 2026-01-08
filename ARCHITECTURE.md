@@ -66,6 +66,9 @@ pathquest-native/
             [challengeId].tsx   # User challenge progress detail route (deep link)
       auth/
         callback.tsx            # OAuth redirect handler (handles Strava callback)
+      settings.tsx              # Settings screen (modal presentation from profile header)
+      settings/
+        location.tsx            # Location select modal (Mapbox Geocoding autocomplete + map preview)
       modal.tsx
       +html.tsx
       +not-found.tsx
@@ -90,8 +93,9 @@ pathquest-native/
           ActivitySummitsList.tsx # List of peaks summited using SummitCard component
           PublicLandBadge.tsx   # Public land badge with agency icon
           WeatherSection.tsx    # Always-visible weather (current + forecast + conditions)
-          PeakDetailCommunityTab.tsx  # Community tab content
+          PeakDetailCommunityTab.tsx  # Community tab content (includes PeakPhotosGallery)
           PeakDetailYourLogsTab.tsx   # Your Logs tab content
+          PeakPhotosGallery.tsx       # Public photos grid with fullscreen viewer modal
           PeakDetailForecastCard.tsx  # 7-day forecast horizontal scroller (legacy, see WeatherSection)
           PeakDetailDaylightCard.tsx  # Sunrise/sunset + daylight duration (legacy, see WeatherSection)
           PeakDetailConditionsTab.tsx # Conditions tab content (legacy, replaced by WeatherSection)
@@ -121,9 +125,25 @@ pathquest-native/
           ProfileContent.tsx    # Profile wrapper with sub-tab nav + useProfileData
           StatsContent.tsx      # "Summit Registry" - hero card with CompassRose, milestones
           index.ts
+        settings/               # Settings screen components
+          SettingsScreen.tsx    # Full settings page (account, preferences, privacy, delete account)
+          LocationSelectScreen.tsx # Location autocomplete with Mapbox Geocoding API + map preview
+          index.ts
         ui/                     # Core UI components
           gluestack-provider.tsx # gluestack-ui provider wrapper
-          Text.tsx              # Custom Text/Value with baked-in fonts
+          Text.tsx              # Custom Text/Value with baked-in fonts (Fraunces/IBM Plex Mono)
+          CardFrame.tsx         # Card container with topo pattern + mountain ridge decorations
+          TopoPattern.tsx       # SVG contour line pattern (seed-based, deterministic)
+          MountainRidge.tsx     # SVG mountain silhouette decoration
+          PrimaryCTA.tsx        # Primary button with spring animations + haptic feedback
+          SecondaryCTA.tsx      # Secondary button with spring animations + haptic feedback
+          AnimatedPressable.tsx # Base pressable with scale/opacity animations + haptics
+          Skeleton.tsx          # Loading skeleton with shimmer animation
+                                #   Variants: text, circle, card, stat, rectangle
+                                #   Also exports: SkeletonText, SkeletonCard, SkeletonStats
+          EmptyState.tsx        # Empty state component (icon + title + description + CTA)
+          Toast.tsx             # Toast notification with slide animation + auto-dismiss
+          ToastProvider.tsx     # Global toast renderer (uses toastStore)
           index.ts              # Re-exports gluestack + custom components
         shared/                 # Reusable cross-feature components
           TabSwitcher.tsx       # Generic tab switcher (used by Explore/Profile/Challenge/Peak detail)
@@ -136,6 +156,28 @@ pathquest-native/
           WeatherBadge.tsx      # Small badge pill (e.g. GOOD/FAIR/POOR)
           GPSStrip.tsx          # GPS strip (distance/bearing/vert)
           UserAvatar.tsx        # Reusable avatar (image/initials/fallback icon)
+        modals/                 # Global modal components
+          AddReportModal.tsx    # Camera-first trip report modal with:
+                                #   - Photo capture + upload with progress
+                                #   - Condition tags (multi-select)
+                                #   - Difficulty picker (single-select)
+                                #   - Experience rating (single-select)
+                                #   - Notes (expandable textarea)
+                                #   - Custom tags
+                                # Uses addReportStore for state management
+          ManualSummitModal.tsx # Manual summit entry modal with:
+                                #   - Peak search (when opened from Profile)
+                                #   - Pre-selected peak display (when opened from Peak Detail)
+                                #   - Optional activity linking with nearby search
+                                #   - Elevation profile selector (tap to set summit time)
+                                #   - Date/time picker with auto-detected timezone (via API)
+                                #   - Difficulty + experience rating grids (theme-aware colors)
+                                #   - Trip notes
+                                #   - Photo uploads (camera + library, same style as AddReportModal)
+                                #   - Uses Text/Value components for consistent typography
+                                #   - NativeWind classes for styling consistency
+                                # Uses manualSummitStore for state management (includes photo state)
+          index.ts
       lib/
         api/
           client.ts             # API client with auth injection
@@ -152,13 +194,28 @@ pathquest-native/
         mapStore.ts             # Map state (visible peaks, selection, zoom)
         sheetStore.ts           # Bottom sheet snap state
         exploreNavStore.ts      # Explore tab nav history + discovery state persistence
+        addReportStore.ts       # Add Report modal state (form data, photos, upload progress)
+        manualSummitStore.ts    # Manual summit entry modal state (peak data, open/close)
+        toastStore.ts           # Global toast notification state (useToast hook)
+      hooks/                    # Custom React hooks
+        index.ts
+        useHaptics.ts           # Haptic feedback hook (light/medium/heavy/selection/success/warning/error)
+        useLocation.ts          # User location tracking
+        useMapData.ts           # Map data queries (peaks, challenges)
+        usePeakDetailData.ts    # Peak detail queries
+        useDashboardData.ts     # Dashboard data queries
+        useProfileData.ts       # Profile data queries
+        useCompassHeading.ts    # Device compass heading
+        useGPSNavigation.ts     # GPS navigation to peak
+        useMapNavigation.ts     # Open coordinates in native maps app
+        # ... and more
       theme/                    # Theme system
         colors.ts               # Color palette (light/dark)
         index.ts
         ThemeProvider.tsx       # Theme context provider
-        typography.ts           # Font scales and styles
+        typography.ts           # Font scales and styles (Fraunces + IBM Plex Mono)
       utils/                    # Shared utilities (no UI)
-        geo.ts                  # Haversine/bearing + unit helpers for geo math
+        geo.ts                  # Haversine/bearing + unit helpers for geo math + formatLocationString()
         formatting.ts           # Timezone-aware date/time formatting (web parity)
         units.ts                # Unit conversions (C->F, kmh->mph)
         weather.ts              # Weather code + rating helpers
@@ -367,6 +424,7 @@ The native app uses a unified layout pattern that mirrors the web app:
   - Forest green (hue 140) for primary/CTA
   - Sky blue (hue 220) for summited indicators
   - `contourInk` / `contourInkSubtle` for topographic linework textures
+  - Semantic stat colors: `statForest`, `statTrail`, `statGold`, `statMuted`
 - **typography.ts**: Font scales matching web
   - **Fraunces** for display/headings (loaded via @expo-google-fonts/fraunces)
   - **IBM Plex Mono** for body/data text (loaded via @expo-google-fonts/ibm-plex-mono)
@@ -426,12 +484,12 @@ To avoid the sheet sliding into reserved overlay space (e.g. the Explore omnibar
 
 ### Floating Cards (`src/components/explore/`)
 - **FloatingPeakCard**: Shows peak info, GPS strip placeholder, action buttons
-  - Entry animation (spring from bottom)
-  - Swipe-down to dismiss
-  - Actions: Details, Compass, Navigate
+  - Entry animation (consistent spring config: damping 20, stiffness 200)
+  - Swipe-down to dismiss with snap-back spring
+  - Actions: Details, Compass, Navigate (via `useMapNavigation` hook)
 - **FloatingChallengeCard**: Shows challenge progress, nearest unsummited peak
-  - Same animation and gesture handling as peak card
-  - Actions: Details, Navigate
+  - Same animation and gesture handling as peak card (consistent spring config)
+  - Actions: Details, Navigate (via `useMapNavigation` hook)
 
 ### Explore Sheet (`src/components/explore/DiscoveryContent.tsx`)
 - Phase 2: Uses CardFrame-based rows for the new "retro topo" design language.
@@ -566,11 +624,11 @@ See [DESIGN.md](./DESIGN.md) for detailed implementation phases and wireframes.
 - ✅ Removed mono font from profile elevations/aggregations (reserved for live nav data only)
 - ⏳ You tab map mode toggle (not yet implemented)
 
-### Phase 4: Actions + Modals
-- Add Report modal (camera-first)
-- Manual Summit entry
-- Login prompt for auth-gated actions
-- Settings screen
+### ✅ Phase 4: Actions + Modals (COMPLETED)
+- ✅ Add Report modal (camera-first photo capture, condition tags, difficulty/experience ratings, notes, custom tags)
+- ✅ Manual Summit entry (peak search, activity linking, date/time picker with timezone, difficulty/experience ratings, trip notes)
+- ⏳ Login prompt for auth-gated actions (pending - needed for better UX when users try to favorite/add report without auth)
+- ✅ Settings screen (account info, units preference, privacy toggles, sign out, delete account)
 
 ### Phase 5: Polish + Offline
 - Offline queue for reports

@@ -25,15 +25,7 @@ export function useDashboardStats() {
     queryKey: ['dashboardStats'],
     queryFn: async (): Promise<DashboardStats> => {
       const client = getApiClient();
-      console.log('[useDashboardStats] Fetching stats');
-      try {
-        const stats = await endpoints.getDashboardStats(client);
-        console.log('[useDashboardStats] Fetched stats:', stats);
-        return stats;
-      } catch (error) {
-        console.error('[useDashboardStats] Error:', error);
-        throw error;
-      }
+      return await endpoints.getDashboardStats(client);
     },
     enabled: isAuthenticated,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -50,15 +42,7 @@ export function useRecentSummits(limit = 5) {
     queryKey: ['recentSummits', limit],
     queryFn: async (): Promise<any[]> => {
       const client = getApiClient();
-      console.log('[useRecentSummits] Fetching recent summits');
-      try {
-        const summits = await endpoints.getRecentSummits(client, { limit });
-        console.log('[useRecentSummits] Fetched', summits.length, 'summits:', summits[0]);
-        return summits;
-      } catch (error) {
-        console.error('[useRecentSummits] Error:', error);
-        throw error;
-      }
+      return await endpoints.getRecentSummits(client, { limit });
     },
     enabled: isAuthenticated,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -75,14 +59,7 @@ export function useFavoriteChallenges() {
     queryKey: ['favoriteChallenges'],
     queryFn: async (): Promise<ChallengeProgress[]> => {
       const client = getApiClient();
-      try {
-        const challenges = await endpoints.getFavoriteChallenges(client);
-        console.log('[useFavoriteChallenges] Fetched', challenges.length, 'challenges');
-        return challenges;
-      } catch (error) {
-        console.error('[useFavoriteChallenges] Error:', error);
-        throw error;
-      }
+      return await endpoints.getFavoriteChallenges(client);
     },
     enabled: isAuthenticated,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -101,19 +78,11 @@ export function useSuggestedPeak(coords: { lat: number; lng: number } | null) {
       if (!coords) return null;
       
       const client = getApiClient();
-      console.log('[useSuggestedPeak] Fetching suggested peak for coords:', coords);
-      try {
-        const peak = await endpoints.getSuggestedPeak(client, {
-          lat: coords.lat,
-          lng: coords.lng,
-          maxDistanceMiles: 100,
-        });
-        console.log('[useSuggestedPeak] Fetched suggested peak:', peak?.peak_name ?? 'none');
-        return peak;
-      } catch (error) {
-        console.error('[useSuggestedPeak] Error:', error);
-        throw error;
-      }
+      return await endpoints.getSuggestedPeak(client, {
+        lat: coords.lat,
+        lng: coords.lng,
+        maxDistanceMiles: 100,
+      });
     },
     enabled: isAuthenticated && coords !== null,
     staleTime: 1000 * 60 * 10, // 10 minutes (weather doesn't change that fast)

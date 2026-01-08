@@ -114,7 +114,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
         {/* Welcome */}
         <View className="items-center mb-8">
           <View className="w-20 h-20 rounded-full bg-primary/15 items-center justify-center mb-4">
-            <Map size={32} color="#5B9167" />
+            <Map size={32} color={colors.statForest} />
           </View>
           <Text className="text-foreground text-2xl font-bold text-center mb-2">
             Welcome to PathQuest
@@ -237,6 +237,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
         totalElevation={stats?.totalElevationGained ?? 0}
         primaryChallenge={stats?.primaryChallengeProgress ?? null}
         isLoading={isLoading}
+        onChallengePress={(challengeId) => onChallengePressById?.(String(challengeId))}
       />
 
       {/* Trip Report CTA (if there's an unreported summit) - Main focus */}
