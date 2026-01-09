@@ -39,3 +39,14 @@ export { useMapNavigation } from './useMapNavigation';
 // Device photos
 export { useSummitDayPhotos, useRecentPhotos, usePhotoPicker } from './useDevicePhotos';
 export type { DevicePhoto, UsePhotoPickerResult } from './useDevicePhotos';
+
+// Summit review (unconfirmed summits)
+export { useUnconfirmedSummits } from './useUnconfirmedSummits';
+export { useConfirmSummit, useDenySummit, useConfirmAllSummits } from './useSummitReview';
+
+// Guest/public data (no auth required)
+export { usePopularChallenges, useRecentPublicSummits } from './useGuestData';
+
+// Import status (historical data processing)
+export { useImportStatus } from './useImportStatus';
+export type { ImportStatus } from './useImportStatus';

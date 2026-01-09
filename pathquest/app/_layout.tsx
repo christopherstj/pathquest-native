@@ -28,7 +28,7 @@ import { useAuthStore } from '@/src/lib/auth';
 import { ThemeProvider, colors } from '@/src/theme';
 import { GluestackProvider } from '@/src/components/ui/gluestack-provider';
 import { ToastProvider } from '@/src/components/ui';
-import { AddReportModal, ManualSummitModal } from '@/src/components/modals';
+import { AddReportModal, ManualSummitModal, LoginPrompt } from '@/src/components/modals';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -154,6 +154,7 @@ function RootLayoutNav() {
               {/* Global Modals */}
               <AddReportModal />
               <ManualSummitModal />
+              <LoginPrompt />
               {/* Global Toast Notifications */}
               <ToastProvider />
             </NavigationThemeProvider>

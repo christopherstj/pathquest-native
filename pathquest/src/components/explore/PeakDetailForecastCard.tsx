@@ -52,9 +52,15 @@ export function PeakDetailForecastCard({
         {forecast.daily.map((day) => {
           const weatherInfo = getWeatherInfo(day.weatherCode);
           const WeatherIcon = iconMap[weatherInfo.iconKey];
-          const rating = getDayRating(day.precipProbability, day.windSpeed, day.cloudCover);
+          const rating = getDayRating(day.precipProbability, day.windSpeed, day.cloudCover, day.weatherCode, day.tempHigh);
           const ratingColor =
-            rating === "good" ? (colors.primary as string) : rating === "fair" ? (colors.secondary as string) : (colors.destructive as string);
+            rating === "great"
+              ? (colors.statGold as string)
+              : rating === "good"
+              ? (colors.primary as string)
+              : rating === "fair"
+              ? (colors.secondary as string)
+              : (colors.destructive as string);
 
           // Parse date as local date (YYYY-MM-DD format from API) using midday to avoid TZ boundary issues.
           const dayDate = new Date(day.date + "T12:00:00");

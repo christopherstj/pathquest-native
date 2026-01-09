@@ -4,4 +4,5 @@
 
 export { AddReportModal } from "./AddReportModal";
 export { default as ManualSummitModal } from "./ManualSummitModal";
+export { default as LoginPrompt } from "./LoginPrompt";
 

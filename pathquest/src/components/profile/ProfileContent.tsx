@@ -19,14 +19,17 @@ import StatsContent from './StatsContent';
 import PeaksContent from './PeaksContent';
 import JournalContent from './JournalContent';
 import ChallengesContent from './ChallengesContent';
+import ReviewContent from './ReviewContent';
+import { useUnconfirmedSummits } from '@/src/hooks';
 
-type ProfileTab = 'stats' | 'peaks' | 'journal' | 'challenges';
+type ProfileTab = 'stats' | 'peaks' | 'journal' | 'challenges' | 'review';
 type PublicProfileTab = 'stats' | 'peaks' | 'journal' | 'challenges';
 
 interface ProfileContentProps {
   userId: string;
   onPeakPress?: (peakId: string) => void;
   onChallengePress?: (challengeId: string) => void;
+  onActivityPress?: (activityId: string) => void;
   /** When false, render a public view (Stats + Peaks only) */
   isOwner?: boolean;
   /** When true, use BottomSheetScrollView instead of ScrollView */
@@ -37,6 +40,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({
   userId,
   onPeakPress,
   onChallengePress,
+  onActivityPress,
   isOwner = true,
   inBottomSheet = false,
 }) => {
@@ -45,6 +49,10 @@ const ProfileContent: React.FC<ProfileContentProps> = ({
 
   // Owner view (full): use combined hook.
   const ownerData = useProfileData(isOwner ? userId : undefined);
+  
+  // Unconfirmed summits count for Review tab badge (owner only)
+  const { data: unconfirmedSummits } = useUnconfirmedSummits(isOwner ? undefined : 0);
+  const unconfirmedCount = unconfirmedSummits?.length ?? 0;
 
   // Public view: profile + peaks + journal + challenges.
   const publicProfile = useUserProfile(!isOwner ? userId : undefined);
@@ -222,6 +230,13 @@ const ProfileContent: React.FC<ProfileContentProps> = ({
             inBottomSheet={inBottomSheet}
           />
         );
+      case 'review':
+        return (
+          <ReviewContent
+            inBottomSheet={inBottomSheet}
+            onViewActivity={onActivityPress}
+          />
+        );
       default:
         return null;
     }
@@ -239,6 +254,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({
                   { id: 'peaks', label: 'Peaks' },
                   { id: 'journal', label: 'Journal' },
                   { id: 'challenges', label: 'Challenges' },
+                  { id: 'review', label: 'Review', badge: unconfirmedCount > 0 ? unconfirmedCount : undefined },
                 ]
               : [
                   { id: 'stats', label: 'Stats' },

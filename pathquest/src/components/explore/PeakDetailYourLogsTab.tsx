@@ -1,6 +1,6 @@
 import React from "react";
 import { View } from "react-native";
-import { BookOpen, Check, Plus } from "lucide-react-native";
+import { BookOpen, Check, Plus, Mountain, FileText, LogIn } from "lucide-react-native";
 import { useRouter } from "expo-router";
 import type { SummitType } from "@pathquest/shared/types";
 import { CardFrame, PrimaryCTA, SecondaryCTA, Text } from "@/src/components/ui";
@@ -74,13 +74,14 @@ export function PeakDetailYourLogsTab({
   if (!isAuthenticated) {
     return (
       <View style={{ gap: 12 }}>
-        <CardFrame topo="corner" seed={`logs-login:${peakId}`} style={{ padding: 14 }}>
+        <CardFrame topo="corner" seed={`logs-login:${peakId}`} style={{ padding: 16 }}>
+          {/* Header */}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <View
               style={{
-                width: 30,
-                height: 30,
-                borderRadius: 10,
+                width: 36,
+                height: 36,
+                borderRadius: 12,
                 alignItems: "center",
                 justifyContent: "center",
                 backgroundColor: iconChipBg as any,
@@ -88,13 +89,37 @@ export function PeakDetailYourLogsTab({
                 borderColor: iconChipBorder as any,
               }}
             >
-              <BookOpen size={16} color={accent as any} />
+              <BookOpen size={18} color={accent as any} />
             </View>
-            <Text className="text-foreground text-base font-semibold">Your Summit Journal</Text>
+            <Text className="text-foreground text-lg font-semibold">Your Summit Journal</Text>
           </View>
-          <Text className="text-muted-foreground text-sm mt-3">Sign in to track your summits and add trip reports.</Text>
-          <View style={{ marginTop: 12 }}>
-            <PrimaryCTA label="Connect with Strava" onPress={onConnectStrava} />
+          
+          {/* Description */}
+          <Text className="text-muted-foreground text-sm mt-3 leading-5">
+            Sign in to see your ascent history for this peak and add trip reports to share with the community.
+          </Text>
+          
+          {/* Benefits list */}
+          <View style={{ marginTop: 14, gap: 8 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Mountain size={14} color={colors.mutedForeground as any} />
+              <Text className="text-muted-foreground text-xs">Track all your summits automatically</Text>
+            </View>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <FileText size={14} color={colors.mutedForeground as any} />
+              <Text className="text-muted-foreground text-xs">Add trip reports with photos and conditions</Text>
+            </View>
+          </View>
+          
+          {/* CTA */}
+          <View style={{ marginTop: 16 }}>
+            <PrimaryCTA 
+              label="Connect with Strava" 
+              onPress={onConnectStrava}
+              Icon={LogIn}
+              backgroundColor="#FC4C02"
+              foregroundColor="#FFFFFF"
+            />
           </View>
         </CardFrame>
       </View>

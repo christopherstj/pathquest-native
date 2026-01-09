@@ -47,6 +47,7 @@ import { useLocationPolling, useChallengeDetails, useNextPeakSuggestion, useUser
 import { useAuthStore } from '@/src/lib/auth';
 import { getApiClient } from '@/src/lib/api/client';
 import { startStravaAuth } from '@/src/lib/auth/strava';
+import { useLoginPromptStore } from '@/src/store';
 import { haversineMeters, metersToMiles, bearingDegrees } from '@/src/utils/geo';
 import { parseDate, formatDateString } from '@/src/utils/formatting';
 import { useTheme } from '@/src/theme';
@@ -357,6 +358,7 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
 
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const user = useAuthStore((s) => s.user);
+  const showLoginPrompt = useLoginPromptStore((s) => s.showPrompt);
   const { location } = useLocationPolling(5000);
   const coords = location ? { lat: location.lat, lng: location.lng } : null;
 
@@ -786,6 +788,10 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
                   <PrimaryCTA 
                     label="Accept Challenge" 
                     onPress={() => {
+                      if (!isAuthenticated) {
+                        showLoginPrompt('favorite_challenge');
+                        return;
+                      }
                       if (favoriteMutation.isPending) return;
                       favoriteMutation.mutate(true);
                     }}

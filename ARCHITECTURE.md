@@ -102,10 +102,18 @@ pathquest-native/
           PeakRow.tsx           # Peak list item
           index.ts
         home/                   # Home tab components
-          DashboardContent.tsx  # Main dashboard wrapper
+          DashboardContent.tsx  # Main dashboard wrapper (authenticated + guest views)
           FavoriteChallenges.tsx # Favorite challenges with progress
           QuickStats.tsx        # Quick stats bar
           RecentSummits.tsx     # Recent summit list
+          UnconfirmedSummitsCard.tsx # Dashboard card for unconfirmed summits needing review
+          GuestWelcomeHero.tsx  # Guest hero with value proposition + login CTA
+          PopularChallengesCarousel.tsx # Horizontal scroll of popular challenges (guest)
+          RecentCommunityActivity.tsx # Recent public summits feed (guest)
+          ImportProgressCard.tsx  # Import progress card (animated progress bar, summits found, ETA)
+          index.ts
+        onboarding/             # Onboarding components
+          OnboardingModal.tsx   # Multi-step onboarding modal (3 slides: welcome, how it works, what to expect)
           index.ts
         map/                    # Map components
           MapView.tsx           # Full-screen Mapbox map wrapper
@@ -123,6 +131,7 @@ pathquest-native/
           JournalContent.tsx    # "Field Notes" - journal entries with DateStamp styling
           PeaksContent.tsx      # "Summit Collection" - peaks with ElevationTierBadge
           ProfileContent.tsx    # Profile wrapper with sub-tab nav + useProfileData
+          ReviewContent.tsx     # Summit review tab - confirm/deny unconfirmed summits
           StatsContent.tsx      # "Summit Registry" - hero card with CompassRose, milestones
           index.ts
         settings/               # Settings screen components
@@ -177,6 +186,11 @@ pathquest-native/
                                 #   - Uses Text/Value components for consistent typography
                                 #   - NativeWind classes for styling consistency
                                 # Uses manualSummitStore for state management (includes photo state)
+          LoginPrompt.tsx       # Context-aware login prompt modal for guests:
+                                #   - Shows when unauthenticated users try auth-gated actions
+                                #   - Context-specific messaging (favorite, add report, etc.)
+                                #   - Strava login CTA + "Maybe later" dismiss
+                                # Uses loginPromptStore for state management
           index.ts
       lib/
         api/
@@ -197,6 +211,8 @@ pathquest-native/
         addReportStore.ts       # Add Report modal state (form data, photos, upload progress)
         manualSummitStore.ts    # Manual summit entry modal state (peak data, open/close)
         toastStore.ts           # Global toast notification state (useToast hook)
+        loginPromptStore.ts     # Login prompt modal state (visibility, context)
+        onboardingStore.ts      # Onboarding modal state (visibility, hasSeenOnboarding, AsyncStorage persistence)
       hooks/                    # Custom React hooks
         index.ts
         useHaptics.ts           # Haptic feedback hook (light/medium/heavy/selection/success/warning/error)
@@ -205,6 +221,9 @@ pathquest-native/
         usePeakDetailData.ts    # Peak detail queries
         useDashboardData.ts     # Dashboard data queries
         useProfileData.ts       # Profile data queries
+        useUnconfirmedSummits.ts # Fetch unconfirmed summits for review
+        useSummitReview.ts      # Mutations for confirm/deny summit review
+        useImportStatus.ts      # Import status polling (15s when processing)
         useCompassHeading.ts    # Device compass heading
         useGPSNavigation.ts     # GPS navigation to peak
         useMapNavigation.ts     # Open coordinates in native maps app
@@ -549,6 +568,8 @@ To avoid the sheet sliding into reserved overlay space (e.g. the Explore omnibar
   - `useUserJournal`: Fetch user's summit journal entries (summits with notes)
 - **usePeakDetails/usePeakWeather/usePeakForecast/usePeakActivity**: Peak detail data hooks
 - **useCompassHeading**: Magnetometer heading for compass navigation
+- **usePopularChallenges**: Fetch popular challenges (public, for guest home)
+- **useRecentPublicSummits**: Fetch recent public summits (public, for guest home)
 
 ## Next Steps
 
@@ -629,6 +650,44 @@ See [DESIGN.md](./DESIGN.md) for detailed implementation phases and wireframes.
 - ✅ Manual Summit entry (peak search, activity linking, date/time picker with timezone, difficulty/experience ratings, trip notes)
 - ⏳ Login prompt for auth-gated actions (pending - needed for better UX when users try to favorite/add report without auth)
 - ✅ Settings screen (account info, units preference, privacy toggles, sign out, delete account)
+
+### ✅ Phase 4.5: Summit Review (COMPLETED)
+- ✅ UnconfirmedSummitsCard on Home dashboard (amber/rust warning theme, shows up to 3 summits with quick confirm/deny)
+- ✅ Review tab in Profile (full list of unconfirmed summits with details, confirm/deny actions, "Confirm All" button)
+- ✅ useUnconfirmedSummits hook for fetching unconfirmed summits
+- ✅ useSummitReview hooks (useConfirmSummit, useDenySummit, useConfirmAllSummits) with optimistic updates
+- ✅ Badge count on Review tab showing number of unconfirmed summits
+- ✅ API endpoints in @pathquest/shared (getUnconfirmedSummits, confirmSummit, denySummit, confirmAllSummits)
+
+### ✅ Phase 4.6: Unauthenticated Experience (COMPLETED)
+Improved the guest experience for first-time users who haven't signed in yet:
+
+- ✅ **Map data fallback**: Faster fallback to default location (Boulder, CO) when location permission denied or times out (600ms vs 1.5s)
+- ✅ **Guest Home tab**: Engaging discovery experience with:
+  - `GuestWelcomeHero` - Value proposition + Strava login CTA
+  - `PopularChallengesCarousel` - Horizontal scroll of popular challenges (public endpoint)
+  - `RecentCommunityActivity` - Recent public summits feed (public endpoint)
+- ✅ **Login prompt modal**: Context-aware `LoginPrompt` modal with:
+  - `loginPromptStore` - Zustand store for modal state + context
+  - Context-specific messaging (favorite_peak, favorite_challenge, add_report, etc.)
+  - Global rendering via root `_layout.tsx`
+- ✅ **Strategic sign-up prompts**: Login prompts at auth-gated touchpoints:
+  - "Accept Challenge" button (ChallengeDetail)
+  - "Climbed this peak?" inline CTA (PeakDetailCommunityTab)
+- ✅ **Enhanced Peak Detail guest state**: Improved `PeakDetailYourLogsTab` unauthenticated view with benefits list
+- ✅ **Profile tab preview**: Engaging preview for guests showing:
+  - Stats placeholders (Peaks, Elevation, Challenges)
+  - Sample journal entry preview
+  - Features list with icons
+  - Multiple login CTAs
+
+New hooks:
+- `usePopularChallenges(limit)` - Fetch popular challenges (public)
+- `useRecentPublicSummits(limit)` - Fetch recent community summits (public)
+
+New API endpoints in @pathquest/shared:
+- `getPopularChallenges(client, { limit })` - GET /challenges/popular
+- `getRecentPublicSummits(client, { limit })` - GET /peaks/summits/public/recent
 
 ### Phase 5: Polish + Offline
 - Offline queue for reports

@@ -14,6 +14,11 @@ import type { Peak, ChallengeProgress, SummitWithPeak } from '@pathquest/shared'
 // Minimum zoom level for searching peaks/challenges
 const MIN_SEARCH_ZOOM = 7;
 
+// Default fallback location (Colorado - popular hiking region)
+// Used when user location is unavailable
+export const DEFAULT_FALLBACK_CENTER: [number, number] = [-105.2705, 40.015]; // Boulder, CO
+export const DEFAULT_FALLBACK_ZOOM = 11;
+
 // Selection mode determines how the selected item is displayed
 export type SelectionMode = 'none' | 'floating' | 'detail';
 

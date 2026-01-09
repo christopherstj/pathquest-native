@@ -1,12 +1,14 @@
 import React from "react";
-import { View } from "react-native";
+import { View, TouchableOpacity } from "react-native";
 import { useRouter } from "expo-router";
-import { Activity, Users } from "lucide-react-native";
+import { Activity, Users, LogIn, FileText } from "lucide-react-native";
 import type { PeakActivity } from "@pathquest/shared";
 import { CardFrame, SecondaryCTA, Text, Value } from "@/src/components/ui";
 import { useTheme } from "@/src/theme";
 import { SummitCard } from "@/src/components/shared";
 import { PeakPhotosGallery } from "./PeakPhotosGallery";
+import { useAuthStore } from "@/src/lib/auth";
+import { useLoginPromptStore } from "@/src/store";
 
 export function PeakDetailCommunityTab({
   peakId,
@@ -29,6 +31,8 @@ export function PeakDetailCommunityTab({
 }) {
   const { colors, isDark } = useTheme();
   const router = useRouter();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const showLoginPrompt = useLoginPromptStore((s) => s.showPrompt);
 
   // Community tab uses "primary" (forest green) accents.
   const accent = colors.primary as string;
@@ -163,6 +167,42 @@ export function PeakDetailCommunityTab({
         <CardFrame topo="none" seed={`community-empty:${peakId}`} style={{ padding: 14 }}>
           <Text className="text-muted-foreground text-sm">No public summits yet. Be the first!</Text>
         </CardFrame>
+      )}
+
+      {/* Inline CTA for guests */}
+      {!isAuthenticated && publicSummits.length > 0 && (
+        <TouchableOpacity
+          onPress={() => showLoginPrompt('add_report')}
+          activeOpacity={0.7}
+        >
+          <CardFrame topo="none" seed={`community-guest-cta:${peakId}`} style={{ padding: 14 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: `${colors.secondary}20` as any,
+                  borderWidth: 1,
+                  borderColor: `${colors.secondary}30` as any,
+                }}
+              >
+                <FileText size={18} color={colors.secondary as any} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text className="text-foreground text-sm font-medium">
+                  Climbed this peak?
+                </Text>
+                <Text className="text-muted-foreground text-xs mt-0.5">
+                  Sign in to add your trip report
+                </Text>
+              </View>
+              <LogIn size={16} color={colors.mutedForeground as any} />
+            </View>
+          </CardFrame>
+        </TouchableOpacity>
       )}
     </View>
   );

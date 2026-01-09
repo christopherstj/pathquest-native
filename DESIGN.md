@@ -1633,8 +1633,8 @@ pathquest/
         UnconfirmedSummitsCard.tsx ⬜ Dashboard card showing up to 3 unconfirmed summits (amber warning style)
       
       modals/
-        AddReportModal.tsx        ✅ Trip report entry (camera-first, condition tags, difficulty/experience, notes, custom tags)
-        ManualSummitModal.tsx     ✅ Manual summit logging (peak search, activity linking, date/time picker, difficulty/experience, notes)
+        AddReportModal.tsx        ✅ Trip report entry (camera-first, photo uploads, condition tags, difficulty/experience, notes, custom tags)
+        ManualSummitModal.tsx     ✅ Manual summit logging (peak search, activity linking, date/time picker, photo uploads, difficulty/experience, notes)
         LoginPrompt.tsx           ⬜ Auth prompt modal (pending - needed for auth-gated actions)
       
       auth/ (Phase 6)
@@ -1644,7 +1644,8 @@ pathquest/
         AccountLinkingScreen.tsx  ⬜ Link multiple auth providers
       
       settings/
-        SettingsScreen.tsx        ⬜ User settings page (profile, account, app preferences)
+        SettingsScreen.tsx        ✅ User settings page (profile, account, app preferences, delete account)
+        LocationSelectScreen.tsx  ✅ Location autocomplete with Mapbox Geocoding + map preview
         ConnectedDevicesScreen.tsx ⬜ Device connection management (Phase 6)
         ActivityImportScreen.tsx  ⬜ Review imported activities and detected summits (Phase 6)
       
@@ -1702,6 +1703,7 @@ pathquest/
       useProfileData.ts           ✅ Profile data hooks (useUserProfile, useUserPeaks with filters, useUserJournal with filters, useUserSummitStates)
       useGPSNavigation.ts         ✅ GPS navigation (distance/bearing/vert calculations)
       useCompassHeading.ts       ✅ Magnetometer heading hook
+      useMapNavigation.ts         ✅ Open coordinates in native maps app (iOS/Android)
       useCollapsibleHeader.ts     ⬜ Scroll-based header animation (not needed - using BottomSheetScrollView)
       useOfflineQueue.ts          ⬜ Queue actions for offline sync
       useAuthProviders.ts         ⬜ OAuth provider management (Phase 6)
@@ -2268,6 +2270,13 @@ Photos captured offline are stored locally:
   - ✅ Add Report Modal (camera-first photo capture, condition tags, difficulty/experience ratings, notes, custom tags)
   - ✅ Settings Screen (account info, units preference, privacy toggles, sign out, delete account)
   - ✅ Manual Summit Entry (peak search, activity linking with elevation profile, date/time picker with timezone, difficulty/experience ratings, trip notes)
+- ✅ Phase 4.5: Summit Review (Low-Confidence Summit Confirmation)
+  - ✅ UnconfirmedSummitsCard on Home dashboard (amber/rust warning theme, shows up to 3 summits with quick confirm/deny)
+  - ✅ Review tab in Profile (full list of unconfirmed summits with details, confirm/deny actions, "Confirm All" button)
+  - ✅ useUnconfirmedSummits hook for fetching unconfirmed summits
+  - ✅ useSummitReview hooks (useConfirmSummit, useDenySummit, useConfirmAllSummits) with optimistic updates
+  - ✅ Badge count on Review tab showing number of unconfirmed summits
+  - ✅ API endpoints in @pathquest/shared (getUnconfirmedSummits, confirmSummit, denySummit, confirmAllSummits)
 - ✅ Visual Design System (all primitives and theme)
 - ✅ Icon migration (FontAwesome → Lucide icons)
 - ✅ Typography system (Text/Value components)
@@ -2280,7 +2289,7 @@ Photos captured offline are stored locally:
 - ✅ Performance optimizations (peak limit: 200 max, client-side safeguard)
 
 **In Progress:**
-- None (Phase 2.9 completed)
+- None (Phase 4.5 completed)
 
 **Recent UI Improvements (Latest Session):**
 - ✅ **Visual Consistency Improvements:**
@@ -2311,7 +2320,7 @@ Photos captured offline are stored locally:
 **Pending:**
 - ⏳ Phase 3: You tab map mode toggle
 - ⏳ Phase 3.5: User Profile & Challenge Progress Pages (User Detail, User Challenge Progress) + Improve Search Bar Functionality
-- ⏳ Phase 3.9: Photo Infrastructure (Backend) - **Photo upload/gallery frontend ✅ IMPLEMENTED**
+- ✅ Phase 3.9: Photo Infrastructure (Backend + Frontend) - **COMPLETED**
 - ✅ Phase 4: Actions + Modals + User Settings
   - ✅ Add Report Modal - **IMPLEMENTED**
   - ✅ Settings Page - **IMPLEMENTED**
@@ -2474,7 +2483,7 @@ Photos captured offline are stored locally:
 - ✅ **StatsContent** - "The Summit Registry" design:
   - Hero card with CompassRose decoration and topo pattern
   - Large summit count with secondary stats (total summits, elevation)
-  - Crown Jewel card for highest peak (award badge, CardFrame styling)
+  - Crown Jewel card for highest peak (award badge, CardFrame styling, tappable to navigate to peak detail)
   - Milestone badges (Trophy, States, Countries) with animated reveal
   - "Your Journey" section with universal stats (elevation range, climbing streak, favorite peak)
   - All journey stats computed by backend (`/api/users/:id/profile`)
@@ -2529,6 +2538,26 @@ Photos captured offline are stored locally:
 - ✅ Shimmer animations for loading states
 - ✅ Functional back button during loading
 - ✅ Prevents "Unknown Peak" flash by waiting for valid data
+
+### ✅ Recent Improvements & Code Quality (COMPLETED)
+
+**Code Cleanup & Unification:**
+- ✅ Created `formatLocationString` utility for consistent location formatting across the app
+- ✅ Created `useMapNavigation` hook to centralize "Open in Maps" functionality
+- ✅ Standardized animations to use `withSpring` consistently (damping: 20, stiffness: 200)
+- ✅ Wrapped list components with `React.memo` for performance (`PeakRow`, `ChallengeRow`, `SummitCard`)
+- ✅ Extracted `GPSStatBox` sub-component from `GPSStrip` to reduce duplication
+- ✅ Updated hardcoded colors to use theme tokens (`colors.primary`, `colors.summited`, etc.)
+- ✅ Added semantic stat colors to theme (`statForest`, `statTrail`, `statGold`, `statMuted`)
+- ✅ Removed all `console.log` statements from production code
+- ✅ Fixed `activityId.trim` error handling with robust type checks
+
+**Feature Enhancements:**
+- ✅ Crown Jewel card in Stats tab now links to peak detail page
+- ✅ Recent summits refetch automatically after adding trip report (updates dashboard CTA)
+- ✅ Suggested peak "View Details" button routing fixed (explicit string conversion)
+- ✅ Location select screen with Mapbox Geocoding autocomplete and map preview
+- ✅ Settings screen location row navigates to location select modal
 
 ### ✅ Performance Optimizations (COMPLETED)
 
@@ -2667,8 +2696,24 @@ Build out user profile and challenge progress detail pages, following the same d
 - Create reusable `UserAvatar` component for consistent profile icon display
 - Implement image caching strategy for profile pictures
 
-### Phase 3.9: Photo Infrastructure (Backend)
-**Prerequisites for Phase 4 photo uploads:**
+### ✅ Phase 3.9: Photo Infrastructure (COMPLETED)
+
+**Backend:** ✅ **IMPLEMENTED**
+- ✅ Google Cloud Storage bucket (`pathquest-photos`) configured
+- ✅ Signed URL upload endpoints (`GET /api/photos/upload-url`, `POST /api/photos/complete-upload`)
+- ✅ Photo metadata storage in database
+- ✅ Photo retrieval endpoints (`GET /api/photos/by-summit`)
+
+**Frontend:** ✅ **IMPLEMENTED**
+- ✅ Photo upload flow in `AddReportModal.tsx` (camera-first, grid display, progress indicators)
+- ✅ Photo upload flow in `ManualSummitModal.tsx` (same style as Add Report)
+- ✅ `PeakPhotosGallery.tsx` component for public photo viewing (3-column grid, fullscreen modal)
+- ✅ Photo state management in `addReportStore.ts` and `manualSummitStore.ts`
+- ✅ Image processing via `expo-image-picker` (camera + library access)
+- ✅ Upload progress tracking with visual indicators
+- ✅ Photo deletion (remove from grid before upload completion)
+
+**Prerequisites for Phase 4 photo uploads:** ✅ **COMPLETED**
 - Create GCS bucket (`pathquest-photos`)
 - Configure CORS and service account
 - Run database migration for `summit_photos` table
@@ -2685,12 +2730,16 @@ Build out user profile and challenge progress detail pages, following the same d
 **Add Report Modal:** ✅ **IMPLEMENTED**
 - ✅ Trip report entry form with camera integration (`AddReportModal.tsx`)
 - ✅ Photo capture + upload flow (GCS signed URLs with progress tracking)
+- ✅ Camera-first photo selection (one tap to camera, library as secondary)
+- ✅ Photo grid display with upload progress indicators
+- ✅ Photo removal before upload completion
 - ✅ Condition tags selection (multi-select with emoji chips)
 - ✅ Difficulty picker (single-select: Easy/Moderate/Hard/Expert)
 - ✅ Experience rating (single-select: Amazing/Good/Tough/Epic)
 - ✅ Notes field (collapsible, expandable textarea)
 - ✅ Custom tags (user-defined text tags)
 - ✅ Form submission to `PUT /api/ascents/:id` endpoint
+- ✅ Query invalidation (invalidates `recentSummits` to update dashboard after submission)
 
 **Settings Screen:** ✅ **IMPLEMENTED**
 - ✅ Account info display
@@ -2723,18 +2772,21 @@ Build out user profile and challenge progress detail pages, following the same d
 
 **Manual Summit Entry:** ✅ **IMPLEMENTED**
 - ✅ Component: `ManualSummitModal.tsx` (fully implemented, ~1200 lines)
-- ✅ Store: `manualSummitStore.ts` (Zustand state management)
+- ✅ Store: `manualSummitStore.ts` (Zustand state management with photo state)
 - ✅ Peak search functionality (when opened from Profile tab without pre-selection)
 - ✅ Pre-selected peak display (when opened from Peak Detail "Your Logs" tab)
 - ✅ Optional activity linking with nearby activity search
 - ✅ Elevation profile selector (tap to set summit time from activity)
 - ✅ Date/time picker with auto-detected timezone (via `/api/utils/timezone` endpoint)
-- ✅ Difficulty rating grid (Easy/Moderate/Hard/Expert)
-- ✅ Experience rating grid (Amazing/Good/Tough/Epic)
+- ✅ Difficulty rating grid (Easy/Moderate/Hard/Expert) - theme-aware colors
+- ✅ Experience rating grid (Amazing/Good/Tough/Epic) - theme-aware colors
 - ✅ Trip notes field (expandable textarea)
+- ✅ Photo uploads (camera + library, same style as AddReportModal)
+- ✅ Photo grid with upload progress and removal
+- ✅ Styling aligned with DESIGN.md (Text/Value components, theme colors, consistent spacing)
 - ✅ Integration: Wired into Profile tab header and Peak Detail "Your Logs" tab
 - ✅ Form submission to `POST /api/peaks/summits/manual` endpoint
-- ✅ Query invalidation on successful submission
+- ✅ Query invalidation on successful submission (includes `recentSummits`)
 
 **Login Prompt:**
 - Modal for auth-gated actions
@@ -2748,8 +2800,9 @@ Build out user profile and challenge progress detail pages, following the same d
 - **Profile Settings:** ✅ **IMPLEMENTED**
   - ✅ User avatar display (via `UserAvatar` component)
   - ✅ Display name display (read-only, from Strava)
-  - ✅ Location display (city, state, country - read-only, from Strava)
+  - ✅ Location display (city, state, country) with edit button
   - ✅ Privacy settings (public/private profile toggle)
+  - ✅ Strava description update toggle (`update_description`)
 - **Account Settings:** ✅ **PARTIALLY IMPLEMENTED**
   - ⏳ Email preferences - **Pending**
   - ⏳ Notification settings - **Pending**
@@ -2773,9 +2826,21 @@ Build out user profile and challenge progress detail pages, following the same d
 - ✅ Consistent with app design system (CardFrame, topo patterns) - **IMPLEMENTED**
 - ✅ Sign Out button with confirmation - **IMPLEMENTED**
 
-### ⏳ Phase 4.5: Summit Review (Low-Confidence Summit Confirmation)
+**Location Select Screen:** ✅ **IMPLEMENTED**
+- **Component:** `src/components/settings/LocationSelectScreen.tsx`
+- **Route:** `app/settings/location.tsx` (modal presentation)
+- ✅ Mapbox Geocoding API integration for location autocomplete
+- ✅ Debounced search (250ms) to optimize API calls
+- ✅ Search results dropdown with formatted location strings
+- ✅ Small map preview showing selected location with marker
+- ✅ Map camera animation when location is selected
+- ✅ Saves `city`, `state`, `country`, and `location_coords` to user profile
+- ✅ Uses `formatLocationString` utility for consistent location formatting
+- ✅ Integration with `useAuthStore` for immediate UI updates
 
-**Status:** ⏳ **PENDING** - Feature exists in web app, needs native implementation
+### ✅ Phase 4.5: Summit Review (Low-Confidence Summit Confirmation)
+
+**Status:** ✅ **IMPLEMENTED** - Feature fully implemented in native app
 
 **Overview:**
 The backend automatically detects peak summits from Strava activities using a confidence scoring system. Summits with low confidence scores (`confidence_score < 0.45`) are marked as `unconfirmed` and require user review before being counted in stats and challenge progress.

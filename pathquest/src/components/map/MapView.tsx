@@ -203,12 +203,15 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
       // Phase 2: Auto-center on user once at startup (keeps Explore "proximity-based")
       // We retry briefly because lastKnownLocation can be null immediately after permission prompt.
       // Once complete (success or fail), we mark isInitialLocationReady so queries can start.
+      // For guests/unauthenticated users, we use a faster timeout to get them exploring quickly.
       const tryInitialAutoCenter = async () => {
         if (didInitialAutoCenterRef.current || initialAutoCenterInProgressRef.current) return;
         initialAutoCenterInProgressRef.current = true;
 
         try {
-          for (let attempt = 0; attempt < 6; attempt++) {
+          // Try only 2 times (600ms total) to get location - fast fallback for guests
+          // Most devices will have location ready quickly if permission was granted
+          for (let attempt = 0; attempt < 2; attempt++) {
             const userLocation = await Mapbox.locationManager.getLastKnownLocation();
             if (userLocation?.coords) {
               const { longitude, latitude } = userLocation.coords;
@@ -229,17 +232,18 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
               }, 1000);
               return;
             }
-            // wait a bit and retry
-            await new Promise((r) => setTimeout(r, 500));
+            // wait a bit and retry (shorter delay for faster fallback)
+            await new Promise((r) => setTimeout(r, 300));
           }
 
           // No user location found after retries - fall back to default (Boulder)
-          console.log('[MapView] Initial auto-center skipped (no user location available yet)');
+          // This ensures guests can explore immediately without location permission
+          console.log('[MapView] Initial auto-center skipped - using default location (Boulder, CO)');
           didInitialAutoCenterRef.current = true;
           await handleRegionChange();
           setInitialLocationReady(true);
         } catch (error) {
-          console.warn('[MapView] Initial auto-center failed:', error);
+          console.warn('[MapView] Initial auto-center failed, using fallback:', error);
           didInitialAutoCenterRef.current = true;
           await handleRegionChange();
           setInitialLocationReady(true);
@@ -251,7 +255,7 @@ const MapViewComponent = React.forwardRef<MapViewRef, MapViewProps>(
       // small delay so permission prompt / location subsystem can initialize
       setTimeout(() => {
         tryInitialAutoCenter();
-      }, 600);
+      }, 400);
     }, [onMapReady, handleRegionChange, setInitialLocationReady]);
 
     // Handle map load error (Mapbox callback has no args)
