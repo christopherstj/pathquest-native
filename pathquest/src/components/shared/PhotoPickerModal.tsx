@@ -261,11 +261,24 @@ export const PhotoPickerModal: React.FC<PhotoPickerModalProps> = ({
     onClose();
   }, [onClose]);
 
-  // Use system photo picker (works without permissions on Android 13+)
+  // Use system photo picker
   const handleUseSystemPicker = useCallback(async () => {
     console.log('[PhotoPickerModal] Opening system photo picker...');
     
     try {
+      // Request permissions first to avoid issues on some Android versions
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      console.log('[PhotoPickerModal] Permission result:', permissionResult.status, 'granted:', permissionResult.granted);
+      
+      if (!permissionResult.granted) {
+        console.log('[PhotoPickerModal] Permission not granted, opening settings...');
+        // If permission denied, guide user to settings
+        if (Platform.OS === 'android') {
+          Linking.openSettings();
+        }
+        return;
+      }
+      
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
         allowsMultipleSelection: true,
@@ -564,7 +577,7 @@ export const PhotoPickerModal: React.FC<PhotoPickerModalProps> = ({
                 textAlign: 'center',
               }}
             >
-              Select Your Summit Photos
+              View Photos from Your Summit Day
             </Text>
             <Text
               style={{
@@ -575,23 +588,11 @@ export const PhotoPickerModal: React.FC<PhotoPickerModalProps> = ({
                 paddingHorizontal: 16,
               }}
             >
-              Use "Browse All" above to select photos from your device, or take a new photo with "Take Photo".
+              Allow photo access to see photos from the day you summited, making it easy to find your best shots.
             </Text>
-            <Text
-              style={{
-                fontSize: 12,
-                color: colors.mutedForeground,
-                marginTop: 16,
-                textAlign: 'center',
-                paddingHorizontal: 16,
-                fontStyle: 'italic',
-              }}
-            >
-              Automatic "day-of photos" filtering requires an app update.
-            </Text>
-            {/* Big Browse All button as primary CTA */}
+            {/* Primary CTA - Request Permission */}
             <TouchableOpacity
-              onPress={handleUseSystemPicker}
+              onPress={handleRequestPermission}
               style={{
                 marginTop: 24,
                 paddingHorizontal: 32,
@@ -605,7 +606,20 @@ export const PhotoPickerModal: React.FC<PhotoPickerModalProps> = ({
             >
               <ImageIcon size={20} color="#fff" />
               <Text style={{ fontSize: 16, fontWeight: '600', color: '#fff' }}>
-                Browse All Photos
+                Allow Photo Access
+              </Text>
+            </TouchableOpacity>
+            {/* Secondary option - use system picker without full access */}
+            <TouchableOpacity
+              onPress={handleUseSystemPicker}
+              style={{
+                marginTop: 16,
+                paddingHorizontal: 24,
+                paddingVertical: 10,
+              }}
+            >
+              <Text style={{ fontSize: 14, color: colors.mutedForeground, textDecorationLine: 'underline' }}>
+                Or browse all photos manually
               </Text>
             </TouchableOpacity>
           </View>
