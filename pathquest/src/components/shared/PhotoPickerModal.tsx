@@ -16,9 +16,10 @@ import {
   Dimensions,
   ActivityIndicator,
   Platform,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { X, Check, Camera, ImageIcon } from 'lucide-react-native';
+import { X, Check, Camera, ImageIcon, Settings } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { format } from 'date-fns';
 import { Text } from '@/src/components/ui';
@@ -187,6 +188,7 @@ export const PhotoPickerModal: React.FC<PhotoPickerModalProps> = ({
     loadMoreRecent,
     refresh,
     permissionStatus,
+    isGranted,
     requestPermission,
   } = usePhotoPicker(summitTimestamp);
 
@@ -259,13 +261,55 @@ export const PhotoPickerModal: React.FC<PhotoPickerModalProps> = ({
     onClose();
   }, [onClose]);
 
-  // Request permission if needed
-  const handleRequestPermission = useCallback(async () => {
-    const granted = await requestPermission();
-    if (granted) {
-      refresh();
+  // Use system photo picker (works without permissions on Android 13+)
+  const handleUseSystemPicker = useCallback(async () => {
+    console.log('[PhotoPickerModal] Opening system photo picker...');
+    
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsMultipleSelection: true,
+        quality: 0.8,
+        exif: true,
+        selectionLimit: 10, // Limit to 10 photos at a time
+      });
+      
+      console.log('[PhotoPickerModal] System picker result:', result.canceled ? 'canceled' : `${result.assets?.length || 0} photos selected`);
+      
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        // Convert ImagePicker assets to DevicePhoto format
+        const selectedPhotos: DevicePhoto[] = result.assets.map((asset, index) => ({
+          id: `system-picker-${Date.now()}-${index}`,
+          uri: asset.uri,
+          filename: asset.fileName ?? `photo-${Date.now()}-${index}.jpg`,
+          width: asset.width,
+          height: asset.height,
+          creationTime: asset.exif?.DateTimeOriginal ? new Date(asset.exif.DateTimeOriginal).getTime() : Date.now(),
+        }));
+        
+        onSelectPhotos(selectedPhotos);
+        onClose();
+      }
+    } catch (error) {
+      console.error('[PhotoPickerModal] System picker error:', error);
     }
-  }, [requestPermission, refresh]);
+  }, [onSelectPhotos, onClose]);
+
+  // Request permission for media library access (to show day-of photos)
+  const handleRequestPermission = useCallback(async () => {
+    console.log('[PhotoPickerModal] Allow Access button tapped');
+    
+    // If already permanently denied on Android, open settings
+    if (permissionStatus === 'denied' && Platform.OS === 'android') {
+      console.log('[PhotoPickerModal] Permission denied, opening settings...');
+      Linking.openSettings();
+      return;
+    }
+    
+    const granted = await requestPermission();
+    console.log('[PhotoPickerModal] Permission granted:', granted);
+    // The hook will automatically trigger photo loading when permission is granted
+  }, [requestPermission, permissionStatus]);
 
   // Build flat list data with section headers
   const listData = useMemo(() => {
@@ -304,8 +348,40 @@ export const PhotoPickerModal: React.FC<PhotoPickerModalProps> = ({
     return data;
   }, [summitDayPhotos, recentPhotos, formattedDate, existingPhotoIds]);
 
+  // Group photos into rows for manual grid layout
+  const groupedData = useMemo(() => {
+    const grouped: Array<{ type: 'header' | 'row'; key: string; items?: DevicePhoto[]; title?: string; highlighted?: boolean }> = [];
+    let currentRow: DevicePhoto[] = [];
+
+    listData.forEach((item) => {
+      if (item.type === 'header') {
+        // Flush current row if any
+        if (currentRow.length > 0) {
+          grouped.push({ type: 'row', key: `row-${grouped.length}`, items: [...currentRow] });
+          currentRow = [];
+        }
+        // Add header
+        grouped.push({ type: 'header', key: item.key, title: item.title, highlighted: item.highlighted });
+      } else if (item.photo) {
+        currentRow.push(item.photo);
+        // If row is full, flush it
+        if (currentRow.length === NUM_COLUMNS) {
+          grouped.push({ type: 'row', key: `row-${grouped.length}`, items: [...currentRow] });
+          currentRow = [];
+        }
+      }
+    });
+
+    // Flush remaining photos
+    if (currentRow.length > 0) {
+      grouped.push({ type: 'row', key: `row-${grouped.length}`, items: currentRow });
+    }
+
+    return grouped;
+  }, [listData]);
+
   // Render list item
-  const renderItem = useCallback(({ item }: { item: typeof listData[0] }) => {
+  const renderItem = useCallback(({ item }: { item: typeof groupedData[0] }) => {
     if (item.type === 'header') {
       return (
         <SectionHeader
@@ -316,26 +392,35 @@ export const PhotoPickerModal: React.FC<PhotoPickerModalProps> = ({
       );
     }
 
-    if (item.photo) {
+    if (item.type === 'row' && item.items) {
       return (
-        <PhotoThumbnail
-          photo={item.photo}
-          isSelected={selectedIds.has(item.photo.id)}
-          onToggle={() => toggleSelection(item.photo!.id)}
-          accentColor={color}
-        />
+        <View
+          style={{
+            flexDirection: 'row',
+            paddingHorizontal: GRID_GAP / 2,
+            marginBottom: GRID_GAP,
+          }}
+        >
+          {item.items.map((photo) => (
+            <PhotoThumbnail
+              key={photo.id}
+              photo={photo}
+              isSelected={selectedIds.has(photo.id)}
+              onToggle={() => toggleSelection(photo.id)}
+              accentColor={color}
+            />
+          ))}
+          {/* Fill remaining columns with empty space */}
+          {Array.from({ length: NUM_COLUMNS - item.items.length }).map((_, i) => (
+            <View key={`spacer-${i}`} style={{ width: THUMBNAIL_SIZE, margin: GRID_GAP / 2 }} />
+          ))}
+        </View>
       );
     }
 
     return null;
   }, [selectedIds, toggleSelection, color]);
 
-  // Get item layout for performance
-  const getItemLayout = useCallback((_: any, index: number) => {
-    // This is approximate since headers have different heights
-    const itemHeight = THUMBNAIL_SIZE + GRID_GAP;
-    return { length: itemHeight, offset: itemHeight * index, index };
-  }, []);
 
   // Handle end reached for pagination
   const handleEndReached = useCallback(() => {
@@ -408,7 +493,7 @@ export const PhotoPickerModal: React.FC<PhotoPickerModalProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* Camera button row */}
+        {/* Action buttons row */}
         <View
           style={{
             flexDirection: 'row',
@@ -437,10 +522,30 @@ export const PhotoPickerModal: React.FC<PhotoPickerModalProps> = ({
               Take Photo
             </Text>
           </TouchableOpacity>
+          
+          {/* Browse All button - uses system picker, works on all Android versions */}
+          <TouchableOpacity
+            onPress={handleUseSystemPicker}
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              paddingVertical: 12,
+              borderRadius: 12,
+              backgroundColor: isDark ? colors.card : colors.muted,
+            }}
+          >
+            <ImageIcon size={20} color={color} />
+            <Text style={{ fontSize: 15, fontWeight: '500', color: colors.foreground }}>
+              Browse All
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* Permission prompt */}
-        {permissionStatus !== 'granted' && (
+        {/* Permission prompt - show when we don't have media library access */}
+        {!isGranted && (
           <View
             style={{
               flex: 1,
@@ -459,7 +564,7 @@ export const PhotoPickerModal: React.FC<PhotoPickerModalProps> = ({
                 textAlign: 'center',
               }}
             >
-              Photo Library Access
+              Select Your Summit Photos
             </Text>
             <Text
               style={{
@@ -467,29 +572,47 @@ export const PhotoPickerModal: React.FC<PhotoPickerModalProps> = ({
                 color: colors.mutedForeground,
                 marginTop: 8,
                 textAlign: 'center',
+                paddingHorizontal: 16,
               }}
             >
-              Allow access to your photo library to select photos from your summit.
+              Use "Browse All" above to select photos from your device, or take a new photo with "Take Photo".
             </Text>
+            <Text
+              style={{
+                fontSize: 12,
+                color: colors.mutedForeground,
+                marginTop: 16,
+                textAlign: 'center',
+                paddingHorizontal: 16,
+                fontStyle: 'italic',
+              }}
+            >
+              Automatic "day-of photos" filtering requires an app update.
+            </Text>
+            {/* Big Browse All button as primary CTA */}
             <TouchableOpacity
-              onPress={handleRequestPermission}
+              onPress={handleUseSystemPicker}
               style={{
                 marginTop: 24,
-                paddingHorizontal: 24,
-                paddingVertical: 12,
+                paddingHorizontal: 32,
+                paddingVertical: 14,
                 borderRadius: 24,
                 backgroundColor: color,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
               }}
             >
-              <Text style={{ fontSize: 15, fontWeight: '600', color: '#fff' }}>
-                Allow Access
+              <ImageIcon size={20} color="#fff" />
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#fff' }}>
+                Browse All Photos
               </Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* Loading state */}
-        {permissionStatus === 'granted' && loading && listData.length === 0 && (
+        {isGranted && loading && listData.length === 0 && (
           <View
             style={{
               flex: 1,
@@ -530,7 +653,7 @@ export const PhotoPickerModal: React.FC<PhotoPickerModalProps> = ({
               {error}
             </Text>
             <TouchableOpacity
-              onPress={refresh}
+              onPress={() => refresh()}
               style={{
                 marginTop: 16,
                 paddingHorizontal: 20,
@@ -547,19 +670,15 @@ export const PhotoPickerModal: React.FC<PhotoPickerModalProps> = ({
         )}
 
         {/* Photo grid */}
-        {permissionStatus === 'granted' && !error && (
+        {isGranted && !error && (
           <FlatList
-            data={listData}
+            data={groupedData}
             renderItem={renderItem}
             keyExtractor={item => item.key}
-            numColumns={NUM_COLUMNS}
-            columnWrapperStyle={{
-              paddingHorizontal: GRID_GAP / 2,
-            }}
             onEndReached={handleEndReached}
             onEndReachedThreshold={0.5}
             ListFooterComponent={
-              loading && listData.length > 0 ? (
+              loading && groupedData.length > 0 ? (
                 <View style={{ paddingVertical: 20 }}>
                   <ActivityIndicator size="small" color={color} />
                 </View>

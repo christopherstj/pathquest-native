@@ -40,6 +40,10 @@ export { useMapNavigation } from './useMapNavigation';
 export { useSummitDayPhotos, useRecentPhotos, usePhotoPicker } from './useDevicePhotos';
 export type { DevicePhoto, UsePhotoPickerResult } from './useDevicePhotos';
 
+// Media permissions (cross-platform)
+export { useMediaPermission } from './useMediaPermission';
+export type { MediaPermissionStatus } from './useMediaPermission';
+
 // Summit review (unconfirmed summits)
 export { useUnconfirmedSummits } from './useUnconfirmedSummits';
 export { useConfirmSummit, useDenySummit, useConfirmAllSummits } from './useSummitReview';
@@ -50,3 +54,10 @@ export { usePopularChallenges, useRecentPublicSummits } from './useGuestData';
 // Import status (historical data processing)
 export { useImportStatus } from './useImportStatus';
 export type { ImportStatus } from './useImportStatus';
+
+// Network status
+export { useNetworkStatus, checkIsOnline } from './useNetworkStatus';
+export type { NetworkStatus } from './useNetworkStatus';
+
+// Offline queue retry
+export { useOfflineQueueRetry } from './useOfflineQueueRetry';

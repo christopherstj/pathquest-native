@@ -11,6 +11,12 @@ import {
     saveAccessToken,
     saveTokenExpiry,
 } from "./tokens";
+import { clearQueryCache } from "../queryCache";
+import { 
+    setupPushNotifications, 
+    unregisterPushToken,
+    getExpoPushToken,
+} from "../notifications";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "";
 
@@ -80,6 +86,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     /**
      * Save auth data after successful login/token exchange.
+     * Also sets up push notifications.
      */
     login: async (data) => {
         await saveAuthData(data);
@@ -88,13 +95,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             user: data.user,
             accessToken: data.accessToken,
         });
+
+        // Set up push notifications after login (fire and forget)
+        setupPushNotifications().catch((err) => {
+            console.warn("[AuthStore] Failed to setup push notifications:", err);
+        });
     },
 
     /**
      * Clear auth data on logout.
+     * Also clears the query cache and unregisters push token.
      */
     logout: async () => {
+        // Unregister push token before clearing auth data
+        try {
+            const pushToken = await getExpoPushToken();
+            if (pushToken) {
+                await unregisterPushToken(pushToken);
+            }
+        } catch (err) {
+            console.warn("[AuthStore] Failed to unregister push token:", err);
+        }
+
         await clearAuthData();
+        // Clear query cache to remove user-specific data
+        await clearQueryCache();
         set({
             isAuthenticated: false,
             user: null,

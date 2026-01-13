@@ -51,8 +51,9 @@ import { endpoints } from "@pathquest/shared/api";
 import { Text, CardFrame, PrimaryCTA } from "@/src/components/ui";
 import { useTheme } from "@/src/theme";
 import { useAddReportStore, type PhotoUploadProgress } from "@/src/store/addReportStore";
+import { useOfflineQueueStore, useToast, type TripReportData, type PendingPhoto } from "@/src/store";
 import { getApiClient } from "@/src/lib/api";
-import { useSummitDayPhotos, type DevicePhoto } from "@/src/hooks";
+import { useSummitDayPhotos, useNetworkStatus, type DevicePhoto } from "@/src/hooks";
 import { PhotoPickerModal } from "@/src/components/shared/PhotoPickerModal";
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -705,10 +706,56 @@ export const AddReportModal: React.FC = () => {
     [removePhoto, clearUploadProgress]
   );
 
+  // Network status for offline queueing
+  const { isConnected, isInternetReachable } = useNetworkStatus();
+  const isOnline = isConnected && isInternetReachable !== false;
+  const queueSubmission = useOfflineQueueStore((s) => s.queueSubmission);
+  const toast = useToast();
+
   const handleSubmit = useCallback(async () => {
     if (!data) return;
 
     setIsSubmitting(true);
+    
+    // Check if offline - queue for later
+    if (!isOnline) {
+      try {
+        const tripReportData: TripReportData = {
+          ascentId: data.ascentId,
+          difficulty: difficulty ?? undefined,
+          experience: experienceRating ?? undefined,
+          notes: notes.trim() || undefined,
+          tags: customTags.length > 0 ? customTags : undefined,
+          conditionTags: conditionTags.length > 0 ? conditionTags : undefined,
+        };
+
+        // Queue photos that haven't been uploaded yet (pending ones)
+        const pendingPhotos: PendingPhoto[] = photos
+          .filter((p) => p.id.startsWith('temp-'))
+          .map((p) => ({
+            uri: p.thumbnailUrl,
+            filename: `photo-${Date.now()}.jpg`,
+            width: 0,
+            height: 0,
+          }));
+
+        await queueSubmission('trip_report', tripReportData, pendingPhotos);
+        
+        toast.info(
+          'Your report has been saved and will be uploaded when you\'re back online.',
+          'Saved Offline'
+        );
+        closeModal();
+      } catch (error) {
+        console.error("Failed to queue report:", error);
+        Alert.alert("Error", "Failed to save report offline. Please try again.");
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
+
+    // Online - submit immediately
     try {
       const client = getApiClient();
 
@@ -746,7 +793,7 @@ export const AddReportModal: React.FC = () => {
     } finally {
       setIsSubmitting(false);
     }
-  }, [data, notes, difficulty, experienceRating, conditionTags, customTags, closeModal, queryClient, setIsSubmitting]);
+  }, [data, notes, difficulty, experienceRating, conditionTags, customTags, photos, closeModal, queryClient, setIsSubmitting, isOnline, queueSubmission, toast]);
 
   const handleAddCustomTag = useCallback(() => {
     if (customTagInput.trim()) {

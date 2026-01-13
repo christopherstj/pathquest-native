@@ -140,6 +140,10 @@ interface MapState {
   // Initial location ready flag (prevents querying Boulder before user location is found)
   isInitialLocationReady: boolean;
   
+  // Loading states for peaks and challenges
+  isLoadingPeaks: boolean;
+  isLoadingChallenges: boolean;
+  
   // Hover state (for highlighting peaks in lists)
   hoveredPeakId: string | null;
   
@@ -190,6 +194,8 @@ interface MapState {
   setCurrentBounds: (bounds: [[number, number], [number, number]]) => void;
   setHoveredPeakId: (id: string | null) => void;
   setInitialLocationReady: (ready: boolean) => void;
+  setLoadingPeaks: (loading: boolean) => void;
+  setLoadingChallenges: (loading: boolean) => void;
   
   // Compound selection actions (for floating cards)
   selectPeak: (id: string) => void;
@@ -226,6 +232,8 @@ export const useMapStore = create<MapState>((set, get) => ({
   isInitialLocationReady: false,
   currentBounds: null,
   hoveredPeakId: null,
+  isLoadingPeaks: false,
+  isLoadingChallenges: false,
   pendingFitBounds: null,
   pendingFlyTo: null,
   
@@ -308,6 +316,8 @@ export const useMapStore = create<MapState>((set, get) => ({
   setCurrentBounds: (bounds) => set({ currentBounds: bounds }),
   setHoveredPeakId: (id) => set({ hoveredPeakId: id }),
   setInitialLocationReady: (ready) => set({ isInitialLocationReady: ready }),
+  setLoadingPeaks: (loading) => set({ isLoadingPeaks: loading }),
+  setLoadingChallenges: (loading) => set({ isLoadingChallenges: loading }),
   
   // Compound selection actions
   selectPeak: (id) => set({

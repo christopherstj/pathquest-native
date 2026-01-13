@@ -16,3 +16,14 @@ export type { ManualSummitData } from './manualSummitStore';
 export { useLoginPromptStore, LOGIN_PROMPT_MESSAGES } from './loginPromptStore';
 export type { LoginPromptContext } from './loginPromptStore';
 export { useOnboardingStore } from './onboardingStore';
+export { 
+  useOfflineQueueStore, 
+  hasPendingSubmissions, 
+  getPendingCount 
+} from './offlineQueueStore';
+export type { 
+  PendingSubmission, 
+  PendingPhoto, 
+  TripReportData, 
+  ManualSummitData 
+} from './offlineQueueStore';

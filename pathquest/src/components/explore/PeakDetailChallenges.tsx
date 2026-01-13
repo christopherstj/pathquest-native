@@ -40,7 +40,10 @@ export function PeakDetailChallenges({ challenges = [], isLoading = false }: Pea
       {/* NOTE: PeakDetail already applies padding: 16 on the parent scroll view.
           Keep this section flush with that baseline (no extra side padding here). */}
       {!isLoading && challenges.length > 0 && (
-        <View className="mb-1 flex-row items-center gap-1.5">
+        <View 
+          className="mb-1 flex-row items-center gap-1.5"
+          style={{ backgroundColor: 'transparent' }}
+        >
           <Trophy size={11} color={colors.primary} />
           <Text 
             className="text-[9px] uppercase tracking-widest font-medium"

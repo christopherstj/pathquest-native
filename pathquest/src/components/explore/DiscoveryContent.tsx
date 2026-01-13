@@ -15,7 +15,9 @@ import { useTheme } from '@/src/theme';
 import { useMapStore } from '@/src/store/mapStore';
 import { useAllChallenges } from '@/src/hooks';
 import PeakRow from './PeakRow';
+import PeakRowSkeleton from './PeakRowSkeleton';
 import ChallengeRow from './ChallengeRow';
+import ChallengeRowSkeleton from './ChallengeRowSkeleton';
 import type { Peak, ChallengeProgress } from '@pathquest/shared';
 
 type DiscoveryTab = 'peaks' | 'challenges';
@@ -54,6 +56,8 @@ const DiscoveryContent: React.FC<DiscoveryContentProps> = ({
   const visiblePeaks = useMapStore((state) => state.visiblePeaks);
   const visibleChallenges = useMapStore((state) => state.visibleChallenges);
   const isZoomedOutTooFar = useMapStore((state) => state.isZoomedOutTooFar);
+  const isLoadingPeaks = useMapStore((state) => state.isLoadingPeaks);
+  const isLoadingChallenges = useMapStore((state) => state.isLoadingChallenges);
 
   const isAllChallengesMode = activeTab === 'challenges' && challengeMode === 'all';
 
@@ -134,7 +138,14 @@ const DiscoveryContent: React.FC<DiscoveryContentProps> = ({
         showsVerticalScrollIndicator={false}
       >
         {activeTab === 'peaks' ? (
-          peakCount > 0 ? (
+          // Show loading skeletons when peaks are loading and we have no data yet
+          isLoadingPeaks && peakCount === 0 ? (
+            <View>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <PeakRowSkeleton key={i} index={i} />
+              ))}
+            </View>
+          ) : peakCount > 0 ? (
             visiblePeaks.map((peak) => (
               <PeakRow
                 key={peak.id}
@@ -152,11 +163,10 @@ const DiscoveryContent: React.FC<DiscoveryContentProps> = ({
           )
         ) : isAllChallengesMode ? (
           allChallengesLoading ? (
-            <View className="items-center justify-center p-8">
-              <Trophy size={24} color={colors.mutedForeground} />
-              <Text className="text-muted-foreground text-sm mt-3 text-center">
-                Loading all challenges…
-              </Text>
+            <View>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <ChallengeRowSkeleton key={i} index={i} />
+              ))}
             </View>
           ) : allChallengesVisible.length > 0 ? (
             <View>
@@ -181,17 +191,26 @@ const DiscoveryContent: React.FC<DiscoveryContentProps> = ({
               </Text>
             </View>
           )
-        ) : challengeCount > 0 ? (
-          sortedVisibleChallenges.map((challenge) => (
-            <ChallengeRow key={challenge.id} challenge={challenge} onPress={onChallengePress} />
-          ))
         ) : (
-          <View className="items-center justify-center p-8">
-            <Trophy size={24} color={colors.mutedForeground} />
-            <Text className="text-muted-foreground text-sm mt-3 text-center">
-              No challenges in this area
-            </Text>
-          </View>
+          // Show loading skeletons when challenges are loading and we have no data yet
+          isLoadingChallenges && challengeCount === 0 ? (
+            <View>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <ChallengeRowSkeleton key={i} index={i} />
+              ))}
+            </View>
+          ) : challengeCount > 0 ? (
+            sortedVisibleChallenges.map((challenge) => (
+              <ChallengeRow key={challenge.id} challenge={challenge} onPress={onChallengePress} />
+            ))
+          ) : (
+            <View className="items-center justify-center p-8">
+              <Trophy size={24} color={colors.mutedForeground} />
+              <Text className="text-muted-foreground text-sm mt-3 text-center">
+                No challenges in this area
+              </Text>
+            </View>
+          )
         )}
       </BottomSheetScrollView>
     </View>

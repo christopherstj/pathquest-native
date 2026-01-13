@@ -100,6 +100,8 @@ pathquest-native/
           PeakDetailDaylightCard.tsx  # Sunrise/sunset + daylight duration (legacy, see WeatherSection)
           PeakDetailConditionsTab.tsx # Conditions tab content (legacy, replaced by WeatherSection)
           PeakRow.tsx           # Peak list item
+          PeakRowSkeleton.tsx   # Skeleton loader for PeakRow
+          ChallengeRowSkeleton.tsx # Skeleton loader for ChallengeRow
           index.ts
         home/                   # Home tab components
           DashboardContent.tsx  # Main dashboard wrapper (authenticated + guest views)
@@ -200,12 +202,16 @@ pathquest-native/
           getMapboxToken.ts     # Mapbox token helper (used for geocoding/place search)
         auth/
           index.ts              # Auth exports
-          store.ts              # Zustand auth store
+          store.ts              # Zustand auth store (includes push notification registration on login)
           strava.ts             # Strava PKCE OAuth flow
           tokens.ts             # Token storage (expo-secure-store)
+        notifications/
+          pushNotifications.ts  # Expo push notification setup (token registration, handlers)
+          index.ts
+        queryCache.ts           # Global QueryClient reference for cache invalidation
       store/                    # Zustand stores
         index.ts
-        mapStore.ts             # Map state (visible peaks, selection, zoom)
+        mapStore.ts             # Map state (visible peaks, selection, zoom, loading states)
         sheetStore.ts           # Bottom sheet snap state
         exploreNavStore.ts      # Explore tab nav history + discovery state persistence
         addReportStore.ts       # Add Report modal state (form data, photos, upload progress)
@@ -213,6 +219,7 @@ pathquest-native/
         toastStore.ts           # Global toast notification state (useToast hook)
         loginPromptStore.ts     # Login prompt modal state (visibility, context)
         onboardingStore.ts      # Onboarding modal state (visibility, hasSeenOnboarding, AsyncStorage persistence)
+        offlineQueueStore.ts    # Offline queue state (pending submissions, retry status, AsyncStorage persistence)
       hooks/                    # Custom React hooks
         index.ts
         useHaptics.ts           # Haptic feedback hook (light/medium/heavy/selection/success/warning/error)
@@ -227,6 +234,8 @@ pathquest-native/
         useCompassHeading.ts    # Device compass heading
         useGPSNavigation.ts     # GPS navigation to peak
         useMapNavigation.ts     # Open coordinates in native maps app
+        useNetworkStatus.ts     # Network connectivity detection (NetInfo)
+        useOfflineQueueRetry.ts # Auto-retry queued submissions when online
         # ... and more
       theme/                    # Theme system
         colors.ts               # Color palette (light/dark)
@@ -689,8 +698,40 @@ New API endpoints in @pathquest/shared:
 - `getPopularChallenges(client, { limit })` - GET /challenges/popular
 - `getRecentPublicSummits(client, { limit })` - GET /peaks/summits/public/recent
 
-### Phase 5: Polish + Offline
-- Offline queue for reports
-- TanStack Query persistence
-- Onboarding flow
-- Push notification setup
+### ✅ Phase 5.1: Onboarding Flow (COMPLETED)
+- ✅ Multi-step onboarding modal (3 slides: welcome, how it works, what to expect)
+- ✅ Location permission request with context explanation
+- ✅ Strava connection prompt with benefits messaging
+- ✅ `onboardingStore` with AsyncStorage persistence (remembers if user has seen onboarding)
+- ✅ Auto-shows on first launch for new users
+
+### ✅ Phase 5.2: TanStack Query Persistence (COMPLETED)
+- ✅ `@tanstack/react-query-persist-client` integration with AsyncStorage
+- ✅ Query cache persists across app restarts
+- ✅ Global `queryClient` reference via `src/lib/queryCache.ts`
+- ✅ Cache invalidation on logout
+
+### ✅ Phase 5.3: Offline Queue for Reports (COMPLETED)
+- ✅ `@react-native-community/netinfo` for network connectivity detection
+- ✅ `useNetworkStatus` hook for real-time connectivity status
+- ✅ `offlineQueueStore` (Zustand + AsyncStorage persistence) for pending submissions
+- ✅ `useOfflineQueueRetry` hook for auto-retrying queued submissions when connectivity restored
+- ✅ `AddReportModal` queues trip reports when offline
+- ✅ `ManualSummitModal` queues manual summits when offline
+- ✅ Photo uploads queued with submissions and uploaded on retry
+
+### ✅ Phase 5.4: Push Notifications (COMPLETED)
+- ✅ `expo-notifications` + `expo-device` integration
+- ✅ Push token registration with backend on login (`registerForPushNotifications`)
+- ✅ Backend API endpoints for push token management (`POST/DELETE /api/push-tokens`)
+- ✅ `user_push_tokens` database table for storing device tokens
+- ✅ `sendSummitNotification` backend helper for sending notifications on new summit logs
+- ✅ Notification preferences toggle in Settings screen
+- ✅ Deep linking from notifications to peak detail pages
+- ✅ Foreground and background notification handlers
+
+### Phase 6: App Store Submission
+- Prepare app store listing (screenshots, description, keywords)
+- Configure EAS Build for production (iOS + Android)
+- Privacy policy + terms of service pages
+- End-to-end testing on physical devices (iOS + Android)

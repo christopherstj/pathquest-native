@@ -3,7 +3,9 @@
  */
 
 export { default as PeakRow } from './PeakRow';
+export { default as PeakRowSkeleton } from './PeakRowSkeleton';
 export { default as ChallengeRow } from './ChallengeRow';
+export { default as ChallengeRowSkeleton } from './ChallengeRowSkeleton';
 export { default as DiscoveryContent } from './DiscoveryContent';
 export { default as ExploreOmnibar } from './ExploreOmnibar';
 export { default as PeakDetail } from './PeakDetail';

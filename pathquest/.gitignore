@@ -41,3 +41,10 @@ yarn-error.*
 /android
 
 .env
+
+secrets
+
+# Firebase config (contains API keys)
+google-services.json
+GoogleService-Info.plist
+

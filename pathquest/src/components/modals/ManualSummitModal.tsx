@@ -61,8 +61,10 @@ import { Text, Value, CardFrame, PrimaryCTA, SecondaryCTA } from "@/src/componen
 import { useTheme } from "@/src/theme";
 import { useManualSummitStore } from "@/src/store/manualSummitStore";
 import { useToast } from "@/src/store/toastStore";
+import { useOfflineQueueStore, type ManualSummitData, type PendingPhoto } from "@/src/store";
 import { getApiClient } from "@/src/lib/api";
 import { useAuthStore } from "@/src/lib/auth";
+import { useNetworkStatus } from "@/src/hooks";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -780,11 +782,59 @@ const ManualSummitModal: React.FC = () => {
     }
   };
 
+  // Network status for offline queueing
+  const { isConnected, isInternetReachable } = useNetworkStatus();
+  const isOnline = isConnected && isInternetReachable !== false;
+  const queueSubmission = useOfflineQueueStore((s) => s.queueSubmission);
+
   const handleSubmit = async () => {
     if (!activePeak || !user?.id) return;
 
     setIsSubmitting(true);
 
+    // Check if offline - queue for later
+    if (!isOnline) {
+      try {
+        const manualSummitData: ManualSummitData = {
+          peakId: activePeak.peakId,
+          peakName: activePeak.peakName,
+          summitDate: summitDate.toISOString(),
+          timezone,
+          activityId: selectedActivityId || undefined,
+          difficulty: difficulty || undefined,
+          experience: experience || undefined,
+          notes: notes || undefined,
+          tags: customTags.length > 0 ? customTags : undefined,
+          conditionTags: conditionTags.length > 0 ? conditionTags : undefined,
+          userId: user.id,
+        };
+
+        // Queue photos
+        const queuedPhotos: PendingPhoto[] = pendingPhotos.map((p) => ({
+          uri: p.uri,
+          filename: p.filename,
+          width: p.width,
+          height: p.height,
+        }));
+
+        await queueSubmission('manual_summit', manualSummitData, queuedPhotos);
+        
+        toast.info(
+          `${activePeak.peakName} has been saved and will be uploaded when you're back online.`,
+          'Saved Offline'
+        );
+        closeManualSummit();
+      } catch (error) {
+        console.error("Failed to queue summit:", error);
+        toast.error("Failed to save summit offline. Please try again.", "Error");
+      } finally {
+        setIsSubmitting(false);
+        setSubmitStatus("");
+      }
+      return;
+    }
+
+    // Online - submit immediately
     try {
       const client = getApiClient();
       

@@ -42,6 +42,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     ...base,
     plugins: finalPlugins,
+    android: {
+      ...base.android,
+      // Use EAS secret file path if available, otherwise fall back to local file for development
+      googleServicesFile: process.env.GOOGLE_SERVICES_JSON ?? base.android?.googleServicesFile ?? "./google-services.json",
+    },
   } as ExpoConfig;
 };
 

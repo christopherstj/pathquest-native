@@ -98,6 +98,8 @@ export default function ExploreLayout() {
   const updateMapRegion = useMapStore((state) => state.updateMapRegion);
   const setVisiblePeaks = useMapStore((state) => state.setVisiblePeaks);
   const setVisibleChallenges = useMapStore((state) => state.setVisibleChallenges);
+  const setLoadingPeaks = useMapStore((state) => state.setLoadingPeaks);
+  const setLoadingChallenges = useMapStore((state) => state.setLoadingChallenges);
   const currentBounds = useMapStore((state) => state.currentBounds);
   const isZoomedOutTooFar = useMapStore((state) => state.isZoomedOutTooFar);
   const isInitialLocationReady = useMapStore((state) => state.isInitialLocationReady);
@@ -153,8 +155,18 @@ export default function ExploreLayout() {
 
   // Fetch peaks and challenges (using debounced bounds)
   // Only query when initial location is ready (prevents Boulder query before user location)
-  const { data: peaksData } = useMapPeaks(apiBounds, !isZoomedOutTooFar && isInitialLocationReady);
-  const { data: challengesData } = useMapChallenges(apiBounds, !isZoomedOutTooFar && isInitialLocationReady);
+  const { data: peaksData, isLoading: peaksLoading, isFetching: peaksFetching } = useMapPeaks(apiBounds, !isZoomedOutTooFar && isInitialLocationReady);
+  const { data: challengesData, isLoading: challengesLoading, isFetching: challengesFetching } = useMapChallenges(apiBounds, !isZoomedOutTooFar && isInitialLocationReady);
+
+  // Update loading states in store
+  useEffect(() => {
+    // Show loading when initially loading or when fetching new data after bounds change
+    setLoadingPeaks(peaksLoading || peaksFetching);
+  }, [peaksLoading, peaksFetching, setLoadingPeaks]);
+
+  useEffect(() => {
+    setLoadingChallenges(challengesLoading || challengesFetching);
+  }, [challengesLoading, challengesFetching, setLoadingChallenges]);
 
   useEffect(() => {
     if (peaksData) setVisiblePeaks(peaksData);

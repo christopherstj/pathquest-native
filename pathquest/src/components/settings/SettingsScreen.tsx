@@ -29,15 +29,22 @@ import {
   Trash2,
   Link as LinkIcon,
   MapPin,
+  Bell,
 } from 'lucide-react-native';
 
 import { Text, CardFrame } from '@/src/components/ui';
 import { UserAvatar } from '@/src/components/shared';
 import { useTheme } from '@/src/theme';
 import { useAuthStore } from '@/src/lib/auth';
-import { getApiClient } from '@/src/lib/api/client';
 import { endpoints } from '@pathquest/shared/api';
 import { formatLocationString } from '@/src/utils';
+
+// Lazy import to avoid circular dependency issues
+const getApiClientLazy = () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { getApiClient } = require('@/src/lib/api/client');
+  return getApiClient();
+};
 
 // Strava brand color
 const STRAVA_ORANGE = '#FC4C02';
@@ -137,8 +144,28 @@ export default function SettingsScreen() {
   const [units, setUnits] = useState<'imperial' | 'metric'>(user?.units ?? 'imperial');
   const [updateStravaDescriptions, setUpdateStravaDescriptions] = useState(user?.updateDescription ?? true);
   const [isPublicProfile, setIsPublicProfile] = useState(user?.isPublic ?? true);
+  const [summitNotificationsEnabled, setSummitNotificationsEnabled] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLoadingNotificationPrefs, setIsLoadingNotificationPrefs] = useState(true);
+
+  // Load notification preferences on mount
+  React.useEffect(() => {
+    async function loadNotificationPrefs() {
+      if (!user?.id) return;
+      try {
+        const client = getApiClientLazy();
+        // Use fetchJson - the shared API client doesn't have .get()
+        const data = await client.fetchJson<{ summitNotificationsEnabled?: boolean }>('/push-tokens/preferences');
+        setSummitNotificationsEnabled(data?.summitNotificationsEnabled ?? true);
+      } catch (error) {
+        console.error('Failed to load notification preferences:', error);
+      } finally {
+        setIsLoadingNotificationPrefs(false);
+      }
+    }
+    loadNotificationPrefs();
+  }, [user?.id]);
   
   const appVersion = Constants.expoConfig?.version ?? '1.0.0';
   
@@ -154,7 +181,7 @@ export default function SettingsScreen() {
     
     setIsSaving(true);
     try {
-      const client = getApiClient();
+      const client = getApiClientLazy();
       await endpoints.updateUser(client, user.id, { [key]: value });
     } catch (error) {
       console.error('Failed to update setting:', error);
@@ -181,6 +208,23 @@ export default function SettingsScreen() {
     updateUserStore({ isPublic });
     handleUpdateSetting('is_public', isPublic);
   }, [handleUpdateSetting, updateUserStore]);
+
+  const handleSummitNotificationsChange = useCallback(async (enabled: boolean) => {
+    setSummitNotificationsEnabled(enabled);
+    try {
+      const client = getApiClientLazy();
+      // Use fetchJson with PUT method - the shared API client doesn't have .put()
+      await client.fetchJson('/push-tokens/preferences', {
+        method: 'PUT',
+        json: { summitNotificationsEnabled: enabled },
+      });
+    } catch (error) {
+      console.error('Failed to update notification preferences:', error);
+      Alert.alert('Error', 'Failed to save notification preference. Please try again.');
+      // Revert on error
+      setSummitNotificationsEnabled(!enabled);
+    }
+  }, []);
   
   const handleSignOut = useCallback(async () => {
     Alert.alert(
@@ -214,7 +258,7 @@ export default function SettingsScreen() {
             
             setIsDeleting(true);
             try {
-              const client = getApiClient();
+              const client = getApiClientLazy();
               await endpoints.deleteUser(client, user.id);
               
               await logout();
@@ -356,6 +400,36 @@ export default function SettingsScreen() {
           />
         </SettingSection>
         
+        {/* Notifications Section */}
+        <SettingSection 
+          title="Notifications" 
+          icon={<Bell size={14} color={colors.mutedForeground as string} />}
+        >
+          <SettingRow 
+            label="Summit Notifications"
+            rightElement={
+              isLoadingNotificationPrefs ? (
+                <ActivityIndicator size="small" color={colors.mutedForeground as string} />
+              ) : (
+                <Switch
+                  value={summitNotificationsEnabled}
+                  onValueChange={handleSummitNotificationsChange}
+                  trackColor={{ 
+                    false: colors.muted as string, 
+                    true: colors.primary as string,
+                  }}
+                  thumbColor={colors.background as string}
+                />
+              )
+            }
+          />
+          <View className="px-4 pb-3">
+            <Text className="text-xs" style={{ color: colors.mutedForeground }}>
+              Receive a notification when you log a new summit
+            </Text>
+          </View>
+        </SettingSection>
+
         {/* Privacy Section */}
         <SettingSection 
           title="Privacy" 

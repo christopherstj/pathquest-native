@@ -6,9 +6,10 @@
  * permission handling and pagination.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import * as MediaLibrary from 'expo-media-library';
 import { startOfDay, endOfDay } from 'date-fns';
+import { useMediaPermission } from './useMediaPermission';
 
 export interface DevicePhoto {
   id: string;
@@ -29,7 +30,8 @@ interface UseDevicePhotosResult {
 }
 
 interface UseSummitDayPhotosResult extends UseDevicePhotosResult {
-  permissionStatus: MediaLibrary.PermissionStatus | null;
+  permissionStatus: 'undetermined' | 'granted' | 'denied' | 'limited';
+  isGranted: boolean;
   requestPermission: () => Promise<boolean>;
 }
 
@@ -52,38 +54,33 @@ export function useSummitDayPhotos(timestamp: string | null): UseSummitDayPhotos
   const [photos, setPhotos] = useState<DevicePhoto[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [permissionStatus, setPermissionStatus] = useState<MediaLibrary.PermissionStatus | null>(null);
+  
+  // Use the centralized permission hook
+  const { 
+    status: permissionStatus, 
+    isGranted, 
+    requestPermission: requestMediaPermission,
+    isLoading: permissionLoading 
+  } = useMediaPermission();
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
-    try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      setPermissionStatus(status);
-      return status === 'granted';
-    } catch (err) {
-      console.error('[useDevicePhotos] Permission request failed:', err);
-      return false;
-    }
-  }, []);
+    console.log('[useSummitDayPhotos] Requesting permission...');
+    return requestMediaPermission();
+  }, [requestMediaPermission]);
 
   const fetchPhotos = useCallback(async () => {
+    console.log('[useSummitDayPhotos] fetchPhotos called with timestamp:', timestamp);
+    
     if (!timestamp) {
+      console.log('[useSummitDayPhotos] No timestamp, clearing photos');
       setPhotos([]);
       return;
     }
 
     // Validate timestamp is not empty string
     if (typeof timestamp !== 'string' || timestamp.trim() === '') {
-      console.warn('[useDevicePhotos] Empty or invalid timestamp:', timestamp);
+      console.warn('[useSummitDayPhotos] Empty or invalid timestamp:', timestamp);
       setPhotos([]);
-      return;
-    }
-
-    // Check permission first
-    const { status } = await MediaLibrary.getPermissionsAsync();
-    setPermissionStatus(status);
-    
-    if (status !== 'granted') {
-      setError('Photo library permission not granted');
       return;
     }
 
@@ -166,18 +163,28 @@ export function useSummitDayPhotos(timestamp: string | null): UseSummitDayPhotos
     }
   }, [timestamp]);
 
+  // Track if we've loaded for this timestamp
+  const hasLoadedForTimestampRef = useRef<string | null>(null);
+
+  // Auto-load when permission is granted and timestamp changes
   useEffect(() => {
-    fetchPhotos();
-  }, [fetchPhotos]);
+    // Only load if we have permission and timestamp, and haven't loaded for this timestamp yet
+    if (isGranted && timestamp && hasLoadedForTimestampRef.current !== timestamp) {
+      console.log('[useSummitDayPhotos] Loading photos for:', timestamp);
+      hasLoadedForTimestampRef.current = timestamp;
+      fetchPhotos();
+    }
+  }, [isGranted, timestamp, fetchPhotos]);
 
   return {
     photos,
-    loading,
+    loading: loading || permissionLoading,
     error,
     hasMore: false, // Summit day photos are fetched all at once
     loadMore: async () => {}, // No pagination for summit day
     refresh: fetchPhotos,
     permissionStatus,
+    isGranted,
     requestPermission,
   };
 }
@@ -193,15 +200,10 @@ export function useRecentPhotos(excludeIds: Set<string> = new Set()): UseDeviceP
   const [hasMore, setHasMore] = useState(true);
   const [endCursor, setEndCursor] = useState<string | undefined>(undefined);
 
-  const fetchPhotos = useCallback(async (cursor?: string) => {
-    // Check permission first
-    const { status } = await MediaLibrary.getPermissionsAsync();
-    
-    if (status !== 'granted') {
-      setError('Photo library permission not granted');
-      return;
-    }
+  // Use the centralized permission hook
+  const { isGranted, requestPermission, isLoading: permissionLoading } = useMediaPermission();
 
+  const fetchPhotos = useCallback(async (cursor?: string) => {
     setLoading(true);
     setError(null);
 
@@ -228,7 +230,7 @@ export function useRecentPhotos(excludeIds: Set<string> = new Set()): UseDeviceP
       setHasMore(result.hasNextPage);
       setEndCursor(result.endCursor);
     } catch (err) {
-      console.error('[useDevicePhotos] Failed to fetch recent photos:', err);
+      console.error('[useRecentPhotos] Failed to fetch recent photos:', err);
       setError('Failed to load recent photos');
     } finally {
       setLoading(false);
@@ -246,9 +248,16 @@ export function useRecentPhotos(excludeIds: Set<string> = new Set()): UseDeviceP
     await fetchPhotos(undefined);
   }, [fetchPhotos]);
 
+  // Track if we've already loaded
+  const hasLoadedRef = useRef(false);
+
+  // Auto-load when permission becomes granted (only once)
   useEffect(() => {
-    fetchPhotos();
-  }, []);
+    if (isGranted && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      fetchPhotos();
+    }
+  }, [isGranted, fetchPhotos]);
 
   // Re-filter when excludeIds changes
   useEffect(() => {
@@ -277,8 +286,9 @@ export interface UsePhotoPickerResult {
   error: string | null;
   hasMoreRecent: boolean;
   loadMoreRecent: () => Promise<void>;
-  refresh: () => Promise<void>;
-  permissionStatus: MediaLibrary.PermissionStatus | null;
+  refresh: (forceLoad?: boolean) => Promise<void>;
+  permissionStatus: 'undetermined' | 'granted' | 'denied' | 'limited';
+  isGranted: boolean;
   requestPermission: () => Promise<boolean>;
 }
 
@@ -289,19 +299,15 @@ export function usePhotoPicker(summitTimestamp: string | null): UsePhotoPickerRe
   const [error, setError] = useState<string | null>(null);
   const [hasMoreRecent, setHasMoreRecent] = useState(true);
   const [endCursor, setEndCursor] = useState<string | undefined>(undefined);
-  const [permissionStatus, setPermissionStatus] = useState<MediaLibrary.PermissionStatus | null>(null);
   const [summitDayIds, setSummitDayIds] = useState<Set<string>>(new Set());
 
-  const requestPermission = useCallback(async (): Promise<boolean> => {
-    try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
-      setPermissionStatus(status);
-      return status === 'granted';
-    } catch (err) {
-      console.error('[usePhotoPicker] Permission request failed:', err);
-      return false;
-    }
-  }, []);
+  // Use the centralized permission hook
+  const { 
+    status: permissionStatus, 
+    isGranted, 
+    requestPermission,
+    isLoading: permissionLoading 
+  } = useMediaPermission();
 
   const fetchSummitDayPhotos = useCallback(async (): Promise<DevicePhoto[]> => {
     if (!summitTimestamp) return [];
@@ -411,17 +417,11 @@ export function usePhotoPicker(summitTimestamp: string | null): UsePhotoPickerRe
   }, [summitDayIds]);
 
   const loadAll = useCallback(async () => {
-    // Check permission first
-    const { status } = await MediaLibrary.getPermissionsAsync();
-    setPermissionStatus(status);
+    console.log('[usePhotoPicker] loadAll called');
     
-    if (status !== 'granted') {
-      setError('Photo library permission not granted');
-      return;
-    }
-
-    setLoading(true);
+    // Clear any previous error
     setError(null);
+    setLoading(true);
 
     try {
       // Fetch summit day photos first
@@ -460,24 +460,40 @@ export function usePhotoPicker(summitTimestamp: string | null): UsePhotoPickerRe
   }, [loading, hasMoreRecent, endCursor, fetchRecentPhotos]);
 
   const refresh = useCallback(async () => {
+    console.log('[usePhotoPicker] refresh called');
     setEndCursor(undefined);
     setHasMoreRecent(true);
-    await loadAll();
-  }, [loadAll]);
+    if (isGranted) {
+      await loadAll();
+    }
+  }, [loadAll, isGranted]);
 
+  // Track if we've loaded for this timestamp to prevent loops
+  const hasLoadedRef = useRef<string | null>(null);
+
+  // Auto-load photos when permission is granted and we have a timestamp
   useEffect(() => {
-    loadAll();
-  }, [summitTimestamp]);
+    // Only load if:
+    // 1. Permission is granted
+    // 2. We have a timestamp
+    // 3. We haven't already loaded for this timestamp
+    if (isGranted && summitTimestamp && hasLoadedRef.current !== summitTimestamp) {
+      console.log('[usePhotoPicker] Permission granted, loading photos for:', summitTimestamp);
+      hasLoadedRef.current = summitTimestamp;
+      loadAll();
+    }
+  }, [isGranted, summitTimestamp, loadAll]);
 
   return {
     summitDayPhotos,
     recentPhotos,
-    loading,
+    loading: loading || permissionLoading,
     error,
     hasMoreRecent,
     loadMoreRecent,
     refresh,
     permissionStatus,
+    isGranted,
     requestPermission,
   };
 }
