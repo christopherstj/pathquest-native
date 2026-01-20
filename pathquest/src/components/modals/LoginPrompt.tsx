@@ -6,9 +6,9 @@
  * based on what the user was trying to do.
  */
 
-import React, { useCallback } from 'react';
-import { View, TouchableOpacity, Modal, Pressable } from 'react-native';
-import { LogIn, X, Mountain, Star, Trophy, FileText, Flag } from 'lucide-react-native';
+import React, { useCallback, useState } from 'react';
+import { View, TouchableOpacity, Modal, Pressable, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { LogIn, X, Mountain, Star, Trophy, FileText, Flag, Key } from 'lucide-react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import Animated, { 
   useAnimatedStyle, 
@@ -19,7 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useTheme } from '@/src/theme';
 import { Text, CardFrame } from '@/src/components/ui';
-import { startStravaAuth } from '@/src/lib/auth/strava';
+import { startStravaAuth, demoLogin } from '@/src/lib/auth/strava';
 import { 
   useLoginPromptStore, 
   LOGIN_PROMPT_MESSAGES,
@@ -43,6 +43,12 @@ const LoginPrompt: React.FC = () => {
   const context = useLoginPromptStore((s) => s.context);
   const hidePrompt = useLoginPromptStore((s) => s.hidePrompt);
 
+  // Demo login state (hidden feature for Google Play reviewers)
+  const [showDemoLogin, setShowDemoLogin] = useState(false);
+  const [demoPassword, setDemoPassword] = useState('');
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoTapCount, setDemoTapCount] = useState(0);
+
   const message = LOGIN_PROMPT_MESSAGES[context];
   const Icon = CONTEXT_ICONS[context];
 
@@ -56,7 +62,39 @@ const LoginPrompt: React.FC = () => {
 
   const handleClose = useCallback(() => {
     hidePrompt();
+    setShowDemoLogin(false);
+    setDemoPassword('');
+    setDemoTapCount(0);
   }, [hidePrompt]);
+
+  // Hidden demo login trigger - tap the icon 5 times
+  const handleIconTap = useCallback(() => {
+    const newCount = demoTapCount + 1;
+    setDemoTapCount(newCount);
+    if (newCount >= 5) {
+      setShowDemoLogin(true);
+      setDemoTapCount(0);
+    }
+  }, [demoTapCount]);
+
+  const handleDemoLogin = useCallback(async () => {
+    if (!demoPassword.trim()) {
+      Alert.alert('Error', 'Please enter the demo password');
+      return;
+    }
+    
+    setDemoLoading(true);
+    const success = await demoLogin(demoPassword.trim());
+    setDemoLoading(false);
+    
+    if (success) {
+      hidePrompt();
+      setShowDemoLogin(false);
+      setDemoPassword('');
+    } else {
+      Alert.alert('Error', 'Invalid demo credentials');
+    }
+  }, [demoPassword, hidePrompt]);
 
   if (!isVisible) {
     return null;
@@ -121,8 +159,10 @@ const LoginPrompt: React.FC = () => {
             </TouchableOpacity>
 
             <View style={{ padding: 24, paddingTop: 32 }}>
-              {/* Icon */}
-              <View 
+              {/* Icon - tappable for hidden demo login */}
+              <TouchableOpacity 
+                onPress={handleIconTap}
+                activeOpacity={0.9}
                 style={{
                   width: 56,
                   height: 56,
@@ -135,75 +175,168 @@ const LoginPrompt: React.FC = () => {
                 }}
               >
                 <Icon size={28} color={colors.primary} />
-              </View>
-
-              {/* Title */}
-              <Text 
-                style={{ 
-                  color: colors.foreground,
-                  fontSize: 20,
-                  fontWeight: '700',
-                  textAlign: 'center',
-                  marginBottom: 8,
-                }}
-              >
-                {message.title}
-              </Text>
-
-              {/* Description */}
-              <Text 
-                style={{ 
-                  color: colors.mutedForeground,
-                  fontSize: 14,
-                  textAlign: 'center',
-                  lineHeight: 20,
-                  marginBottom: 24,
-                }}
-              >
-                {message.description}
-              </Text>
-
-              {/* Login CTA */}
-              <TouchableOpacity
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  paddingVertical: 14,
-                  paddingHorizontal: 24,
-                  borderRadius: 12,
-                  backgroundColor: '#FC4C02', // Strava orange
-                  shadowColor: '#FC4C02',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                  elevation: 4,
-                }}
-                onPress={handleLogin}
-                activeOpacity={0.8}
-              >
-                <LogIn size={18} color="white" />
-                <Text style={{ color: 'white', fontWeight: '600', fontSize: 15 }}>
-                  Connect with Strava
-                </Text>
               </TouchableOpacity>
 
-              {/* Skip link */}
-              <TouchableOpacity
-                style={{
-                  alignSelf: 'center',
-                  paddingVertical: 12,
-                  paddingHorizontal: 16,
-                  marginTop: 8,
-                }}
-                onPress={handleClose}
-                activeOpacity={0.7}
-              >
-                <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
-                  Maybe later
-                </Text>
-              </TouchableOpacity>
+              {/* Demo Login Form (hidden by default) */}
+              {showDemoLogin ? (
+                <>
+                  <Text 
+                    style={{ 
+                      color: colors.foreground,
+                      fontSize: 18,
+                      fontWeight: '700',
+                      textAlign: 'center',
+                      marginBottom: 8,
+                    }}
+                  >
+                    Demo Login
+                  </Text>
+                  <Text 
+                    style={{ 
+                      color: colors.mutedForeground,
+                      fontSize: 13,
+                      textAlign: 'center',
+                      marginBottom: 16,
+                    }}
+                  >
+                    For app reviewers only
+                  </Text>
+                  
+                  <TextInput
+                    style={{
+                      backgroundColor: `${colors.foreground}10`,
+                      borderRadius: 10,
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      fontSize: 15,
+                      color: colors.foreground,
+                      marginBottom: 16,
+                      borderWidth: 1,
+                      borderColor: `${colors.foreground}20`,
+                    }}
+                    placeholder="Enter demo password"
+                    placeholderTextColor={colors.mutedForeground}
+                    value={demoPassword}
+                    onChangeText={setDemoPassword}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      paddingVertical: 14,
+                      paddingHorizontal: 24,
+                      borderRadius: 12,
+                      backgroundColor: colors.primary,
+                      opacity: demoLoading ? 0.7 : 1,
+                    }}
+                    onPress={handleDemoLogin}
+                    disabled={demoLoading}
+                    activeOpacity={0.8}
+                  >
+                    {demoLoading ? (
+                      <ActivityIndicator color="white" size="small" />
+                    ) : (
+                      <>
+                        <Key size={18} color="white" />
+                        <Text style={{ color: 'white', fontWeight: '600', fontSize: 15 }}>
+                          Sign In
+                        </Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={{
+                      alignSelf: 'center',
+                      paddingVertical: 12,
+                      paddingHorizontal: 16,
+                      marginTop: 8,
+                    }}
+                    onPress={() => setShowDemoLogin(false)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
+                      Back to Strava login
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  {/* Title */}
+                  <Text 
+                    style={{ 
+                      color: colors.foreground,
+                      fontSize: 20,
+                      fontWeight: '700',
+                      textAlign: 'center',
+                      marginBottom: 8,
+                    }}
+                  >
+                    {message.title}
+                  </Text>
+
+                  {/* Description */}
+                  <Text 
+                    style={{ 
+                      color: colors.mutedForeground,
+                      fontSize: 14,
+                      textAlign: 'center',
+                      lineHeight: 20,
+                      marginBottom: 24,
+                    }}
+                  >
+                    {message.description}
+                  </Text>
+
+                  {/* Login CTA */}
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      paddingVertical: 14,
+                      paddingHorizontal: 24,
+                      borderRadius: 12,
+                      backgroundColor: '#FC4C02', // Strava orange
+                      shadowColor: '#FC4C02',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.3,
+                      shadowRadius: 8,
+                      elevation: 4,
+                    }}
+                    onPress={handleLogin}
+                    activeOpacity={0.8}
+                  >
+                    <LogIn size={18} color="white" />
+                    <Text style={{ color: 'white', fontWeight: '600', fontSize: 15 }}>
+                      Connect with Strava
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Skip link */}
+                  <TouchableOpacity
+                    style={{
+                      alignSelf: 'center',
+                      paddingVertical: 12,
+                      paddingHorizontal: 16,
+                      marginTop: 8,
+                    }}
+                    onPress={handleClose}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
+                      Maybe later
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              )}
             </View>
           </CardFrame>
         </Pressable>

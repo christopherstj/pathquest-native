@@ -1,0 +1,51 @@
+name: Deploy Android to Google Play
+
+# Trigger on push to main branch
+on:
+  push:
+    branches: ['main']
+
+jobs:
+  # Step 1: Calculate fingerprint to detect native changes
+  fingerprint:
+    name: Calculate Fingerprint
+    type: fingerprint
+
+  # Step 2: Check if a build already exists for this fingerprint
+  check_existing_build:
+    name: Check for Existing Build
+    needs: [fingerprint]
+    type: get-build
+    params:
+      fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
+      profile: production
+
+  # Step 3a: Build if no existing build matches the fingerprint
+  build_android:
+    name: Build Android
+    needs: [check_existing_build]
+    if: ${{ !needs.check_existing_build.outputs.build_id }}
+    type: build
+    params:
+      platform: android
+      profile: production
+
+  # Step 3b: Submit new build to Google Play (internal track)
+  submit_android:
+    name: Submit to Google Play
+    needs: [build_android]
+    type: submit
+    params:
+      build_id: ${{ needs.build_android.outputs.build_id }}
+      profile: production
+
+  # Step 4: If build exists, publish OTA update instead
+  publish_update:
+    name: Publish OTA Update
+    needs: [check_existing_build]
+    if: ${{ needs.check_existing_build.outputs.build_id }}
+    type: update
+    params:
+      branch: production
+      platform: android
+

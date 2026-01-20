@@ -49,9 +49,9 @@ const getApiClientLazy = () => {
 // Strava brand color
 const STRAVA_ORANGE = '#FC4C02';
 
-// Privacy Policy and Terms URLs (update with actual URLs)
-const PRIVACY_POLICY_URL = 'https://pathquest.io/privacy';
-const TERMS_OF_SERVICE_URL = 'https://pathquest.io/terms';
+// Privacy Policy and Terms URLs
+const PRIVACY_POLICY_URL = 'https://pathquest.app/privacy';
+const TERMS_OF_SERVICE_URL = 'https://pathquest.app/terms';
 
 interface SettingRowProps {
   label: string;

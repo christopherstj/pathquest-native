@@ -12,10 +12,24 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "NODE_ENV": "production",
+        "EXPO_PUBLIC_API_URL": "https://pathquest-api.app",
+        "EXPO_PUBLIC_STRAVA_CLIENT_ID": "140498",
+        "EXPO_PUBLIC_MAPBOX_TOKEN": "pk.eyJ1IjoiY2hyaXN0b3BoZXJzdGoiLCJhIjoiY21qcnBxMHpwM2F6MzNjcHlwNDJ1cmZuNyJ9.VXbrWYjmawRd0I2xVlOLbA"
+      }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-play-service-account.json",
+        "track": "internal"
+      }
+    }
   }
 }

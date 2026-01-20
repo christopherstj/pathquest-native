@@ -1,5 +1,5 @@
 export { useAuthStore } from "./store";
-export { startStravaAuth, useStravaAuth } from "./strava";
+export { startStravaAuth, useStravaAuth, demoLogin } from "./strava";
 export {
     saveAuthData,
     clearAuthData,

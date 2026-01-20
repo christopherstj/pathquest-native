@@ -59,3 +59,5 @@ const ChallengeRowSkeleton: React.FC<ChallengeRowSkeletonProps> = ({ index = 0 }
 
 export default React.memo(ChallengeRowSkeleton);
 
+
+

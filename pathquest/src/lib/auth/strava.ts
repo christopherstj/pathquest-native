@@ -12,6 +12,40 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "";
 // Log config on load (helps debug connection issues)
 console.log("[Strava Auth] API_URL configured as:", API_URL || "(not set)");
 
+/**
+ * Demo login for Google Play reviewers.
+ * Bypasses Strava OAuth with a password-protected endpoint.
+ */
+export const demoLogin = async (password: string): Promise<boolean> => {
+    const url = `${API_URL}/api/auth/mobile/demo-login`;
+    console.log("[Demo Auth] Attempting demo login...");
+    
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ password }),
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error("[Demo Auth] Login failed:", response.status, errorText);
+            return false;
+        }
+
+        const data = await response.json();
+        console.log("[Demo Auth] Login successful, user:", data.user?.name);
+        
+        await useAuthStore.getState().login(data);
+        return true;
+    } catch (error) {
+        console.error("[Demo Auth] Login error (network?):", error);
+        return false;
+    }
+};
+
 // Strava OAuth endpoints
 // Using standard endpoint (not /mobile/authorize) for broader scope support
 const discovery: AuthSession.DiscoveryDocument = {

@@ -60,3 +60,5 @@ const PeakRowSkeleton: React.FC<PeakRowSkeletonProps> = ({ index = 0 }) => {
 
 export default React.memo(PeakRowSkeleton);
 
+
+
