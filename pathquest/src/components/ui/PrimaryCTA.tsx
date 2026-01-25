@@ -78,7 +78,7 @@ const PrimaryCTA: React.FC<PrimaryCTAProps> = ({
       runOnJS(handlePress)();
     });
 
-  // Animated container style (scale + shadow)
+  // Animated container style (scale + shadow) - ENHANCED GLOW
   const animatedContainerStyle = useAnimatedStyle(() => {
     const scale = interpolate(
       pressed.value,
@@ -92,28 +92,29 @@ const PrimaryCTA: React.FC<PrimaryCTAProps> = ({
       [0, 1],
       Extrapolation.CLAMP
     );
+    // BOOSTED shadow opacity for more glow
     const shadowOpacity = interpolate(
       pressed.value,
       [0, 1],
-      [0.35, 0.18],
+      [0.55, 0.25],
       Extrapolation.CLAMP
     );
     const shadowRadius = interpolate(
       pressed.value,
       [0, 1],
-      [14, 6],
+      [18, 8],
       Extrapolation.CLAMP
     );
     const shadowOffsetY = interpolate(
       pressed.value,
       [0, 1],
-      [8, 2],
+      [10, 3],
       Extrapolation.CLAMP
     );
     const elevation = interpolate(
       pressed.value,
       [0, 1],
-      [8, 3],
+      [10, 4],
       Extrapolation.CLAMP
     );
 
@@ -159,7 +160,7 @@ const PrimaryCTA: React.FC<PrimaryCTAProps> = ({
           pointerEvents="none"
         />
 
-        {/* Subtle top highlight */}
+        {/* BOOSTED top highlight for depth */}
         <View
           pointerEvents="none"
           style={{
@@ -169,8 +170,8 @@ const PrimaryCTA: React.FC<PrimaryCTAProps> = ({
             right: 0,
             height: 1,
             backgroundColor: isDark
-              ? "rgba(255,255,255,0.15)"
-              : "rgba(255,255,255,0.2)",
+              ? "rgba(255,255,255,0.3)"
+              : "rgba(255,255,255,0.35)",
           }}
         />
 

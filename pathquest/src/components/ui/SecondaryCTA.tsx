@@ -140,10 +140,11 @@ const SecondaryCTA: React.FC<SecondaryCTAProps> = ({
           {
             borderRadius: 10,
             overflow: "hidden",
-            borderWidth: 1,
-            borderColor: colors.border as any,
+            borderWidth: 1.5,
+            // Use primary-tinted border for more visual interest
+            borderColor: `${colors.primary}40` as any,
             minHeight: 44,
-            shadowColor: "#000",
+            shadowColor: colors.primary as string,
           },
           animatedContainerStyle,
           style,
@@ -153,7 +154,7 @@ const SecondaryCTA: React.FC<SecondaryCTAProps> = ({
         accessibilityLabel={label}
         accessibilityState={{ disabled }}
       >
-        {/* Animated background layer */}
+        {/* Animated background layer - subtle primary tint */}
         <Animated.View
           style={[
             {
@@ -162,14 +163,15 @@ const SecondaryCTA: React.FC<SecondaryCTAProps> = ({
               left: 0,
               right: 0,
               bottom: 0,
-              borderRadius: 9, // Slightly smaller to fit inside border
+              borderRadius: 9,
+              backgroundColor: `${colors.primary}08`,
             },
             animatedBackgroundStyle,
           ]}
           pointerEvents="none"
         />
 
-        {/* Content */}
+        {/* Content - use PRIMARY color instead of muted */}
         <View
           style={{
             flexDirection: "row",
@@ -180,9 +182,9 @@ const SecondaryCTA: React.FC<SecondaryCTAProps> = ({
             paddingHorizontal: 16,
           }}
         >
-          {Icon ? <Icon size={16} color={colors.mutedForeground} /> : null}
+          {Icon ? <Icon size={16} color={colors.primary} /> : null}
           <Text
-            style={{ color: colors.mutedForeground }}
+            style={{ color: colors.primary }}
             className="text-sm font-semibold"
           >
             {label}

@@ -62,52 +62,52 @@ export const colors = {
   },
   
   dark: {
-    // Core - Dark warm brown (NOT gray!)
-    background: '#25221E',      // oklch(0.16 0.02 80) - dark warm brown
-    foreground: '#EDE5D8',      // oklch(0.93 0.03 90) - light parchment
+    // Core - Rich dark for better contrast
+    background: '#1A1816',      // Deeper dark for more contrast
+    foreground: '#F5F0E6',      // Brighter parchment for readability
 
     // Topographic ink (contour lines, map texture)
-    contourInk: '#A9A196',      // warm tan ink (matches mutedForeground family)
-    contourInkSubtle: 'rgba(169, 161, 150, 0.35)',
+    contourInk: '#C4B8A8',      // Brighter warm tan ink for visibility
+    contourInkSubtle: 'rgba(196, 184, 168, 0.4)',
     
-    // Cards & Popovers - Semi-transparent dark brown
-    card: 'rgba(22, 17, 7, 0.92)',      // oklch(0.18 0.02 80 / 92%) = #161107eb
-    cardForeground: '#EDE5D8',
+    // Cards & Popovers - Semi-transparent dark
+    card: 'rgba(28, 24, 20, 0.95)',     // Slightly lighter for better layering
+    cardForeground: '#F5F0E6',
     
-    // Primary - Bright forest green
-    primary: '#5B9167',         // oklch(0.62 0.12 140) - bright green
-    primaryForeground: '#F5F2ED',
+    // Primary - Vibrant emerald green
+    primary: '#34D399',         // Saturated emerald - pops!
+    primaryForeground: '#0F1F17',
     
-    // Secondary - Rust/amber
-    secondary: '#B8845A',       // oklch(0.6 0.12 65)
-    secondaryForeground: '#EDE5D8',
+    // Secondary - Vibrant amber
+    secondary: '#F59E0B',       // Bright amber/gold
+    secondaryForeground: '#1A1408',
     
     // Muted - Darker warm brown
-    muted: '#37342F',           // oklch(0.22 0.02 80)
-    mutedForeground: '#A9A196', // oklch(0.7 0.04 80) - warm gray
+    muted: '#2D2A26',           // Slightly lighter for better contrast
+    mutedForeground: '#B8AFA3', // Brighter muted text
     
-    // Accent - Dark moss green
-    accent: '#4A5541',          // oklch(0.35 0.04 120)
-    accentForeground: '#EDE5D8',
+    // Accent - Vibrant moss green
+    accent: '#22C55E',          // Bright green accent
+    accentForeground: '#0A1F0F',
     
-    // Destructive
-    destructive: '#C44536',
-    destructiveForeground: '#FAF8F5',
+    // Destructive - Vibrant red
+    destructive: '#EF4444',     // Brighter red
+    destructiveForeground: '#FEF2F2',
     
-    // Summited - Sky blue
-    summited: '#4A8BC4',        // oklch(0.60 0.12 220)
-    summitedForeground: '#F5F2ED',
+    // Summited - Vibrant sky blue
+    summited: '#38BDF8',        // Bright cyan-blue - really pops!
+    summitedForeground: '#0C1929',
     
-    // Border & Input - Warm dark tones
-    border: 'rgba(69, 65, 60, 0.7)',    // oklch(0.3 0.03 80 / 0.7)
-    input: '#3A3632',           // oklch(0.25 0.02 80)
-    ring: 'rgba(91, 145, 103, 0.5)',
+    // Border & Input - Warm dark tones with more presence
+    border: 'rgba(82, 76, 68, 0.8)',    // More visible borders
+    input: '#3D3833',           // Slightly lighter input bg
+    ring: 'rgba(52, 211, 153, 0.5)',    // Match new primary
     
-    // Semantic stat colors (dashboard, quick stats)
-    statForest: '#5B9167',      // Forest green for peaks stat
-    statTrail: '#8B7355',       // Trail brown for elevation stat
-    statGold: '#C9A66B',        // Gold/rust for challenge stat
-    statMuted: '#A9A196',       // Muted for inactive elements
+    // Semantic stat colors (dashboard, quick stats) - VIBRANT
+    statForest: '#10B981',      // Vivid emerald for peaks stat
+    statTrail: '#D97706',       // Bright amber for elevation stat
+    statGold: '#FBBF24',        // Bright gold for challenge stat
+    statMuted: '#9CA3AF',       // Slightly cooler muted
   },
 } as const;
 

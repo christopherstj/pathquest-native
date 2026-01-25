@@ -642,25 +642,36 @@ const ChallengeDetail: React.FC<ChallengeDetailProps> = ({
           ridge="bottom"
           seed={`challenge-hero:${challengeId}`}
           accentColor={heroAccentColor}
+          glow
           className="mx-4 mt-4 relative overflow-hidden"
         >
+          {/* Accent wash - more color presence */}
+          <View 
+            className="absolute inset-0" 
+            pointerEvents="none"
+            style={{ backgroundColor: `${heroAccentColor}${isDark ? '18' : '12'}` as any }}
+          />
+
           {/* Compass rose decoration */}
           <View className="absolute -right-2 -top-2" pointerEvents="none">
             <CompassRose 
               size={90} 
               color={colors.contourInk}
-              opacity={isDark ? 0.15 : 0.1}
+              opacity={isDark ? 0.2 : 0.12}
             />
           </View>
 
           <View className="p-5 pb-12">
-            {/* Challenge badge */}
+            {/* Challenge badge - more vibrant */}
             <View className="flex-row items-center justify-center mb-3">
-              <View className="flex-row items-center gap-1.5 bg-black/10 dark:bg-white/10 px-2.5 py-1 rounded-lg">
-                <Trophy size={12} color={colors.mutedForeground} />
+              <View 
+                className="flex-row items-center gap-1.5 px-2.5 py-1 rounded-lg"
+                style={{ backgroundColor: `${heroAccentColor}25` as any }}
+              >
+                <Trophy size={12} color={heroAccentColor} />
                 <Text 
                   className="text-[10px] uppercase tracking-widest font-semibold"
-                  style={{ color: colors.mutedForeground }}
+                  style={{ color: heroAccentColor }}
                 >
                   Challenge
                 </Text>

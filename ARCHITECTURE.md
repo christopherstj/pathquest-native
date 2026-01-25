@@ -429,13 +429,26 @@ import { Text, Value } from '@/src/components/ui';
 
 This avoids needing to add `font-display` or `font-mono` to every Text element.
 
-### Color Palette
-The Tailwind config includes the exact PathQuest "retro topographic" palette from `globals.css`:
-- `bg-background` / `bg-card` - Warm brown surfaces
-- `text-foreground` / `text-muted-foreground` - Text colors
-- `bg-primary` - Forest green CTAs
-- `bg-summited` - Sky blue for summited indicators
-- `border-border` - Semi-transparent borders
+### Color Palette (Vibrant Dark Theme)
+The dark theme uses a **vibrant, high-saturation** palette while maintaining the retro topographic aesthetic:
+
+| Token | Hex | Description |
+|-------|-----|-------------|
+| `background` | `#1A1816` | Rich dark for contrast |
+| `foreground` | `#F5F0E6` | Bright parchment text |
+| `primary` | `#34D399` | Vibrant emerald green |
+| `secondary` | `#F59E0B` | Bright amber/gold |
+| `summited` | `#38BDF8` | Vivid sky blue |
+| `statForest` | `#10B981` | Vivid emerald (peaks stat) |
+| `statTrail` | `#D97706` | Bright amber (elevation stat) |
+| `statGold` | `#FBBF24` | Bright gold (challenge stat) |
+| `contourInk` | `#C4B8A8` | Brighter topo pattern ink |
+
+Key design principles:
+- **High saturation** accent colors that "pop" against dark backgrounds
+- **Colored shadows/glows** on cards and buttons using accent colors
+- **Primary-tinted** borders and highlights for visual cohesion
+- **Retro topo patterns** preserved with boosted opacity for visibility
 
 ## UI Architecture
 
@@ -445,14 +458,14 @@ The native app uses a unified layout pattern that mirrors the web app:
 - **Tab bar** is fixed at the bottom, independent of the sheet
 
 ### Theme System (`src/theme/`)
-- **colors.ts**: EXACT match to web app's globals.css oklch colors
+- **colors.ts**: Vibrant color palette optimized for visual impact
   - **Follows system light/dark** by default (can be overridden via `forcedColorScheme`)
-  - Dark warm brown (hue 80) for backgrounds/surfaces
-  - Semi-transparent card color for glass effect
-  - Forest green (hue 140) for primary/CTA
-  - Sky blue (hue 220) for summited indicators
-  - `contourInk` / `contourInkSubtle` for topographic linework textures
-  - Semantic stat colors: `statForest`, `statTrail`, `statGold`, `statMuted`
+  - Rich dark background (`#1A1816`) for maximum contrast
+  - Vibrant emerald primary (`#34D399`) for CTAs and active states
+  - Bright sky blue summited (`#38BDF8`) for achievement indicators
+  - Amber secondary (`#F59E0B`) for accepted/in-progress states
+  - `contourInk` / `contourInkSubtle` for topographic linework textures (boosted visibility)
+  - Semantic stat colors: `statForest` (emerald), `statTrail` (amber), `statGold` (gold)
 - **typography.ts**: Font scales matching web
   - **Fraunces** for display/headings (loaded via @expo-google-fonts/fraunces)
   - **IBM Plex Mono** for body/data text (loaded via @expo-google-fonts/ibm-plex-mono)
@@ -460,10 +473,15 @@ The native app uses a unified layout pattern that mirrors the web app:
 - **index.ts**: ThemeProvider + hooks (useTheme, useColors)
 
 ### Retro Topo UI Primitives (`src/components/ui/`)
-- `TopoPattern`: deterministic, seed-based SVG contour line background
+- `TopoPattern`: deterministic, seed-based SVG contour line background (boosted opacity for visibility)
 - `MountainRidge`: SVG ridge silhouette decoration
-- `CardFrame`: consistent card surface (border + inner highlight + shadow) with optional topo/ridge
-- `PrimaryCTA` / `SecondaryCTA`: pressable CTA components with strong affordances (bevel + pressed state)
+- `CardFrame`: consistent card surface with:
+  - `accentColor` prop for colored borders/shadows
+  - `glow` prop for accent-colored box shadow effect
+  - Boosted inner highlights for depth
+  - Topo/ridge decorations preserved
+- `PrimaryCTA`: pressable CTA with accent-colored glow shadow
+- `SecondaryCTA`: pressable CTA with primary-tinted border and text
 
 ### Layout (`app/(tabs)/_layout.tsx`)
 Tab-specific layouts:

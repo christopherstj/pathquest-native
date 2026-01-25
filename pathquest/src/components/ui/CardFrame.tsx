@@ -22,6 +22,11 @@ export interface CardFrameProps extends ViewProps {
    * Use a stable string per component/card type.
    */
   seed?: string;
+  /**
+   * Enable accent-colored glow effect for extra visual pop.
+   * When true and accentColor is provided, adds a colored shadow.
+   */
+  glow?: boolean;
 }
 
 const CardFrame: React.FC<CardFrameProps> = ({
@@ -30,6 +35,7 @@ const CardFrame: React.FC<CardFrameProps> = ({
   ridge = 'none',
   accentColor,
   seed = 'card',
+  glow = false,
   style,
   children,
   ...props
@@ -48,14 +54,15 @@ const CardFrame: React.FC<CardFrameProps> = ({
 
   const topoConfig = useMemo(() => {
     if (topo === 'none') return null;
+    // Boosted opacity for more visible topo patterns
     const opacity =
       topo === 'full'
         ? isDark
-          ? 0.14
-          : 0.1
+          ? 0.18
+          : 0.12
         : isDark
-          ? 0.16
-          : 0.12;
+          ? 0.2
+          : 0.14;
     const lines = topo === 'full' ? 6 : 4;
     const variant = topo === 'full' ? 'full' : 'corner';
     return { opacity, lines, variant };
@@ -64,11 +71,21 @@ const CardFrame: React.FC<CardFrameProps> = ({
   const ridgeConfig = useMemo(() => {
     if (ridge === 'none') return null;
     return {
-      opacity: isDark ? 0.12 : 0.08,
+      opacity: isDark ? 0.16 : 0.1, // Boosted ridge visibility
       height: variant === 'hero' ? 54 : 40,
       layers: variant === 'hero' ? 3 : 2,
     };
   }, [isDark, ridge, variant]);
+
+  // Determine shadow color - use accent for glow effect
+  const shadowColor = glow && accentColor ? accentColor : '#000';
+  const baseShadowOpacity = variant === 'hero' ? 0.25 : variant === 'cta' ? 0.2 : 0.15;
+  const glowShadowOpacity = glow && accentColor ? 0.5 : baseShadowOpacity;
+
+  // Border color - tint with accent if provided
+  const effectiveBorder = accentColor 
+    ? `${accentColor}40` // 25% opacity accent border
+    : border;
 
   return (
     <View
@@ -79,18 +96,18 @@ const CardFrame: React.FC<CardFrameProps> = ({
           overflow: 'hidden',
           backgroundColor: surface as any,
           borderWidth: 1,
-          borderColor: border as any,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: variant === 'hero' ? 10 : variant === 'cta' ? 7 : 4 },
-          shadowOpacity: variant === 'hero' ? 0.2 : variant === 'cta' ? 0.16 : 0.12,
-          shadowRadius: variant === 'hero' ? 18 : variant === 'cta' ? 14 : 10,
-          elevation: variant === 'hero' ? 9 : variant === 'cta' ? 7 : 5,
+          borderColor: effectiveBorder as any,
+          shadowColor: shadowColor,
+          shadowOffset: { width: 0, height: variant === 'hero' ? 12 : variant === 'cta' ? 8 : 5 },
+          shadowOpacity: glowShadowOpacity,
+          shadowRadius: variant === 'hero' ? 20 : variant === 'cta' ? 16 : 12,
+          elevation: variant === 'hero' ? 10 : variant === 'cta' ? 8 : 6,
         },
         style,
       ]}
       {...props}
     >
-      {/* Inner highlight (gives “paper” depth) */}
+      {/* Inner highlight (gives "paper" depth) - BOOSTED */}
       <View
         pointerEvents="none"
         style={{
@@ -99,7 +116,7 @@ const CardFrame: React.FC<CardFrameProps> = ({
           left: 0,
           right: 0,
           height: 1,
-          backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.28)',
+          backgroundColor: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.35)',
         }}
       />
 

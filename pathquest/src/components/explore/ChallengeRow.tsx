@@ -38,18 +38,21 @@ const ChallengeRow: React.FC<ChallengeRowProps> = ({ challenge, onPress }) => {
       ? (colors.secondary as string)
       : (colors.primary as string);
 
-  // Card tint wash for accepted/completed challenges
+  // Card tint wash for accepted/completed challenges - BOOSTED
   const cardWash = isAccepted
-    ? `${colors.secondary}${isDark ? '0C' : '08'}`
+    ? `${colors.secondary}${isDark ? '15' : '10'}`
     : isCompleted
-      ? `${colors.summited}${isDark ? '0C' : '08'}`
+      ? `${colors.summited}${isDark ? '15' : '10'}`
       : undefined;
 
   const cardBorder = isAccepted
-    ? `${colors.secondary}${isDark ? '30' : '20'}`
+    ? `${colors.secondary}${isDark ? '50' : '35'}`
     : isCompleted
-      ? `${colors.summited}${isDark ? '30' : '20'}`
+      ? `${colors.summited}${isDark ? '50' : '35'}`
       : undefined;
+
+  // Enable glow for accepted/completed challenges
+  const shouldGlow = isAccepted || isCompleted;
 
   return (
     <TouchableOpacity
@@ -61,6 +64,7 @@ const ChallengeRow: React.FC<ChallengeRowProps> = ({ challenge, onPress }) => {
         topo="corner"
         seed={`challenge-row:${challenge.id}`}
         accentColor={accentColor}
+        glow={shouldGlow}
         style={{
           padding: 12,
           backgroundColor: cardWash ?? (colors.card as any),
@@ -83,13 +87,13 @@ const ChallengeRow: React.FC<ChallengeRowProps> = ({ challenge, onPress }) => {
                     paddingHorizontal: 8,
                     paddingVertical: 4,
                     borderRadius: 999,
-                    backgroundColor: `${colors.summited}20` as any,
-                    borderWidth: 1,
-                    borderColor: `${colors.summited}3A` as any,
+                    backgroundColor: `${colors.summited}35` as any,
+                    borderWidth: 1.5,
+                    borderColor: `${colors.summited}60` as any,
                   }}
                 >
                   <BadgeCheck size={12} color={colors.summited as any} />
-                  <Text style={{ color: colors.summited as any }} className="text-[10px] font-semibold">
+                  <Text style={{ color: colors.summited as any }} className="text-[10px] font-bold">
                     Completed
                   </Text>
                 </View>
@@ -102,13 +106,13 @@ const ChallengeRow: React.FC<ChallengeRowProps> = ({ challenge, onPress }) => {
                     paddingHorizontal: 8,
                     paddingVertical: 4,
                     borderRadius: 999,
-                    backgroundColor: `${colors.secondary}18` as any,
-                    borderWidth: 1,
-                    borderColor: `${colors.secondary}3A` as any,
+                    backgroundColor: `${colors.secondary}30` as any,
+                    borderWidth: 1.5,
+                    borderColor: `${colors.secondary}60` as any,
                   }}
                 >
                   <Flag size={12} color={colors.secondary as any} />
-                  <Text style={{ color: colors.secondary as any }} className="text-[10px] font-semibold">
+                  <Text style={{ color: colors.secondary as any }} className="text-[10px] font-bold">
                     Accepted
                   </Text>
                 </View>
@@ -126,13 +130,30 @@ const ChallengeRow: React.FC<ChallengeRowProps> = ({ challenge, onPress }) => {
               </Text>
             </View>
 
-            {/* Progress bar (always show when we know total) */}
+            {/* Progress bar (always show when we know total) - VIBRANT */}
             {total > 0 ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 }}>
-                <View className="flex-1 h-1.5 rounded-sm bg-muted overflow-hidden">
-                  <View className="h-full rounded-sm" style={{ width: `${progressPercent}%`, backgroundColor: accentColor }} />
+                <View 
+                  className="flex-1 h-2 rounded-full overflow-hidden"
+                  style={{ backgroundColor: `${accentColor}25` }}
+                >
+                  <View 
+                    className="h-full rounded-full" 
+                    style={{ 
+                      width: `${progressPercent}%`, 
+                      backgroundColor: accentColor,
+                      // Add subtle shadow for depth
+                      shadowColor: accentColor,
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: 0.4,
+                      shadowRadius: 2,
+                    }} 
+                  />
                 </View>
-                <Text className="text-muted-foreground text-[11px] font-medium min-w-[48px] text-right">
+                <Text 
+                  className="text-[11px] font-semibold min-w-[48px] text-right"
+                  style={{ color: accentColor }}
+                >
                   {Math.min(completed, total)}/{total}
                 </Text>
               </View>

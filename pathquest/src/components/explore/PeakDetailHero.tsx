@@ -46,8 +46,8 @@ export function PeakDetailHero({
   const { colors, isDark } = useTheme();
 
   return (
-    <CardFrame variant="hero" topo="full" ridge="bottom" accentColor={accentColor} seed={`peak-hero:${peakId}`} style={{ padding: 16 }}>
-      {/* Accent wash */}
+    <CardFrame variant="hero" topo="full" ridge="bottom" accentColor={accentColor} glow seed={`peak-hero:${peakId}`} style={{ padding: 16 }}>
+      {/* Accent wash - BOOSTED opacity for more color presence */}
       <View
         pointerEvents="none"
         style={{
@@ -56,11 +56,11 @@ export function PeakDetailHero({
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: accentWash as any,
+          backgroundColor: `${accentColor}${isDark ? "20" : "15"}` as any,
         }}
       />
 
-      {/* Status chip */}
+      {/* Status chip - more vibrant */}
       <View style={{ position: "absolute", top: 12, right: 12 }}>
         <View
           style={{
@@ -70,9 +70,9 @@ export function PeakDetailHero({
             paddingHorizontal: 10,
             paddingVertical: 6,
             borderRadius: 999,
-            backgroundColor: `${accentColor}${isDark ? "26" : "18"}` as any,
-            borderWidth: 1,
-            borderColor: accentBorder as any,
+            backgroundColor: `${accentColor}${isDark ? "35" : "25"}` as any,
+            borderWidth: 1.5,
+            borderColor: `${accentColor}60` as any,
           }}
         >
           <Check size={12} color={accentColor as any} />

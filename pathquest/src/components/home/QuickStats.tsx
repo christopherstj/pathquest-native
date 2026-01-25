@@ -62,18 +62,25 @@ const StatCard: React.FC<StatCardProps> = ({
       style={{ flex: onPress ? undefined : 1 }}
     >
       <View className="p-3">
-        {/* Icon with muted accent background */}
+        {/* Icon with VIBRANT accent background */}
         <View 
-          className="w-8 h-8 rounded-lg items-center justify-center mb-2"
-          style={{ backgroundColor: `${accentColor}${isDark ? '22' : '18'}` }}
+          className="w-9 h-9 rounded-xl items-center justify-center mb-2"
+          style={{ 
+            backgroundColor: `${accentColor}${isDark ? '35' : '25'}`,
+            // Add subtle glow
+            shadowColor: accentColor,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.3,
+            shadowRadius: 4,
+          }}
         >
-          <Icon size={16} color={accentColor} />
+          <Icon size={18} color={accentColor} strokeWidth={2.5} />
         </View>
         
-        {/* Value */}
+        {/* Value - with accent color tint */}
         <Text 
           className="text-xl font-bold" 
-          style={{ color: colors.foreground }}
+          style={{ color: accentColor }}
           numberOfLines={1}
         >
           {value}
@@ -81,7 +88,7 @@ const StatCard: React.FC<StatCardProps> = ({
         
         {/* Label */}
         <Text 
-          className="text-[11px] font-medium uppercase tracking-wide mt-0.5" 
+          className="text-[11px] font-semibold uppercase tracking-wide mt-0.5" 
           style={{ color: colors.mutedForeground }}
           numberOfLines={1}
         >
@@ -89,12 +96,12 @@ const StatCard: React.FC<StatCardProps> = ({
         </Text>
       </View>
       
-      {/* Bottom accent line */}
+      {/* Bottom accent line - MORE VIBRANT */}
       <View 
         style={{ 
-          height: 2, 
+          height: 3, 
           backgroundColor: accentColor,
-          opacity: isDark ? 0.45 : 0.35,
+          opacity: isDark ? 0.75 : 0.55,
         }} 
       />
     </CardFrame>
