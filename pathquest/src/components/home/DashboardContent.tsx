@@ -342,6 +342,13 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
       {/* Unconfirmed Summits Card (if any need review) */}
       <UnconfirmedSummitsCard
         onViewAll={onViewReview}
+        onViewPeak={onPeakPress}
+        onViewActivity={(activityId) => {
+          router.push({
+            pathname: '/explore/activity/[activityId]',
+            params: { activityId },
+          });
+        }}
         maxSummits={3}
       />
 

@@ -61,16 +61,82 @@ const queryClient = new QueryClient({
   },
 });
 
-// Create AsyncStorage persister for query cache
+// Query cache key
+const QUERY_CACHE_KEY = 'pathquest-query-cache';
+
+// Safe AsyncStorage wrapper that handles corrupted/oversized data
+const safeAsyncStorage = {
+  getItem: async (key: string): Promise<string | null> => {
+    try {
+      return await AsyncStorage.getItem(key);
+    } catch (error: any) {
+      // Handle "Row too big" or OOM errors by clearing corrupted cache
+      if (
+        error?.message?.includes('Row too big') ||
+        error?.message?.includes('CursorWindow') ||
+        error?.message?.includes('OutOfMemory')
+      ) {
+        console.warn('[QueryCache] Corrupted cache detected, clearing...', error.message);
+        try {
+          await AsyncStorage.removeItem(key);
+        } catch (clearError) {
+          console.error('[QueryCache] Failed to clear corrupted cache:', clearError);
+        }
+        return null;
+      }
+      throw error;
+    }
+  },
+  setItem: async (key: string, value: string): Promise<void> => {
+    try {
+      // Limit cache size to 1MB to prevent SQLite cursor window issues
+      if (value.length > 1024 * 1024) {
+        console.warn('[QueryCache] Cache too large, skipping persistence:', value.length, 'bytes');
+        return;
+      }
+      await AsyncStorage.setItem(key, value);
+    } catch (error: any) {
+      console.error('[QueryCache] Failed to persist cache:', error.message);
+      // Don't throw - persistence failure shouldn't break the app
+    }
+  },
+  removeItem: async (key: string): Promise<void> => {
+    try {
+      await AsyncStorage.removeItem(key);
+    } catch (error) {
+      console.error('[QueryCache] Failed to remove cache:', error);
+    }
+  },
+};
+
+// Create AsyncStorage persister for query cache with safe wrapper
 const asyncStoragePersister = createAsyncStoragePersister({
-  storage: AsyncStorage,
-  key: 'pathquest-query-cache',
+  storage: safeAsyncStorage,
+  key: QUERY_CACHE_KEY,
   // Throttle writes to avoid excessive storage operations
   throttleTime: 1000,
 });
 
 // Set the query client reference for cache management utilities
 setQueryClientRef(queryClient);
+
+// Proactively check and clear corrupted cache on startup
+const clearCorruptedCacheOnStartup = async () => {
+  try {
+    // Try to read the cache - if it fails, clear it
+    await AsyncStorage.getItem(QUERY_CACHE_KEY);
+  } catch (error: any) {
+    console.warn('[QueryCache] Startup check found corrupted cache, clearing...', error.message);
+    try {
+      await AsyncStorage.removeItem(QUERY_CACHE_KEY);
+    } catch (clearError) {
+      console.error('[QueryCache] Failed to clear on startup:', clearError);
+    }
+  }
+};
+
+// Run on module load (before React renders)
+clearCorruptedCacheOnStartup();
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({

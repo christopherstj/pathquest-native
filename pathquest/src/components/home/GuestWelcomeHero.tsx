@@ -156,11 +156,11 @@ const GuestWelcomeHero: React.FC<GuestWelcomeHeroProps> = ({
                   activeOpacity={0.8}
                 >
                   {demoLoading ? (
-                    <ActivityIndicator color="white" size="small" />
+                    <ActivityIndicator color={colors.white} size="small" />
                   ) : (
                     <>
-                      <Key size={16} color="white" />
-                      <Text className="text-white font-semibold">Sign In</Text>
+                      <Key size={16} color={colors.white} />
+                      <Text className="font-semibold" style={{ color: colors.white }}>Sign In</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -206,8 +206,8 @@ const GuestWelcomeHero: React.FC<GuestWelcomeHeroProps> = ({
                 <TouchableOpacity
                   className="flex-row items-center justify-center gap-2 py-3.5 rounded-xl"
                   style={{ 
-                    backgroundColor: '#FC4C02', // Strava orange
-                    shadowColor: '#FC4C02',
+                    backgroundColor: colors.stravaOrange,
+                    shadowColor: colors.stravaOrange,
                     shadowOffset: { width: 0, height: 4 },
                     shadowOpacity: 0.3,
                     shadowRadius: 8,
@@ -216,8 +216,8 @@ const GuestWelcomeHero: React.FC<GuestWelcomeHeroProps> = ({
                   onPress={onLoginPress}
                   activeOpacity={0.8}
                 >
-                  <LogIn size={18} color="white" />
-                  <Text className="text-white font-semibold">
+                  <LogIn size={18} color={colors.white} />
+                  <Text className="font-semibold" style={{ color: colors.white }}>
                     Connect with Strava
                   </Text>
                 </TouchableOpacity>

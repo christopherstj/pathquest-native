@@ -3,28 +3,33 @@
  * 
  * A dashboard card showing unconfirmed summits that need user review.
  * Styled with amber/rust warning theme to draw attention.
- * Shows up to 3 summits with quick confirm/deny actions.
+ * Shows up to 3 summits with full review cards (same as Profile Review tab).
  */
 
 import React from 'react';
 import { View, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { AlertTriangle, Check, X, ChevronRight, Mountain } from 'lucide-react-native';
-import { formatDistanceToNowStrict } from 'date-fns';
+import { AlertTriangle, ChevronRight, Mountain } from 'lucide-react-native';
 import { Text } from '@/src/components/ui';
 import CardFrame from '@/src/components/ui/CardFrame';
+import { SummitReviewRow } from '@/src/components/shared';
 import { useTheme } from '@/src/theme';
 import { useUnconfirmedSummits, useConfirmSummit, useDenySummit } from '@/src/hooks';
-import type { UnconfirmedSummit } from '@pathquest/shared';
 
 interface UnconfirmedSummitsCardProps {
   /** Navigate to the Profile Review tab */
   onViewAll?: () => void;
+  /** Navigate to a peak detail */
+  onViewPeak?: (peakId: string) => void;
+  /** Navigate to an activity detail */
+  onViewActivity?: (activityId: string) => void;
   /** Max number of summits to show (default: 3) */
   maxSummits?: number;
 }
 
 const UnconfirmedSummitsCard: React.FC<UnconfirmedSummitsCardProps> = ({
   onViewAll,
+  onViewPeak,
+  onViewActivity,
   maxSummits = 3,
 }) => {
   const { colors, isDark } = useTheme();
@@ -44,16 +49,6 @@ const UnconfirmedSummitsCard: React.FC<UnconfirmedSummitsCardProps> = ({
   if (!isLoading && (!summits || summits.length === 0)) {
     return null;
   }
-  
-  // Parse timestamp helper (handles PostgreSQL format)
-  const parseTimestamp = (ts: string): Date => {
-    if (!ts) return new Date();
-    let parsed = ts.replace(' ', 'T');
-    if (/[+-]\d{2}$/.test(parsed)) {
-      parsed = parsed + ':00';
-    }
-    return new Date(parsed);
-  };
   
   const handleConfirm = (summitId: string) => {
     confirmMutation.mutate(summitId);
@@ -112,18 +107,29 @@ const UnconfirmedSummitsCard: React.FC<UnconfirmedSummitsCardProps> = ({
           </View>
         </View>
         
-        {/* Summit list */}
+        {/* Summit list using shared component - FULL variant with links */}
         {!isLoading && summits && summits.length > 0 && (
-          <View className="gap-2 mb-3">
+          <View className="gap-3 mb-3">
             {summits.slice(0, maxSummits).map((summit) => (
-              <SummitRow
+              <SummitReviewRow
                 key={summit.id}
-                summit={summit}
+                summit={{
+                  id: summit.id,
+                  peakId: summit.peakId,
+                  peakName: summit.peakName,
+                  peakElevation: summit.peakElevation,
+                  activityId: summit.activityId,
+                  timestamp: summit.timestamp,
+                  confidenceScore: summit.confidenceScore,
+                }}
+                variant="full"
+                showConfidence
                 onConfirm={() => handleConfirm(summit.id)}
                 onDeny={() => handleDeny(summit.id)}
+                onViewPeak={onViewPeak ? () => onViewPeak(summit.peakId) : undefined}
+                onViewActivity={onViewActivity ? () => onViewActivity(summit.activityId) : undefined}
                 isConfirming={confirmMutation.isPending && confirmMutation.variables === summit.id}
                 isDenying={denyMutation.isPending && denyMutation.variables === summit.id}
-                parseTimestamp={parseTimestamp}
               />
             ))}
           </View>
@@ -153,93 +159,4 @@ const UnconfirmedSummitsCard: React.FC<UnconfirmedSummitsCardProps> = ({
   );
 };
 
-interface SummitRowProps {
-  summit: UnconfirmedSummit;
-  onConfirm: () => void;
-  onDeny: () => void;
-  isConfirming: boolean;
-  isDenying: boolean;
-  parseTimestamp: (ts: string) => Date;
-}
-
-const SummitRow: React.FC<SummitRowProps> = ({
-  summit,
-  onConfirm,
-  onDeny,
-  isConfirming,
-  isDenying,
-  parseTimestamp,
-}) => {
-  const { colors, isDark } = useTheme();
-  
-  const timeAgo = formatDistanceToNowStrict(parseTimestamp(summit.timestamp), { addSuffix: true });
-  const elevationFt = Math.round(summit.peakElevation * 3.28084);
-  
-  const isLoading = isConfirming || isDenying;
-  
-  return (
-    <View 
-      className="flex-row items-center px-3 py-2.5 rounded-lg"
-      style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)' }}
-    >
-      {/* Peak info */}
-      <View className="flex-1 mr-2">
-        <Text 
-          style={{ color: colors.foreground }} 
-          className="text-[15px] font-semibold"
-          numberOfLines={1}
-        >
-          {summit.peakName}
-        </Text>
-        <Text style={{ color: colors.mutedForeground }} className="text-xs mt-0.5">
-          {elevationFt.toLocaleString()}ft • {timeAgo}
-        </Text>
-      </View>
-      
-      {/* Action buttons */}
-      <View className="flex-row items-center gap-2">
-        {/* Deny button */}
-        <TouchableOpacity
-          onPress={onDeny}
-          disabled={isLoading}
-          activeOpacity={0.7}
-          className="w-8 h-8 rounded-full items-center justify-center"
-          style={{ 
-            backgroundColor: isDark ? 'rgba(196, 69, 54, 0.15)' : 'rgba(196, 69, 54, 0.1)',
-            opacity: isLoading ? 0.5 : 1,
-          }}
-        >
-          {isDenying ? (
-            <ActivityIndicator size="small" color={colors.destructive} />
-          ) : (
-            <X size={16} color={colors.destructive} />
-          )}
-        </TouchableOpacity>
-        
-        {/* Confirm button */}
-        <TouchableOpacity
-          onPress={onConfirm}
-          disabled={isLoading}
-          activeOpacity={0.7}
-          className="w-8 h-8 rounded-full items-center justify-center"
-          style={{ 
-            backgroundColor: isDark ? 'rgba(91, 145, 103, 0.2)' : 'rgba(77, 122, 87, 0.15)',
-            opacity: isLoading ? 0.5 : 1,
-          }}
-        >
-          {isConfirming ? (
-            <ActivityIndicator size="small" color={colors.primary} />
-          ) : (
-            <Check size={16} color={colors.primary} />
-          )}
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-};
-
 export default UnconfirmedSummitsCard;
-
-
-
-

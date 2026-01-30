@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { View, TouchableOpacity } from "react-native";
 import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { useRouter } from "expo-router";
 import { ChevronLeft, X } from "lucide-react-native";
 import type { Activity, ProfileStats, SummitWithPeak } from "@pathquest/shared";
 
@@ -10,6 +11,7 @@ import ActivityDetailHero from "./ActivityDetailHero";
 import ActivityWeatherCard from "./ActivityWeatherCard";
 import ElevationProfile from "./ElevationProfile";
 import ActivitySummitsList from "./ActivitySummitsList";
+import ActivityUnconfirmedSummits from "./ActivityUnconfirmedSummits";
 // import ActivityAchievementsCard from "./ActivityAchievementsCard";
 
 interface ActivityDetailProps {
@@ -35,11 +37,19 @@ export default function ActivityDetail({
   onEditReport,
 }: ActivityDetailProps) {
   const { colors, isDark } = useTheme();
+  const router = useRouter();
 
   const hasSummits = (summits ?? []).length > 0;
   const accent = (hasSummits ? colors.summited : colors.primary) as string;
 
   const profileAccent = useMemo(() => accent, [accent]);
+  
+  const handleViewPeak = (peakId: string) => {
+    router.push({
+      pathname: "/explore/peak/[peakId]",
+      params: { peakId },
+    });
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -98,6 +108,12 @@ export default function ActivityDetail({
 
         {/* Achievements (disabled for now) */}
         {/* <ActivityAchievementsCard activity={activity} summits={summits} profileStats={profileStats} /> */}
+
+        {/* Unconfirmed summits needing review */}
+        <ActivityUnconfirmedSummits 
+          activityId={activity.id}
+          onViewPeak={handleViewPeak}
+        />
 
         <ActivitySummitsList
           activityId={activity.id}

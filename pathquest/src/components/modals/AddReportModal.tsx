@@ -371,7 +371,7 @@ const ConditionTagsSection: React.FC<ConditionTagsProps> = ({ selectedTags, onTo
 
 // Theme-aware color functions for ratings
 const getDifficultyColors = (colors: any): Record<Difficulty, string> => ({
-  easy: colors.statForest,      // Forest green
+  easy: colors.primary,        // Emerald green
   moderate: colors.statGold,    // Gold/amber
   hard: colors.secondary,       // Rust/orange
   expert: colors.destructive,   // Red
@@ -379,7 +379,7 @@ const getDifficultyColors = (colors: any): Record<Difficulty, string> => ({
 
 const getExperienceColors = (colors: any): Record<ExperienceRating, string> => ({
   tough: colors.summited,       // Sky blue
-  good: colors.statForest,      // Forest green
+  good: colors.primary,          // Emerald green
   amazing: colors.statGold,     // Gold
   epic: colors.primary,         // Primary green (epic!)
 });

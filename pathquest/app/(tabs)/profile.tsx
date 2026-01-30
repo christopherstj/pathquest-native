@@ -31,13 +31,13 @@ import { UserAvatar } from "@/src/components/shared";
 import { useAuthStore } from '@/src/lib/auth';
 import { startStravaAuth } from '@/src/lib/auth/strava';
 import { useManualSummitStore } from '@/src/store';
+import { useTheme } from '@/src/theme';
 import type { Peak, ChallengeProgress } from '@pathquest/shared';
-
-const BACKGROUND_COLOR = '#25221E';
 
 export default function ProfileRoute() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { colors, isDark } = useTheme();
   
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const user = useAuthStore((state) => state.user);
@@ -75,6 +75,13 @@ export default function ProfileRoute() {
     });
   };
   
+  const handleActivityPress = (activityId: string) => {
+    router.push({
+      pathname: '/explore/activity/[activityId]',
+      params: { activityId },
+    });
+  };
+  
   const handleViewOnMap = () => {
     if (!user?.id) return;
     router.push({
@@ -96,7 +103,7 @@ export default function ProfileRoute() {
       <View 
         style={{ 
           flex: 1,
-          backgroundColor: BACKGROUND_COLOR,
+          backgroundColor: colors.background,
           paddingTop: insets.top, 
         }}
       >
@@ -109,7 +116,7 @@ export default function ProfileRoute() {
             lines={12}
             opacity={0.06}
             strokeWidth={1.25}
-            color="#5B9167"
+            color={colors.statForest}
             seed="profile-guest-backdrop"
           />
         </View>
@@ -128,7 +135,7 @@ export default function ProfileRoute() {
                 left: 0,
                 right: 0,
                 height: 100,
-                backgroundColor: '#5B9167',
+                backgroundColor: colors.statForest,
                 opacity: 0.08,
               }}
             />
@@ -142,24 +149,24 @@ export default function ProfileRoute() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginBottom: 12,
-                  backgroundColor: 'rgba(91, 145, 103, 0.15)',
+                  backgroundColor: `${colors.statForest}26`,
                   borderWidth: 2,
-                  borderColor: 'rgba(91, 145, 103, 0.3)',
+                  borderColor: `${colors.statForest}4D`,
                 }}
               >
-                <UserCircle size={40} color="#5B9167" strokeWidth={1.5} />
+                <UserCircle size={40} color={colors.statForest} strokeWidth={1.5} />
               </View>
               
               <Text 
                 className="text-xl font-bold text-center mb-1"
-                style={{ color: '#F5F0E8' }}
+                style={{ color: colors.foreground }}
               >
                 Your Summit Journal
               </Text>
               
               <Text 
                 className="text-center text-sm leading-5 mb-4"
-                style={{ color: '#A9A196' }}
+                style={{ color: colors.mutedForeground }}
               >
                 Track your adventures and build your peak collection
               </Text>
@@ -167,8 +174,8 @@ export default function ProfileRoute() {
               <TouchableOpacity
                 className="flex-row items-center gap-2 px-6 py-3 rounded-xl"
                 style={{ 
-                  backgroundColor: '#FC4C02',
-                  shadowColor: '#FC4C02',
+                  backgroundColor: colors.stravaOrange,
+                  shadowColor: colors.stravaOrange,
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.3,
                   shadowRadius: 8,
@@ -177,8 +184,8 @@ export default function ProfileRoute() {
                 onPress={handleLogin}
                 activeOpacity={0.8}
               >
-                <LogIn size={18} color="white" />
-                <Text className="text-white font-semibold">
+                <LogIn size={18} color={colors.white} />
+                <Text className="font-semibold" style={{ color: colors.white }}>
                   Connect with Strava
                 </Text>
               </TouchableOpacity>
@@ -207,7 +214,7 @@ export default function ProfileRoute() {
             </CardFrame>
             
             <CardFrame topo="none" seed="preview-stat-3" style={{ flex: 1, padding: 14, alignItems: 'center' }}>
-              <Trophy size={20} color="#C8A45C" />
+              <Trophy size={20} color={colors.statGold} />
               <Text className="text-2xl font-bold mt-2" style={{ color: '#F5F0E8' }}>—</Text>
               <Text className="text-xs mt-1" style={{ color: '#A9A196' }}>Challenges</Text>
             </CardFrame>
@@ -230,12 +237,12 @@ export default function ProfileRoute() {
                   borderRadius: 10,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: 'rgba(91, 145, 103, 0.15)',
+                  backgroundColor: `${colors.statForest}26`,
                   borderWidth: 1,
-                  borderColor: 'rgba(91, 145, 103, 0.3)',
+                  borderColor: `${colors.statForest}4D`,
                 }}
               >
-                <FileText size={18} color="#5B9167" />
+                <FileText size={18} color={colors.statForest} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text className="font-medium" style={{ color: '#F5F0E8' }}>
@@ -253,22 +260,22 @@ export default function ProfileRoute() {
                 marginTop: 12,
                 padding: 12,
                 borderRadius: 10,
-                backgroundColor: 'rgba(91, 145, 103, 0.08)',
+                backgroundColor: `${colors.statForest}14`,
                 borderWidth: 1,
-                borderColor: 'rgba(91, 145, 103, 0.15)',
+                borderColor: `${colors.statForest}26`,
                 borderStyle: 'dashed',
               }}
             >
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Mountain size={14} color="#5B9167" />
-                  <Text className="font-medium text-sm" style={{ color: '#5B9167' }}>
+                  <Mountain size={14} color={colors.statForest} />
+                  <Text className="font-medium text-sm" style={{ color: colors.statForest }}>
                     Example Peak
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   {[1, 2, 3, 4, 5].map((i) => (
-                    <Star key={i} size={10} color="#C8A45C" fill="#C8A45C" />
+                    <Star key={i} size={10} color={colors.statGold} fill={colors.statGold} />
                   ))}
                 </View>
               </View>
@@ -289,22 +296,22 @@ export default function ProfileRoute() {
           <CardFrame topo="none" seed="preview-features" style={{ padding: 14 }}>
             <View style={{ gap: 12 }}>
               <FeatureRow 
-                icon={<Mountain size={16} color="#5B9167" />}
+                icon={<Mountain size={16} color={colors.statForest} />}
                 title="Auto-detect summits"
                 description="Sync Strava activities and we'll find your peaks"
               />
               <FeatureRow 
-                icon={<Trophy size={16} color="#C8A45C" />}
+                icon={<Trophy size={16} color={colors.statGold} />}
                 title="Complete challenges"
                 description="Track progress on peak lists like the 14ers"
               />
               <FeatureRow 
-                icon={<Calendar size={16} color="#6B9DD4" />}
+                icon={<Calendar size={16} color={colors.summited} />}
                 title="Summit timeline"
                 description="Browse your climbing history by date"
               />
               <FeatureRow 
-                icon={<FileText size={16} color="#C87D55" />}
+                icon={<FileText size={16} color={colors.secondary} />}
                 title="Trip reports"
                 description="Add notes, photos, and conditions"
               />
@@ -315,15 +322,15 @@ export default function ProfileRoute() {
           <TouchableOpacity
             className="flex-row items-center justify-center gap-2 py-3.5 rounded-xl mt-4"
             style={{ 
-              backgroundColor: 'rgba(91, 145, 103, 0.15)',
+              backgroundColor: `${colors.statForest}26`,
               borderWidth: 1,
-              borderColor: 'rgba(91, 145, 103, 0.3)',
+              borderColor: `${colors.statForest}4D`,
             }}
             onPress={handleLogin}
             activeOpacity={0.7}
           >
-            <LogIn size={16} color="#5B9167" />
-            <Text className="font-medium" style={{ color: '#5B9167' }}>
+            <LogIn size={16} color={colors.statForest} />
+            <Text className="font-medium" style={{ color: colors.statForest }}>
               Sign in to get started
             </Text>
           </TouchableOpacity>
@@ -337,7 +344,7 @@ export default function ProfileRoute() {
     <View 
       style={{ 
         flex: 1,
-        backgroundColor: BACKGROUND_COLOR,
+        backgroundColor: colors.background,
         paddingTop: insets.top,
       }}
     >
@@ -345,18 +352,18 @@ export default function ProfileRoute() {
       {/* Header with user info */}
       <View 
         className="flex-row items-start justify-between px-4 py-3 border-b"
-        style={{ borderColor: 'rgba(69, 65, 60, 0.5)' }}
+        style={{ borderColor: colors.border }}
       >
         <View className="flex-row items-start gap-3 flex-1">
           <UserAvatar size="md" name={user?.name} uri={user?.pic} />
           <View className="flex-1">
-            <Text className="font-semibold" style={{ color: '#F5F0E8' }}>
+            <Text className="font-semibold" style={{ color: colors.foreground }}>
               {user?.name}
             </Text>
             {locationText ? (
               <View className="flex-row items-center gap-1.5 mt-0.5">
-                <MapPin size={12} color="#A9A196" />
-                <Text className="text-xs" style={{ color: '#A9A196' }} numberOfLines={1}>
+                <MapPin size={12} color={colors.mutedForeground} />
+                <Text className="text-xs" style={{ color: colors.mutedForeground }} numberOfLines={1}>
                   {locationText}
                 </Text>
               </View>
@@ -372,8 +379,8 @@ export default function ProfileRoute() {
               onPress={handleViewOnMap}
               activeOpacity={0.7}
             >
-              <Map size={14} color="#5B9167" />
-              <Text className="text-xs font-medium" style={{ color: '#5B9167' }}>
+              <Map size={14} color={colors.statForest} />
+              <Text className="text-xs font-medium" style={{ color: colors.statForest }}>
                 View on Map
               </Text>
             </TouchableOpacity>
@@ -391,19 +398,19 @@ export default function ProfileRoute() {
             onPress={handleLogManualSummit}
             activeOpacity={0.7}
           >
-            <Plus size={16} color="#5B9167" />
+            <Plus size={16} color={colors.statForest} />
           </TouchableOpacity>
           <TouchableOpacity 
             className="p-2.5 rounded-lg"
             style={{ 
-              backgroundColor: 'rgba(169, 161, 150, 0.1)',
-              borderWidth: 1,
-              borderColor: 'rgba(69, 65, 60, 0.5)',
+          backgroundColor: `${colors.mutedForeground}1A`,
+          borderWidth: 1,
+          borderColor: colors.border,
             }}
             onPress={handleOpenSettings}
             activeOpacity={0.7}
           >
-            <Settings size={16} color="#A9A196" />
+            <Settings size={16} color={colors.mutedForeground} />
           </TouchableOpacity>
         </View>
       </View>
@@ -412,6 +419,7 @@ export default function ProfileRoute() {
         userId={user?.id || ''} 
         onPeakPress={handlePeakPress}
         onChallengePress={handleChallengePress}
+        onActivityPress={handleActivityPress}
       />
     </View>
   );
@@ -442,10 +450,10 @@ function FeatureRow({
         {icon}
       </View>
       <View style={{ flex: 1 }}>
-        <Text className="font-medium text-sm" style={{ color: '#F5F0E8' }}>
+        <Text className="font-medium text-sm" style={{ color: colors.foreground }}>
           {title}
         </Text>
-        <Text className="text-xs mt-0.5" style={{ color: '#A9A196' }}>
+        <Text className="text-xs mt-0.5" style={{ color: colors.mutedForeground }}>
           {description}
         </Text>
       </View>

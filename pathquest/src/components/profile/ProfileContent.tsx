@@ -235,6 +235,7 @@ const ProfileContent: React.FC<ProfileContentProps> = ({
           <ReviewContent
             inBottomSheet={inBottomSheet}
             onViewActivity={onActivityPress}
+            onViewPeak={onPeakPress}
           />
         );
       default:

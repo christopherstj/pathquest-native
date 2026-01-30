@@ -34,11 +34,14 @@ interface ReviewContentProps {
   inBottomSheet?: boolean;
   /** Callback when "View Activity" is pressed */
   onViewActivity?: (activityId: string) => void;
+  /** Callback when "View Peak" is pressed */
+  onViewPeak?: (peakId: string) => void;
 }
 
 const ReviewContent: React.FC<ReviewContentProps> = ({
   inBottomSheet = false,
   onViewActivity,
+  onViewPeak,
 }) => {
   const { colors, isDark } = useTheme();
   
@@ -194,6 +197,7 @@ const ReviewContent: React.FC<ReviewContentProps> = ({
             onConfirm={() => handleConfirm(summit.id)}
             onDeny={() => handleDeny(summit.id)}
             onViewActivity={onViewActivity}
+            onViewPeak={onViewPeak}
             isConfirming={confirmMutation.isPending && confirmMutation.variables === summit.id}
             isDenying={denyMutation.isPending && denyMutation.variables === summit.id}
             parseTimestamp={parseTimestamp}
@@ -209,6 +213,7 @@ interface SummitReviewCardProps {
   onConfirm: () => void;
   onDeny: () => void;
   onViewActivity?: (activityId: string) => void;
+  onViewPeak?: (peakId: string) => void;
   isConfirming: boolean;
   isDenying: boolean;
   parseTimestamp: (ts: string) => Date;
@@ -219,6 +224,7 @@ const SummitReviewCard: React.FC<SummitReviewCardProps> = ({
   onConfirm,
   onDeny,
   onViewActivity,
+  onViewPeak,
   isConfirming,
   isDenying,
   parseTimestamp,
@@ -307,26 +313,44 @@ const SummitReviewCard: React.FC<SummitReviewCardProps> = ({
         
         {/* Actions row */}
         <View className="flex-row items-center gap-2">
-          {/* View Activity link */}
-          {onViewActivity && summit.activityId && (
-            <TouchableOpacity
-              onPress={() => onViewActivity(summit.activityId)}
-              activeOpacity={0.7}
-              className="flex-row items-center px-3 py-2 rounded-lg mr-auto"
-              style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
-            >
-              <ExternalLink size={14} color={colors.mutedForeground} />
-              <Text 
-                className="text-sm ml-1.5"
-                style={{ color: colors.mutedForeground }}
+          {/* View links */}
+          <View className="flex-row items-center gap-2 mr-auto">
+            {/* View Peak link */}
+            {onViewPeak && summit.peakId && (
+              <TouchableOpacity
+                onPress={() => onViewPeak(summit.peakId)}
+                activeOpacity={0.7}
+                className="flex-row items-center px-3 py-2 rounded-lg"
+                style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
               >
-                View Activity
-              </Text>
-            </TouchableOpacity>
-          )}
-          
-          {/* Spacer if no view activity */}
-          {(!onViewActivity || !summit.activityId) && <View className="flex-1" />}
+                <Mountain size={14} color={colors.mutedForeground} />
+                <Text 
+                  className="text-sm ml-1.5"
+                  style={{ color: colors.mutedForeground }}
+                >
+                  Peak
+                </Text>
+              </TouchableOpacity>
+            )}
+            
+            {/* View Activity link */}
+            {onViewActivity && summit.activityId && (
+              <TouchableOpacity
+                onPress={() => onViewActivity(summit.activityId)}
+                activeOpacity={0.7}
+                className="flex-row items-center px-3 py-2 rounded-lg"
+                style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)' }}
+              >
+                <ExternalLink size={14} color={colors.mutedForeground} />
+                <Text 
+                  className="text-sm ml-1.5"
+                  style={{ color: colors.mutedForeground }}
+                >
+                  Activity
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
           
           {/* Deny button */}
           <TouchableOpacity

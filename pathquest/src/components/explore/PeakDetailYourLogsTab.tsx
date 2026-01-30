@@ -8,6 +8,7 @@ import { SummitCard } from "@/src/components/shared";
 import type { SummitCardData } from "@/src/components/shared/SummitCard";
 import { useTheme } from "@/src/theme";
 import { useAddReportStore, useManualSummitStore } from "@/src/store";
+import PeakUnconfirmedSummits from "./PeakUnconfirmedSummits";
 
 export function PeakDetailYourLogsTab({
   peakId,
@@ -117,8 +118,8 @@ export function PeakDetailYourLogsTab({
               label="Connect with Strava" 
               onPress={onConnectStrava}
               Icon={LogIn}
-              backgroundColor="#FC4C02"
-              foregroundColor="#FFFFFF"
+              backgroundColor={colors.stravaOrange}
+              foregroundColor={colors.white}
             />
           </View>
         </CardFrame>
@@ -172,8 +173,22 @@ export function PeakDetailYourLogsTab({
     );
   }
 
+  // Navigate to activity
+  const handleViewActivity = (activityId: string) => {
+    router.push({
+      pathname: "/explore/activity/[activityId]",
+      params: { activityId },
+    });
+  };
+
   return (
     <View style={{ gap: 12 }}>
+      {/* Unconfirmed summits needing review */}
+      <PeakUnconfirmedSummits 
+        peakId={peakId}
+        onViewActivity={handleViewActivity}
+      />
+      
       {/* Summit count header */}
       <CardFrame topo="corner" seed={`your-summit-count:${peakId}`}>
         <View style={{ padding: 14 }}>

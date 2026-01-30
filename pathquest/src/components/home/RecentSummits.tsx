@@ -83,7 +83,7 @@ const SummitItem: React.FC<SummitItemProps> = ({ summit, onPress }) => {
 
       {!summit.hasReport && (
         <View className="bg-primary/15 px-2 py-1 rounded-xl mr-2">
-          <Pencil size={10} color={colors.statForest} />
+          <Pencil size={10} color={colors.primary} />
         </View>
       )}
       

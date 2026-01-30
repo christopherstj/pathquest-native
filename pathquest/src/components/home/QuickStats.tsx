@@ -158,7 +158,7 @@ const QuickStats: React.FC<QuickStatsProps> = ({
         Icon={Flag}
         value={totalPeaks} 
         label="Peaks"
-        accentColor={colors.statForest}
+        accentColor={colors.primary}
       />
       
       {/* Total Elevation - Trail Brown */}

@@ -25,8 +25,8 @@ export const colors = {
     card: 'rgba(232, 225, 212, 0.92)',  // oklch(0.93 0.02 95 / 0.92)
     cardForeground: '#3A3226',
     
-    // Primary - Forest green (CTA buttons, active states)
-    primary: '#4D7A57',         // oklch(0.53 0.12 140)
+    // Primary - Emerald green (CTA buttons, active states)
+    primary: '#047857',         // Tailwind Emerald-700 - rich emerald
     primaryForeground: '#F5F2ED',
     
     // Secondary - Rust/umber
@@ -52,13 +52,16 @@ export const colors = {
     // Border & Input
     border: 'rgba(201, 194, 181, 0.7)', // oklch(0.8 0.03 90 / 0.7)
     input: '#E5DFD4',
-    ring: 'rgba(77, 122, 87, 0.5)',
+    ring: 'rgba(4, 120, 87, 0.5)',      // Match emerald primary
     
     // Semantic stat colors (dashboard, quick stats)
-    statForest: '#5B9167',      // Forest green for peaks stat
     statTrail: '#8B7355',       // Trail brown for elevation stat
     statGold: '#C9A66B',        // Gold/rust for challenge stat
     statMuted: '#A9A196',       // Muted for inactive elements
+    
+    // Brand colors (third-party)
+    stravaOrange: '#FC4C02',    // Strava brand orange for login buttons
+    white: '#FFFFFF',            // Pure white for text on dark backgrounds
   },
   
   dark: {
@@ -75,8 +78,8 @@ export const colors = {
     cardForeground: '#F5F0E6',
     
     // Primary - Vibrant emerald green
-    primary: '#34D399',         // Saturated emerald - pops!
-    primaryForeground: '#0F1F17',
+    primary: '#16A34A',         // Tailwind Green-600 - pure emerald, no cyan
+    primaryForeground: '#052E16',
     
     // Secondary - Vibrant amber
     secondary: '#F59E0B',       // Bright amber/gold
@@ -86,8 +89,8 @@ export const colors = {
     muted: '#2D2A26',           // Slightly lighter for better contrast
     mutedForeground: '#B8AFA3', // Brighter muted text
     
-    // Accent - Vibrant moss green
-    accent: '#22C55E',          // Bright green accent
+    // Accent - Vibrant emerald green
+    accent: '#16A34A',          // Pure emerald (same as primary) for accent
     accentForeground: '#0A1F0F',
     
     // Destructive - Vibrant red
@@ -101,13 +104,16 @@ export const colors = {
     // Border & Input - Warm dark tones with more presence
     border: 'rgba(82, 76, 68, 0.8)',    // More visible borders
     input: '#3D3833',           // Slightly lighter input bg
-    ring: 'rgba(52, 211, 153, 0.5)',    // Match new primary
+    ring: 'rgba(22, 163, 74, 0.5)',     // Match emerald primary
     
     // Semantic stat colors (dashboard, quick stats) - VIBRANT
-    statForest: '#10B981',      // Vivid emerald for peaks stat
     statTrail: '#D97706',       // Bright amber for elevation stat
     statGold: '#FBBF24',        // Bright gold for challenge stat
     statMuted: '#9CA3AF',       // Slightly cooler muted
+    
+    // Brand colors (third-party)
+    stravaOrange: '#FC4C02',    // Strava brand orange for login buttons
+    white: '#FFFFFF',            // Pure white for text on dark backgrounds
   },
 } as const;
 

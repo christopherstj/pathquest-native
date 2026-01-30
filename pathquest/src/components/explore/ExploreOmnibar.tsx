@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, TextInput, TouchableOpacity } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { Search, X, Mountain, Trophy, MapPin } from "lucide-react-native";
-import type { Peak, ChallengeProgress } from "@pathquest/shared";
+import type { Peak, ChallengeProgress, PeakSearchResult, ChallengeSearchResult } from "@pathquest/shared";
 import { getElevationString } from "@pathquest/shared";
 import { endpoints } from "@pathquest/shared/api";
 import { getApiClient } from "@/src/lib/api/client";
@@ -59,13 +59,50 @@ export default function ExploreOmnibar({
     queryFn: async (): Promise<{ peaks: Peak[]; challenges: ChallengeProgress[]; places: any[] }> => {
       if (debouncedQuery.length < 2) return { peaks: [], challenges: [], places: [] };
       const client = getApiClient();
-      const [peaks, challenges, placesJson] = await Promise.all([
-        endpoints.searchPeaks(client, { search: debouncedQuery, perPage: "10", page: "1", showSummittedPeaks: "true" }),
-        endpoints.searchChallenges(client, { search: debouncedQuery }),
+      const [searchResults, placesJson] = await Promise.all([
+        endpoints.unifiedSearch(client, {
+          query: debouncedQuery,
+          limit: 20,
+          includePeaks: true,
+          includeChallenges: true,
+        }),
         fetch(
           `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(debouncedQuery)}.json?access_token=${getMapboxToken()}&types=region,place,poi,locality&country=us&limit=6`
         ).then((r) => r.json()),
       ]);
+
+      // Map unified search results to Peak and ChallengeProgress types
+      const peaks: Peak[] = searchResults.results
+        .filter((r): r is PeakSearchResult => r.type === "peak")
+        .map((r) => ({
+          id: r.id,
+          name: r.name,
+          elevation: r.elevation,
+          county: r.county,
+          state: r.state,
+          country: r.country,
+          location_coords: r.location_coords,
+          is_favorited: r.isFavorited,
+          public_summits: r.publicSummits,
+          summits: r.userSummits,
+          num_challenges: r.numChallenges,
+        }));
+
+      const challenges: ChallengeProgress[] = searchResults.results
+        .filter((r): r is ChallengeSearchResult => r.type === "challenge")
+        .map((r) => ({
+          id: r.id,
+          name: r.name,
+          region: r.region,
+          center_lat: r.center_lat,
+          center_long: r.center_long,
+          location_coords: r.center_lat && r.center_long ? [r.center_long, r.center_lat] : undefined,
+          num_peaks: r.numPeaks,
+          is_favorited: r.isFavorited ?? false,
+          is_public: true,
+          total: r.numPeaks,
+          completed: r.userCompleted ?? 0,
+        }));
 
       const placeFeatures = Array.isArray(placesJson?.features) ? placesJson.features : [];
       const outdoorCategories = ["park", "forest", "mountain", "trail", "nature", "recreation", "outdoor"];
@@ -85,30 +122,16 @@ export default function ExploreOmnibar({
   });
 
   const results = useMemo<SearchResult[]>(() => {
-    const q = debouncedQuery.trim().toLowerCase();
-    const scoreName = (name: string | null | undefined) => {
-      const n = (name ?? "").trim().toLowerCase();
-      if (!q || !n) return 0;
-      if (n === q) return 100;
-      if (n.startsWith(q)) return 80;
-      // Token start match (e.g. "mt whitney" vs "mount whitney")
-      const tokens = n.split(/\s+/);
-      if (tokens.some((t) => t.startsWith(q))) return 70;
-      if (n.includes(q)) return 50;
-      return 0;
-    };
-
+    // Unified search already returns results sorted by relevancy score
+    // We just need to limit and map to our display format
     const peaks = (data?.peaks ?? [])
-      .map((p, idx) => ({ p, idx, score: scoreName(p.name) }))
-      .sort((a, b) => b.score - a.score || a.idx - b.idx)
       .slice(0, MAX_PEAKS)
-      .map(({ p }) => ({ type: "peak" as const, id: p.id, peak: p }));
+      .map((p) => ({ type: "peak" as const, id: p.id, peak: p }));
 
     const challenges = (data?.challenges ?? [])
-      .map((c, idx) => ({ c, idx, score: scoreName(c.name) }))
-      .sort((a, b) => b.score - a.score || a.idx - b.idx)
       .slice(0, MAX_CHALLENGES)
-      .map(({ c }) => ({ type: "challenge" as const, id: c.id, challenge: c }));
+      .map((c) => ({ type: "challenge" as const, id: c.id, challenge: c }));
+
     const places = (data?.places ?? []).slice(0, 6).map((f: any) => ({
       type: "place" as const,
       id: String(f.id ?? `${f.text}:${f.place_name}`),
@@ -118,9 +141,10 @@ export default function ExploreOmnibar({
       place_type: Array.isArray(f.place_type) ? f.place_type : [],
       category: f?.properties?.category,
     }));
+
     // Prioritize: Challenges first, then Peaks, then Places (like web app).
     return [...challenges, ...peaks, ...places];
-  }, [data?.challenges, data?.peaks, data?.places, debouncedQuery]);
+  }, [data?.challenges, data?.peaks, data?.places]);
 
   const showDropdown = visible && isOpen && debouncedQuery.length >= 2 && (isLoading || results.length > 0);
 

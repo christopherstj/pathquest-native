@@ -1,5 +1,6 @@
 export * from "./TabSwitcher";
 export * from "./SummitCard";
+export * from "./SummitReviewRow";
 export * from "./WeatherDisplay";
 export * from "./WeatherBadge";
 export * from "./GPSStrip";

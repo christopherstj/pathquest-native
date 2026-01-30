@@ -110,7 +110,7 @@ const LoginPrompt: React.FC = () => {
       <Pressable 
         style={{
           flex: 1,
-          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          backgroundColor: isDark ? 'rgba(0, 0, 0, 0.75)' : 'rgba(0, 0, 0, 0.6)',
           justifyContent: 'center',
           alignItems: 'center',
           padding: 24,
@@ -240,11 +240,11 @@ const LoginPrompt: React.FC = () => {
                     activeOpacity={0.8}
                   >
                     {demoLoading ? (
-                      <ActivityIndicator color="white" size="small" />
+                      <ActivityIndicator color={colors.white} size="small" />
                     ) : (
                       <>
-                        <Key size={18} color="white" />
-                        <Text style={{ color: 'white', fontWeight: '600', fontSize: 15 }}>
+                        <Key size={18} color={colors.white} />
+                        <Text style={{ color: colors.white, fontWeight: '600', fontSize: 15 }}>
                           Sign In
                         </Text>
                       </>
@@ -304,8 +304,8 @@ const LoginPrompt: React.FC = () => {
                       paddingVertical: 14,
                       paddingHorizontal: 24,
                       borderRadius: 12,
-                      backgroundColor: '#FC4C02', // Strava orange
-                      shadowColor: '#FC4C02',
+                      backgroundColor: colors.stravaOrange,
+                      shadowColor: colors.stravaOrange,
                       shadowOffset: { width: 0, height: 4 },
                       shadowOpacity: 0.3,
                       shadowRadius: 8,
@@ -314,8 +314,8 @@ const LoginPrompt: React.FC = () => {
                     onPress={handleLogin}
                     activeOpacity={0.8}
                   >
-                    <LogIn size={18} color="white" />
-                    <Text style={{ color: 'white', fontWeight: '600', fontSize: 15 }}>
+                    <LogIn size={18} color={colors.white} />
+                    <Text style={{ color: colors.white, fontWeight: '600', fontSize: 15 }}>
                       Connect with Strava
                     </Text>
                   </TouchableOpacity>

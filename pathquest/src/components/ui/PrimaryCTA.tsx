@@ -170,8 +170,8 @@ const PrimaryCTA: React.FC<PrimaryCTAProps> = ({
             right: 0,
             height: 1,
             backgroundColor: isDark
-              ? "rgba(255,255,255,0.3)"
-              : "rgba(255,255,255,0.35)",
+              ? `${colors.white}4D`
+              : `${colors.white}59`,
           }}
         />
 
